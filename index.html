@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicCRM — Прототип v0.5</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { background: #f0f4f8; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .sidebar-item {
+      transition: all 0.15s ease;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+    }
+    .sidebar-item:hover { background: #f8fafc; border-left-color: #94a3b8; }
+    .sidebar-item.active { background: #f0fdfa; border-left-color: #14b8a6; }
+
+    .nav-btn { transition: all 0.15s ease; cursor: pointer; }
+    .nav-btn:hover { background: #f1f5f9; }
+    .nav-btn.active { background: #f0fdfa; color: #0f766e; font-weight: 600; }
+
+    .btn-soft {
+      transition: all 0.15s ease;
+      cursor: pointer;
+      border-radius: 12px;
+    }
+    .btn-soft:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .btn-soft:active { transform: translateY(0); }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .flag-pulse { animation: flag-pulse 2.5s ease-in-out infinite; }
+    @keyframes flag-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25); }
+      50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+    }
+
+    .view { display: none; }
+    .view.active { display: flex; }
+
+    .kanban-col { min-width: 220px; max-width: 260px; }
+    .kanban-card { transition: all 0.15s ease; cursor: pointer; }
+    .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1e293b; color: white;
+      padding: 12px 20px; border-radius: 12px;
+      font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      z-index: 100; opacity: 0; transform: translateY(12px);
+      transition: all 0.25s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.4);
+      z-index: 50; display: none; align-items: center; justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: white; border-radius: 20px; padding: 24px;
+      width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+    }
+    .stage-option {
+      cursor: pointer; transition: all 0.15s;
+      border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px;
+    }
+    .stage-option:hover { border-color: #14b8a6; background: #f0fdfa; }
+    .stage-option.selected { border-color: #14b8a6; background: #f0fdfa; ring: 2px; }
+  </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col text-slate-800">
+
+  <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-5 py-2 flex items-center justify-between z-20 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-sm">
+        <span class="text-white text-lg font-bold">C</span>
+      </div>
+      <div>
+        <div class="font-semibold text-slate-800 text-[15px] leading-tight">ClinicCRM</div>
+        <div class="text-[11px] text-slate-400">для стоматологий</div>
+      </div>
+    </div>
+
+    <nav class="flex items-center gap-1 bg-slate-100/80 rounded-xl p-1">
+      <button onclick="showView('comms')" id="nav-comms" class="nav-btn active px-4 py-1.5 rounded-lg text-[13px] text-slate-600">Коммуникации</button>
+      <button onclick="showView('kanban')" id="nav-kanban" class="nav-btn px-4 py-1.5 rounded-lg text-[13px] text-slate-600">Бизнес-процессы</button>
+      <button onclick="showView('analytics')" id="nav-analytics" class="nav-btn px-4 py-1.5 rounded-lg text-[13px] text-slate-600">Аналитика</button>
+    </nav>
+
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 text-sm">
+        <span class="w-2 h-2 bg-emerald-400 rounded-full pulse-dot"></span>
+        <span class="text-slate-600 text-[13px]">UIS · Онлайн</span>
+      </div>
+      <div class="h-6 w-px bg-slate-200"></div>
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white flex items-center justify-center text-xs font-semibold">АП</div>
+        <div class="text-right hidden sm:block">
+          <div class="text-[13px] font-medium text-slate-700 leading-tight">Анна Петрова</div>
+          <div class="text-[11px] text-slate-400">Администратор</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-hidden p-3">
+
+    <!-- VIEW: COMMUNICATIONS -->
+    <div id="view-comms" class="view active h-full gap-3">
+      <aside class="w-[300px] bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col overflow-hidden shrink-0">
+        <div class="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-semibold text-slate-800 text-[15px]">Входящие</h2>
+          <span class="badge bg-slate-100 text-slate-500" id="inbox-count">5</span>
+        </div>
+        <div class="px-3 py-2.5 flex gap-1.5 border-b border-slate-50">
+          <button class="badge bg-teal-50 text-teal-700 border border-teal-100">Все</button>
+          <button class="badge bg-slate-50 text-slate-500 hover:bg-slate-100" onclick="toast('Фильтр: Первичные')">Первичные</button>
+          <button class="badge bg-slate-50 text-slate-500 hover:bg-slate-100" onclick="toast('Фильтр: Непрочитанные')">Непрочит.</button>
+        </div>
+        <div class="flex-1 overflow-y-auto" id="inbox-list"></div>
+        <div class="p-3 border-t border-slate-100">
+          <button onclick="toast('Создание нового чата')" class="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-sm font-medium py-2.5 rounded-xl shadow-sm shadow-teal-500/20 btn-soft">+ Новый чат</button>
+        </div>
+      </aside>
+
+      <div class="flex-1 flex flex-col gap-3 overflow-hidden">
+        <div class="card px-6 py-5" id="patient-header">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex items-start gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-2xl" id="p-emoji">👨</div>
+              <div>
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <h1 class="text-xl font-semibold text-slate-900" id="p-name">—</h1>
+                  <span class="badge bg-slate-100 text-slate-600" id="p-age"></span>
+                  <span class="badge" id="p-status-badge"></span>
+                </div>
+                <div class="flex items-center gap-4 mt-2 text-[13px] text-slate-500">
+                  <span>Ответственный: <span class="text-slate-700 font-medium" id="p-admin">—</span></span>
+                  <span class="text-slate-300">|</span>
+                  <span>Врач: <span class="text-slate-700 font-medium" id="p-doctor">—</span></span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0" id="p-badges"></div>
+          </div>
+          <div class="mt-5 flex items-center gap-3">
+            <span class="text-[12px] text-slate-400 font-medium uppercase tracking-wider">Этап</span>
+            <div class="badge bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium" id="p-stage">—</div>
+            <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[180px]">
+              <div class="h-full bg-gradient-to-r from-indigo-400 to-violet-400 rounded-full transition-all duration-300" id="p-progress" style="width:0%"></div>
+            </div>
+            <span class="text-[12px] text-slate-400" id="p-progress-label">—</span>
+          </div>
+        </div>
+
+        <div class="flex flex-1 gap-3 overflow-hidden">
+          <div class="flex-1 card overflow-hidden flex flex-col">
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+              <h3 class="font-semibold text-slate-800 text-[14px]">История</h3>
+              <span class="text-[12px] text-slate-400" id="history-count">0 событий</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-3" id="history-feed"></div>
+          </div>
+
+          <!-- ACTIONS — working -->
+          <div class="w-[220px] card p-4 flex flex-col gap-2 overflow-y-auto shrink-0">
+            <h3 class="font-semibold text-slate-800 text-[13px] mb-1">Действия</h3>
+            <button onclick="actionBookMIS()" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-teal-50 text-teal-800 text-[13px] font-medium border border-teal-100 flex items-center gap-2">
+              📝 Записать в МИС
+            </button>
+            <button onclick="actionTemplate('address')" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 text-slate-700 text-[13px] border border-slate-100 flex items-center gap-2">
+              📍 Адрес
+            </button>
+            <button onclick="actionTemplate('price')" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 text-slate-700 text-[13px] border border-slate-100 flex items-center gap-2">
+              💰 Прайс
+            </button>
+            <button onclick="actionPlan()" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 text-slate-700 text-[13px] border border-slate-100 flex items-center gap-2">
+              📄 План лечения
+            </button>
+            <button onclick="actionReminder()" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 text-slate-700 text-[13px] border border-slate-100 flex items-center gap-2">
+              🔔 Напоминание
+            </button>
+            <button onclick="openStageModal()" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-[13px] font-medium border border-indigo-100 flex items-center gap-2">
+              🔄 Сменить статус
+            </button>
+            <div class="mt-auto pt-3 border-t border-slate-100 text-[11px] text-slate-400 leading-relaxed">
+              Действия пишутся в историю и меняют карточку пациента.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: KANBAN -->
+    <div id="view-kanban" class="view h-full flex-col gap-3">
+      <div class="flex items-center justify-between px-1">
+        <h2 class="text-lg font-semibold text-slate-800">Бизнес-процессы</h2>
+        <div class="flex gap-2">
+          <button onclick="toast('Фильтр по врачу')" class="badge bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">Все врачи</button>
+          <button onclick="toast('Фильтр по филиалу')" class="badge bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">Все филиалы</button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-x-auto">
+        <div class="flex gap-3 h-full pb-2" style="min-width: max-content;" id="kanban-board"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: ANALYTICS -->
+    <div id="view-analytics" class="view h-full flex-col gap-3">
+      <div class="flex items-center justify-between px-1">
+        <h2 class="text-lg font-semibold text-slate-800">Аналитика</h2>
+        <div class="flex gap-2">
+          <button class="badge bg-teal-50 text-teal-700 border border-teal-100 cursor-pointer">Сегодня</button>
+          <button onclick="toast('Период: Неделя')" class="badge bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer">Неделя</button>
+          <button onclick="toast('Период: Месяц')" class="badge bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer">Месяц</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-4 gap-3">
+        <div class="card p-4">
+          <div class="text-[12px] text-slate-400 font-medium">Первичные обращения</div>
+          <div class="text-2xl font-bold text-slate-800 mt-1">24</div>
+          <div class="text-[12px] text-emerald-600 mt-1">↑ 12% к вчера</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-[12px] text-slate-400 font-medium">Записались на приём</div>
+          <div class="text-2xl font-bold text-slate-800 mt-1">18</div>
+          <div class="text-[12px] text-slate-500 mt-1">конверсия 75%</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-[12px] text-slate-400 font-medium">Среднее время ответа</div>
+          <div class="text-2xl font-bold text-slate-800 mt-1">4:12</div>
+          <div class="text-[12px] text-emerald-600 mt-1">↓ лучше цели 5 мин</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-[12px] text-slate-400 font-medium">Просроченные задачи</div>
+          <div class="text-2xl font-bold text-rose-600 mt-1">3</div>
+          <div class="text-[12px] text-slate-500 mt-1">требуют внимания</div>
+        </div>
+      </div>
+      <div class="flex flex-1 gap-3 overflow-hidden">
+        <div class="flex-1 card p-5 overflow-y-auto">
+          <h3 class="font-semibold text-slate-800 text-[14px] mb-4">Конверсия администраторов</h3>
+          <div class="space-y-3">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold">АП</div>
+              <div class="flex-1">
+                <div class="flex justify-between text-[13px] mb-1"><span class="font-medium text-slate-700">Анна Петрова</span><span class="text-slate-500">12 / 14 · 86%</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-teal-400 rounded-full" style="width:86%"></div></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">МК</div>
+              <div class="flex-1">
+                <div class="flex justify-between text-[13px] mb-1"><span class="font-medium text-slate-700">Мария Ковалёва</span><span class="text-slate-500">8 / 11 · 73%</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-sky-400 rounded-full" style="width:73%"></div></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold">ДС</div>
+              <div class="flex-1">
+                <div class="flex justify-between text-[13px] mb-1"><span class="font-medium text-slate-700">Дмитрий Соколов</span><span class="text-slate-500">5 / 9 · 56%</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-violet-400 rounded-full" style="width:56%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 card p-5 overflow-y-auto">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-slate-800 text-[14px]">Первичные звонки сегодня</h3>
+            <button onclick="toast('Фильтр: только первичные')" class="badge bg-teal-50 text-teal-700 border border-teal-100 cursor-pointer">Только первичные</button>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer" onclick="toast('Звонок +7 999...')">
+              <span class="text-lg">📞</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium text-slate-800">+7 999 123-45-67</div>
+                <div class="text-[11px] text-slate-400">09:14 · 2:30 · записался</div>
+              </div>
+              <span class="badge bg-emerald-50 text-emerald-600">Успех</span>
+            </div>
+            <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer" onclick="toast('Звонок +7 916...')">
+              <span class="text-lg">📞</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium text-slate-800">+7 916 555-01-02</div>
+                <div class="text-[11px] text-slate-400">10:02 · 1:45 · думает</div>
+              </div>
+              <span class="badge bg-amber-50 text-amber-600">В работе</span>
+            </div>
+            <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer" onclick="toast('Звонок +7 903...')">
+              <span class="text-lg">📞</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium text-slate-800">+7 903 222-33-44</div>
+                <div class="text-[11px] text-slate-400">11:30 · 0:40 · сбросил</div>
+              </div>
+              <span class="badge bg-rose-50 text-rose-500">Отказ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border-t border-slate-200 px-5 py-1.5 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
+    <span>ClinicCRM · v0.5 · Рабочие действия</span>
+    <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
+  </div>
+
+  <!-- Stage modal -->
+  <div class="modal-bg" id="stage-modal" onclick="if(event.target===this)closeStageModal()">
+    <div class="modal">
+      <h3 class="font-semibold text-slate-800 text-lg mb-1">Сменить статус</h3>
+      <p class="text-[13px] text-slate-500 mb-4">Выберите новый этап бизнес-процесса</p>
+      <div class="space-y-2" id="stage-options"></div>
+      <div class="flex gap-2 mt-5">
+        <button onclick="closeStageModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50">Отмена</button>
+        <button onclick="confirmStage()" class="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">Применить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const STAGES = [
+      { num: 1, label: '1 · Первичный приём' },
+      { num: 2, label: '2 · Продажа плана лечения' },
+      { num: 3, label: '3 · Лечение' },
+      { num: 4, label: '4 · Профосмотр' },
+      { num: 5, label: '5 · Потенциальный клиент' }
+    ];
+
+    const TEMPLATES = {
+      address: {
+        title: 'Шаблон · Адрес клиники',
+        text: 'Наш адрес: ул. Примерная, 12, 3 этаж. Парковка во дворе. Работаем пн–сб 9:00–21:00.'
+      },
+      price: {
+        title: 'Шаблон · Прайс',
+        text: 'Проф. чистка — от 4 500 ₽\nПервичный осмотр — бесплатно\nКонсультация ортодонта — 2 000 ₽\nПолный прайс пришлём по запросу.'
+      }
+    };
+
+    const DB = {
+      patients: {
+        ivanov: {
+          id: 'ivanov', name: 'Иванов Иван Иванович', age: '35 лет', emoji: '👨',
+          phone: '+7 999 123-45-67', channelIcon: '📞', channelLabel: 'UIS · Первичный',
+          timeLabel: '00:15', unread: 0, statusInClinic: true,
+          admin: 'Анна Петрова', doctor: 'Смирнов А.А.',
+          stageNum: 2, stageTotal: 5, noSpam: true, bonuses: 1500, nps: 9,
+          preview: 'Идёт разговор...',
+          plan: 'Ортодонтия · брекет-система · ориентир 85 000 ₽',
+          history: [
+            { type:'visit', icon:'🩺', title:'Приём · Первичная консультация', date:'14.05.2024',
+              body:'Врач: Смирнов А.А. · NPS 9/10<br><span class="text-indigo-600 font-medium">Назначен план «Ортодонтия»</span>' },
+            { type:'msg', icon:'✈️', title:'Telegram', date:'13.05.2024',
+              body:'<div class="text-slate-400 italic">Пациент: «А как подготовиться?» <span class="text-[11px]">(удалено)</span></div><div class="text-slate-700 mt-1">Анна: «Специальной подготовки не требуется...»</div>' },
+            { type:'call', icon:'📞', title:'Звонок UIS · Первичный', date:'12.05.2024',
+              body:'<button onclick="toast(\'Воспроизведение записи...\')" class="text-[12px] text-teal-600 font-medium mb-2 hover:underline">▶ Прослушать</button><div class="bg-white rounded-lg border border-slate-100 p-3 text-[13px]"><div class="text-slate-500 mb-1 font-medium text-[12px]">🤖 ИИ-транскрибация</div><div class="text-slate-700">«Алло, здравствуйте, я хочу записаться на осмотр...»</div><div class="mt-2 flex items-start gap-2 bg-teal-50 rounded-lg px-3 py-2 border border-teal-100"><span>💡</span><span class="text-[12px] text-teal-800">Скрипт «Запись на первичный осмотр»</span></div></div>' }
+          ]
+        },
+        smirnova: {
+          id: 'smirnova', name: 'Мария Смирнова', age: '28 лет', emoji: '👩',
+          phone: '+7 916 444-55-66', channelIcon: '✈️', channelLabel: 'Telegram',
+          timeLabel: 'сейчас', unread: 1, statusInClinic: false,
+          admin: 'Анна Петрова', doctor: '—',
+          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 0, nps: null,
+          preview: 'Хочу записаться на чистку...',
+          plan: null,
+          history: [
+            { type:'msg', icon:'✈️', title:'Telegram', date:'сегодня 15:42',
+              body:'<div class="text-slate-700">Пациент: «Здравствуйте! Хочу записаться на профессиональную чистку. Есть окна на этой неделе?»</div>' },
+            { type:'msg', icon:'✈️', title:'Telegram', date:'сегодня 15:40',
+              body:'<div class="text-slate-400 italic">Пациент начал диалог</div>' }
+          ]
+        },
+        alexey: {
+          id: 'alexey', name: 'Алексей Воронов', age: '41 год', emoji: '👨',
+          phone: '+7 903 777-88-99', channelIcon: '🌐', channelLabel: 'ВКонтакте',
+          timeLabel: '12:40', unread: 0, statusInClinic: false,
+          admin: 'Мария Ковалёва', doctor: '—',
+          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 200, nps: null,
+          preview: 'Сколько стоит проф. чистка?',
+          plan: null,
+          history: [
+            { type:'msg', icon:'🌐', title:'ВКонтакте', date:'сегодня 12:40',
+              body:'<div class="text-slate-700">Пациент: «Добрый день. Сколько стоит профессиональная чистка? Есть скидки для первичных?»</div>' }
+          ]
+        },
+        site: {
+          id: 'site', name: 'Неизвестный (сайт)', age: '—', emoji: '📧',
+          phone: '+7 926 111-22-33', channelIcon: '📧', channelLabel: 'Сайт · Форма',
+          timeLabel: '11:05', unread: 0, statusInClinic: false,
+          admin: '—', doctor: '—',
+          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 0, nps: null,
+          preview: '«Перезвоните мне»',
+          plan: null,
+          history: [
+            { type:'email', icon:'📧', title:'Обращение с сайта', date:'сегодня 11:05',
+              body:'<div class="text-slate-700">Телефон: +7 926 111-22-33<br>Сообщение: «Перезвоните мне, хочу записаться к ортодонту»</div><div class="mt-2 text-[12px] text-slate-400">Источник: форма на сайте</div>' }
+          ]
+        },
+        mis: {
+          id: 'mis', name: 'Козлова Елена', age: '32 года', emoji: '👩',
+          phone: '+7 905 333-44-55', channelIcon: '✔️', channelLabel: 'МИС · Подтверждение',
+          timeLabel: 'авто', unread: 0, statusInClinic: false,
+          admin: 'Анна Петрова', doctor: 'Кузнецова О.В.',
+          stageNum: 3, stageTotal: 5, noSpam: false, bonuses: 800, nps: 8,
+          preview: 'Визит сегодня 14:30',
+          plan: 'Терапия · этап 2 из 4',
+          history: [
+            { type:'mis', icon:'✔️', title:'МИС · Авто-подтверждение', date:'сегодня 09:00',
+              body:'<div class="text-slate-700">Пациент подтвердил визит на <b>сегодня 14:30</b><br>Врач: Кузнецова О.В. · Терапия</div>' },
+            { type:'visit', icon:'🩺', title:'Приём · Терапия (этап 2)', date:'20.04.2024',
+              body:'Врач: Кузнецова О.В. · NPS 8/10<br><span class="text-indigo-600 font-medium">Следующий этап: 03.05.2024</span>' }
+          ]
+        }
+      },
+      inboxOrder: ['ivanov', 'smirnova', 'alexey', 'site', 'mis']
+    };
+
+    let currentPatientId = 'ivanov';
+    let pendingStage = null;
+
+    function nowLabel() {
+      const d = new Date();
+      return 'сегодня ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+
+    function addHistory(icon, title, body) {
+      const p = DB.patients[currentPatientId];
+      p.history.unshift({ type: 'action', icon, title, date: nowLabel(), body });
+      renderPatient(currentPatientId, false);
+    }
+
+    // ===== ACTIONS =====
+    function actionBookMIS() {
+      const p = DB.patients[currentPatientId];
+      addHistory('📝', 'Запись в МИС',
+        `<div class="text-slate-700">Администратор создал запись на приём в МИС.<br>
+        Пациент: <b>${p.name}</b><br>
+        Статус в МИС: <span class="text-teal-600 font-medium">ожидает подтверждения</span></div>
+        <div class="mt-2 text-[12px] text-slate-400">Синхронизация с IDENT / МИС выполнена (демо)</div>`);
+      if (p.stageNum === 1) {
+        p.stageNum = 1;
+        p.preview = 'Запись в МИС создана';
+      }
+      toast('✓ Запись создана в МИС');
+    }
+
+    function actionTemplate(key) {
+      const t = TEMPLATES[key];
+      if (!t) return;
+      const p = DB.patients[currentPatientId];
+      if (p.noSpam && key === 'price') {
+        toast('⚠ У пациента отказ от рассылок — шаблон не отправлен');
+        addHistory('🚫', 'Блок рассылки',
+          `<div class="text-rose-600">Попытка отправить «${t.title}» заблокирована: у пациента стоит отказ от рассылок.</div>`);
+        return;
+      }
+      addHistory('💬', t.title + ' · отправлено',
+        `<div class="text-slate-700 whitespace-pre-line">${t.text}</div>
+         <div class="mt-2 text-[12px] text-teal-600">Отправлено пациенту · ${nowLabel()}</div>`);
+      toast('✓ ' + t.title + ' отправлен');
+    }
+
+    function actionPlan() {
+      const p = DB.patients[currentPatientId];
+      if (p.plan) {
+        addHistory('📄', 'План лечения',
+          `<div class="text-slate-700"><b>Текущий план:</b><br>${p.plan}</div>
+           <div class="mt-2 text-[12px] text-slate-400">Открыт для просмотра / отправки пациенту</div>`);
+        toast('✓ План лечения: ' + p.plan.slice(0, 40) + '…');
+      } else {
+        addHistory('📄', 'План лечения',
+          `<div class="text-slate-500">План лечения ещё не назначен. После первичного приёма врач сформирует план в МИС — он появится здесь.</div>`);
+        toast('План лечения пока не назначен');
+      }
+    }
+
+    function actionReminder() {
+      const p = DB.patients[currentPatientId];
+      addHistory('🔔', 'Напоминание создано',
+        `<div class="text-slate-700">Задача: связаться с пациентом <b>${p.name}</b><br>
+        Срок: завтра, 11:00<br>
+        Ответственный: ${p.admin !== '—' ? p.admin : 'Анна Петрова'}</div>
+        <div class="mt-2 text-[12px] text-amber-600">Задача добавлена в список задач</div>`);
+      toast('✓ Напоминание создано на завтра 11:00');
+    }
+
+    function openStageModal() {
+      const p = DB.patients[currentPatientId];
+      pendingStage = p.stageNum;
+      const box = document.getElementById('stage-options');
+      box.innerHTML = STAGES.map(s => `
+        <div class="stage-option ${s.num === pendingStage ? 'selected' : ''}" onclick="pendingStage=${s.num}; openStageModal()">
+          <div class="font-medium text-[14px] text-slate-800">${s.label}</div>
+        </div>
+      `).join('');
+      document.getElementById('stage-modal').classList.add('open');
+    }
+
+    function closeStageModal() {
+      document.getElementById('stage-modal').classList.remove('open');
+      pendingStage = null;
+    }
+
+    function confirmStage() {
+      if (pendingStage == null) return;
+      const p = DB.patients[currentPatientId];
+      const old = STAGES.find(s => s.num === p.stageNum);
+      const neu = STAGES.find(s => s.num === pendingStage);
+      p.stageNum = pendingStage;
+      addHistory('🔄', 'Смена статуса',
+        `<div class="text-slate-700">Этап изменён:<br>
+        <span class="text-slate-400">${old ? old.label : '—'}</span>
+        → <span class="text-indigo-600 font-medium">${neu.label}</span></div>`);
+      closeStageModal();
+      toast('✓ Статус: ' + neu.label);
+      renderPatient(currentPatientId, false);
+    }
+
+    // ===== RENDER =====
+    function renderInbox() {
+      const list = document.getElementById('inbox-list');
+      list.innerHTML = '';
+      DB.inboxOrder.forEach(id => {
+        const p = DB.patients[id];
+        const el = document.createElement('div');
+        el.className = 'sidebar-item px-4 py-3.5' + (id === currentPatientId ? ' active' : '');
+        el.onclick = () => selectPatient(id);
+        const title = p.channelIcon === '📞' ? p.phone : p.name;
+        el.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-lg shrink-0">${p.channelIcon}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="font-medium text-slate-800 text-sm truncate">${title}</span>
+                ${p.unread ? `<span class="w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">${p.unread}</span>` : `<span class="text-[11px] text-slate-300">${p.timeLabel}</span>`}
+              </div>
+              <div class="text-[12px] text-slate-400 mt-0.5 truncate">${p.preview}</div>
+            </div>
+          </div>`;
+        list.appendChild(el);
+      });
+      document.getElementById('inbox-count').textContent = DB.inboxOrder.length;
+    }
+
+    function renderPatient(id, showToast = true) {
+      const p = DB.patients[id];
+      if (!p) return;
+      currentPatientId = id;
+      const stage = STAGES.find(s => s.num === p.stageNum);
+
+      document.getElementById('p-emoji').textContent = p.emoji;
+      document.getElementById('p-name').textContent = p.name;
+      document.getElementById('p-age').textContent = p.age;
+      document.getElementById('p-admin').textContent = p.admin;
+      document.getElementById('p-doctor').textContent = p.doctor;
+      document.getElementById('p-stage').textContent = stage ? stage.label : '—';
+      document.getElementById('p-progress').style.width = ((p.stageNum / p.stageTotal) * 100) + '%';
+      document.getElementById('p-progress-label').textContent = p.stageNum + ' из ' + p.stageTotal;
+
+      const statusEl = document.getElementById('p-status-badge');
+      if (p.statusInClinic) {
+        statusEl.className = 'badge bg-emerald-50 text-emerald-700 border border-emerald-100';
+        statusEl.textContent = '● В клинике';
+      } else {
+        statusEl.className = 'badge bg-slate-100 text-slate-500';
+        statusEl.textContent = 'не в клинике';
+      }
+
+      const badges = document.getElementById('p-badges');
+      let html = '';
+      if (p.noSpam) html += '<div class="flag-pulse badge bg-rose-50 text-rose-600 border border-rose-200">🚩 Отказ от рассылок</div>';
+      if (p.bonuses > 0) html += `<div class="badge bg-amber-50 text-amber-700 border border-amber-100">💰 ${p.bonuses.toLocaleString('ru-RU')} ₽</div>`;
+      if (p.nps != null) html += `<div class="badge bg-sky-50 text-sky-700 border border-sky-100">⭐ NPS ${p.nps}</div>`;
+      badges.innerHTML = html || '<span class="text-[12px] text-slate-300">нет меток</span>';
+
+      const feed = document.getElementById('history-feed');
+      document.getElementById('history-count').textContent = p.history.length + ' событий';
+      feed.innerHTML = p.history.map(h => `
+        <div class="rounded-xl bg-slate-50/80 border border-slate-100 p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-sm">${h.icon}</span>
+            <span class="text-[13px] font-medium text-slate-800">${h.title}</span>
+            <span class="ml-auto text-[11px] text-slate-400">${h.date}</span>
+          </div>
+          <div class="text-[13px] text-slate-600 leading-relaxed pl-9">${h.body}</div>
+        </div>
+      `).join('');
+
+      renderInbox();
+      if (showToast) toast('Карточка: ' + p.name);
+    }
+
+    function selectPatient(id) { renderPatient(id); }
+
+    function renderKanban() {
+      const byStage = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+      Object.values(DB.patients).forEach(p => {
+        if (byStage[p.stageNum]) byStage[p.stageNum].push(p);
+      });
+      const colors = { 1: 'sky', 2: 'indigo', 3: 'violet', 4: 'emerald', 5: 'amber' };
+      const board = document.getElementById('kanban-board');
+      board.innerHTML = STAGES.map(s => {
+        const cards = (byStage[s.num] || []).map(p => `
+          <div class="kanban-card card p-3" onclick="showView('comms'); selectPatient('${p.id}')">
+            <div class="font-medium text-[13px] text-slate-800">${p.name}</div>
+            <div class="text-[11px] text-slate-400 mt-1">${p.channelLabel}</div>
+            ${p.noSpam ? '<div class="mt-2"><span class="badge bg-rose-50 text-rose-500 text-[10px]">🚩</span></div>' : ''}
+          </div>`).join('');
+        return `<div class="kanban-col flex flex-col bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-100 bg-${colors[s.num]}-50/50">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-[13px] text-slate-800">${s.label}</span>
+              <span class="badge bg-${colors[s.num]}-100 text-${colors[s.num]}-700">${(byStage[s.num]||[]).length}</span>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2.5 space-y-2">${cards || '<div class="text-[12px] text-slate-300 text-center py-6">пусто</div>'}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-' + name)?.classList.add('active');
+      document.getElementById('nav-' + name)?.classList.add('active');
+      if (name === 'kanban') renderKanban();
+    }
+
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    renderInbox();
+    renderPatient('ivanov', false);
+  </script>
+</body>
+</html>
