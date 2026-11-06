@@ -550,10 +550,13 @@
     .profile-actions-bar button:hover { filter: brightness(0.98); }
 
     /* When showing profile panel instead of full history layout */
+    /* profile-mode: only design card; chat-mode: header + chat + actions */
     .patient-col.profile-mode .content-row { display: none; }
     .patient-col.profile-mode .patient-header { display: none; }
     .patient-col .profile-card { display: none; flex: 1; min-height: 0; }
     .patient-col.profile-mode .profile-card { display: flex; }
+    .patient-col:not(.profile-mode) .patient-header { display: block; }
+    .patient-col:not(.profile-mode) .content-row { display: flex; }
   
     /* Chat / communications */
     .chat-panel {
@@ -806,11 +809,13 @@
           <div class="card actions-card">
             <h3>Действия</h3>
             <button onclick="actionBookMIS()" class="btn-soft primary">📝 Записать в МИС</button>
+            <button onclick="actionTemplate('address')" class="btn-soft">📍 Адрес</button>
+            <button onclick="actionTemplate('price')" class="btn-soft">💰 Прайс</button>
             <button onclick="actionPlan()" class="btn-soft">📄 План лечения</button>
             <button onclick="actionReminder()" class="btn-soft">🔔 Напоминание</button>
             <button onclick="openStageModal()" class="btn-soft indigo">🔄 Сменить статус</button>
-            <button onclick="openPatientModal('edit')" class="btn-soft">✏️ Карточка</button>
-            <div class="actions-hint">Сообщения и звонки сохраняются в истории диалога.</div>
+            <button onclick="openPatientModal('edit')" class="btn-soft">✏️ Редактировать</button>
+            <div class="actions-hint">Действия и сообщения сохраняются в истории. Не удаляются при обновлении страницы.</div>
           </div>
         </div>
       </div>
@@ -926,7 +931,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v1.1.1 · Кнопки карточки</span>
+    <span>ClinicCRM · v1.2 · Восстановлены действия + чат</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -1135,7 +1140,7 @@
     let currentPatientId = 'ivanov';
     let pendingStage = null;
 
-    const STORAGE_KEY = 'cliniccrm_v11';
+    const STORAGE_KEY = 'cliniccrm_v12';
 
     function saveDB() {
       try {
