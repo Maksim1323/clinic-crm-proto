@@ -276,7 +276,54 @@
       .actions-card { width: 180px; }
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     }
-  </style>
+
+    /* Message composer */
+    .composer {
+      border-top: 1px solid #f1f5f9;
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .composer textarea {
+      flex: 1;
+      resize: none;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      min-height: 42px;
+      max-height: 100px;
+      outline: none;
+    }
+    .composer textarea:focus { border-color: #14b8a6; box-shadow: 0 0 0 3px rgba(20,184,166,0.12); }
+    .composer-send {
+      border: none; border-radius: 12px; padding: 10px 16px;
+      background: #0d9488; color: #fff; font-size: 13px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+    }
+    .composer-send:hover { background: #0f766e; }
+    .composer-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .bar-fill {
+      height: 8px; border-radius: 99px; background: #f1f5f9; overflow: hidden;
+    }
+    .bar-fill > span { display: block; height: 100%; border-radius: 99px; }
+    .admin-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .admin-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .call-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px; border-radius: 12px; cursor: pointer;
+    }
+    .call-row:hover { background: #f8fafc; }
+    </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
 
@@ -360,6 +407,10 @@
               <span id="history-count" style="font-size:12px;color:#94a3b8">0 событий</span>
             </div>
             <div class="history-feed" id="history-feed"></div>
+            <div class="composer">
+              <textarea id="msg-input" rows="1" placeholder="Написать сообщение пациенту..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+              <button class="composer-send" onclick="sendMessage()">Отправить</button>
+            </div>
           </div>
 
           <div class="card actions-card">
@@ -378,107 +429,107 @@
 
     <!-- VIEW: KANBAN -->
     <div id="view-kanban" class="view kanban-view">
-      <div class="flex items-center justify-between px-1">
-        <h2 class="text-lg font-semibold text-slate-800">Бизнес-процессы</h2>
-        <div class="flex gap-2">
-          <button onclick="toast('Фильтр по врачу')" class="badge bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">Все врачи</button>
-          <button onclick="toast('Фильтр по филиалу')" class="badge bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">Все филиалы</button>
+      <div class="kanban-toolbar">
+        <h2 style="font-size:18px;font-weight:600">Бизнес-процессы</h2>
+        <div style="display:flex;gap:8px">
+          <button onclick="toast('Фильтр по врачу')" class="badge">Все врачи</button>
+          <button onclick="toast('Фильтр по филиалу')" class="badge">Все филиалы</button>
         </div>
       </div>
-      <div class="flex-1 overflow-x-auto">
-        <div class="flex gap-3 h-full pb-2" style="min-width: max-content;" id="kanban-board"></div>
-      </div>
+      <div class="kanban-board" id="kanban-board"></div>
     </div>
 
     <!-- VIEW: ANALYTICS -->
     <div id="view-analytics" class="view analytics-view">
-      <div class="flex items-center justify-between px-1">
-        <h2 class="text-lg font-semibold text-slate-800">Аналитика</h2>
-        <div class="flex gap-2">
-          <button class="badge bg-teal-50 text-teal-700 border border-teal-100 cursor-pointer">Сегодня</button>
-          <button onclick="toast('Период: Неделя')" class="badge bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer">Неделя</button>
-          <button onclick="toast('Период: Месяц')" class="badge bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer">Месяц</button>
+      <div class="kanban-toolbar">
+        <h2 style="font-size:18px;font-weight:600">Аналитика</h2>
+        <div style="display:flex;gap:8px">
+          <button class="badge teal">Сегодня</button>
+          <button onclick="toast('Период: Неделя')" class="badge">Неделя</button>
+          <button onclick="toast('Период: Месяц')" class="badge">Месяц</button>
         </div>
       </div>
-      <div class="grid grid-cols-4 gap-3">
-        <div class="card p-4">
-          <div class="text-[12px] text-slate-400 font-medium">Первичные обращения</div>
-          <div class="text-2xl font-bold text-slate-800 mt-1">24</div>
-          <div class="text-[12px] text-emerald-600 mt-1">↑ 12% к вчера</div>
+      <div class="kpi-grid">
+        <div class="card kpi-card">
+          <div class="kpi-label">Первичные обращения</div>
+          <div class="kpi-value">24</div>
+          <div class="kpi-sub up">↑ 12% к вчера</div>
         </div>
-        <div class="card p-4">
-          <div class="text-[12px] text-slate-400 font-medium">Записались на приём</div>
-          <div class="text-2xl font-bold text-slate-800 mt-1">18</div>
-          <div class="text-[12px] text-slate-500 mt-1">конверсия 75%</div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Записались на приём</div>
+          <div class="kpi-value">18</div>
+          <div class="kpi-sub">конверсия 75%</div>
         </div>
-        <div class="card p-4">
-          <div class="text-[12px] text-slate-400 font-medium">Среднее время ответа</div>
-          <div class="text-2xl font-bold text-slate-800 mt-1">4:12</div>
-          <div class="text-[12px] text-emerald-600 mt-1">↓ лучше цели 5 мин</div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Среднее время ответа</div>
+          <div class="kpi-value">4:12</div>
+          <div class="kpi-sub up">↓ лучше цели 5 мин</div>
         </div>
-        <div class="card p-4">
-          <div class="text-[12px] text-slate-400 font-medium">Просроченные задачи</div>
-          <div class="text-2xl font-bold text-rose-600 mt-1">3</div>
-          <div class="text-[12px] text-slate-500 mt-1">требуют внимания</div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Просроченные задачи</div>
+          <div class="kpi-value" style="color:#e11d48">3</div>
+          <div class="kpi-sub">требуют внимания</div>
         </div>
       </div>
-      <div class="flex flex-1 gap-3 overflow-hidden">
-        <div class="flex-1 card p-5 overflow-y-auto">
-          <h3 class="font-semibold text-slate-800 text-[14px] mb-4">Конверсия администраторов</h3>
-          <div class="space-y-3">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold">АП</div>
-              <div class="flex-1">
-                <div class="flex justify-between text-[13px] mb-1"><span class="font-medium text-slate-700">Анна Петрова</span><span class="text-slate-500">12 / 14 · 86%</span></div>
-                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-teal-400 rounded-full" style="width:86%"></div></div>
+      <div class="analytics-row">
+        <div class="card analytics-panel">
+          <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Конверсия администраторов</h3>
+          <div class="admin-row">
+            <div class="admin-avatar" style="background:#ccfbf1;color:#0f766e">АП</div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                <span style="font-weight:500">Анна Петрова</span><span style="color:#64748b">12 / 14 · 86%</span>
               </div>
+              <div class="bar-fill"><span style="width:86%;background:#2dd4bf"></span></div>
             </div>
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">МК</div>
-              <div class="flex-1">
-                <div class="flex justify-between text-[13px] mb-1"><span class="font-medium text-slate-700">Мария Ковалёва</span><span class="text-slate-500">8 / 11 · 73%</span></div>
-                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-sky-400 rounded-full" style="width:73%"></div></div>
+          </div>
+          <div class="admin-row">
+            <div class="admin-avatar" style="background:#e0f2fe;color:#0369a1">МК</div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                <span style="font-weight:500">Мария Ковалёва</span><span style="color:#64748b">8 / 11 · 73%</span>
               </div>
+              <div class="bar-fill"><span style="width:73%;background:#38bdf8"></span></div>
             </div>
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold">ДС</div>
-              <div class="flex-1">
-                <div class="flex justify-between text-[13px] mb-1"><span class="font-medium text-slate-700">Дмитрий Соколов</span><span class="text-slate-500">5 / 9 · 56%</span></div>
-                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-violet-400 rounded-full" style="width:56%"></div></div>
+          </div>
+          <div class="admin-row">
+            <div class="admin-avatar" style="background:#ede9fe;color:#6d28d9">ДС</div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                <span style="font-weight:500">Дмитрий Соколов</span><span style="color:#64748b">5 / 9 · 56%</span>
               </div>
+              <div class="bar-fill"><span style="width:56%;background:#a78bfa"></span></div>
             </div>
           </div>
         </div>
-        <div class="flex-1 card p-5 overflow-y-auto">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-slate-800 text-[14px]">Первичные звонки сегодня</h3>
-            <button onclick="toast('Фильтр: только первичные')" class="badge bg-teal-50 text-teal-700 border border-teal-100 cursor-pointer">Только первичные</button>
+        <div class="card analytics-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:14px;font-weight:600">Первичные звонки сегодня</h3>
+            <button onclick="toast('Фильтр: только первичные')" class="badge teal">Только первичные</button>
           </div>
-          <div class="space-y-2">
-            <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer" onclick="toast('Звонок +7 999...')">
-              <span class="text-lg">📞</span>
-              <div class="flex-1 min-w-0">
-                <div class="text-[13px] font-medium text-slate-800">+7 999 123-45-67</div>
-                <div class="text-[11px] text-slate-400">09:14 · 2:30 · записался</div>
-              </div>
-              <span class="badge bg-emerald-50 text-emerald-600">Успех</span>
+          <div class="call-row" onclick="toast('Звонок +7 999...')">
+            <span style="font-size:18px">📞</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500">+7 999 123-45-67</div>
+              <div style="font-size:11px;color:#94a3b8">09:14 · 2:30 · записался</div>
             </div>
-            <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer" onclick="toast('Звонок +7 916...')">
-              <span class="text-lg">📞</span>
-              <div class="flex-1 min-w-0">
-                <div class="text-[13px] font-medium text-slate-800">+7 916 555-01-02</div>
-                <div class="text-[11px] text-slate-400">10:02 · 1:45 · думает</div>
-              </div>
-              <span class="badge bg-amber-50 text-amber-600">В работе</span>
+            <span class="badge green">Успех</span>
+          </div>
+          <div class="call-row" onclick="toast('Звонок +7 916...')">
+            <span style="font-size:18px">📞</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500">+7 916 555-01-02</div>
+              <div style="font-size:11px;color:#94a3b8">10:02 · 1:45 · думает</div>
             </div>
-            <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer" onclick="toast('Звонок +7 903...')">
-              <span class="text-lg">📞</span>
-              <div class="flex-1 min-w-0">
-                <div class="text-[13px] font-medium text-slate-800">+7 903 222-33-44</div>
-                <div class="text-[11px] text-slate-400">11:30 · 0:40 · сбросил</div>
-              </div>
-              <span class="badge bg-rose-50 text-rose-500">Отказ</span>
+            <span class="badge amber">В работе</span>
+          </div>
+          <div class="call-row" onclick="toast('Звонок +7 903...')">
+            <span style="font-size:18px">📞</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500">+7 903 222-33-44</div>
+              <div style="font-size:11px;color:#94a3b8">11:30 · 0:40 · сбросил</div>
             </div>
+            <span class="badge rose">Отказ</span>
           </div>
         </div>
       </div>
@@ -486,7 +537,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v0.6 · Стабильная вёрстка</span>
+    <span>ClinicCRM · v0.7 · Сообщения + исправлены экраны</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -607,6 +658,69 @@
     let currentPatientId = 'ivanov';
     let pendingStage = null;
 
+    const STORAGE_KEY = 'cliniccrm_v06';
+
+    function saveDB() {
+      try {
+        const payload = { patients: {}, currentPatientId };
+        Object.keys(DB.patients).forEach(id => {
+          const p = DB.patients[id];
+          payload.patients[id] = {
+            history: p.history,
+            stageNum: p.stageNum,
+            preview: p.preview,
+            unread: p.unread
+          };
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) { console.warn('save failed', e); }
+    }
+
+    function loadDB() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        Object.keys(data.patients || {}).forEach(id => {
+          if (!DB.patients[id]) return;
+          const s = data.patients[id];
+          if (s.history) DB.patients[id].history = s.history;
+          if (s.stageNum) DB.patients[id].stageNum = s.stageNum;
+          if (s.preview) DB.patients[id].preview = s.preview;
+          if (s.unread != null) DB.patients[id].unread = s.unread;
+        });
+        if (data.currentPatientId && DB.patients[data.currentPatientId]) {
+          currentPatientId = data.currentPatientId;
+        }
+      } catch (e) { console.warn('load failed', e); }
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('msg-input');
+      if (!input) return;
+      const text = (input.value || '').trim();
+      if (!text) return;
+      const p = DB.patients[currentPatientId];
+      if (!p) return;
+      if (p.noSpam) {
+        // still allow 1:1 reply, only block marketing templates
+      }
+      addHistory('💬', 'Исходящее сообщение',
+        `<div class="text-slate-700" style="white-space:pre-wrap">${escapeHtml(text)}</div>
+         <div style="margin-top:8px;font-size:12px;color:#0d9488">Отправлено · ${nowLabel()}</div>`);
+      p.preview = 'Вы: ' + text.slice(0, 40);
+      p.unread = 0;
+      input.value = '';
+      saveDB();
+      toast('✓ Сообщение сохранено в истории');
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+
+
     function nowLabel() {
       const d = new Date();
       return 'сегодня ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
@@ -615,6 +729,7 @@
     function addHistory(icon, title, body) {
       const p = DB.patients[currentPatientId];
       p.history.unshift({ type: 'action', icon, title, date: nowLabel(), body });
+      saveDB();
       renderPatient(currentPatientId, false);
     }
 
@@ -786,23 +901,24 @@
       Object.values(DB.patients).forEach(p => {
         if (byStage[p.stageNum]) byStage[p.stageNum].push(p);
       });
-      const colors = { 1: 'sky', 2: 'indigo', 3: 'violet', 4: 'emerald', 5: 'amber' };
+      const headBg = {
+        1: '#f0f9ff', 2: '#eef2ff', 3: '#f5f3ff', 4: '#ecfdf5', 5: '#fffbeb'
+      };
       const board = document.getElementById('kanban-board');
       board.innerHTML = STAGES.map(s => {
         const cards = (byStage[s.num] || []).map(p => `
-          <div class="kanban-card card p-3" onclick="showView('comms'); selectPatient('${p.id}')">
-            <div class="font-medium text-[13px] text-slate-800">${p.name}</div>
-            <div class="text-[11px] text-slate-400 mt-1">${p.channelLabel}</div>
-            ${p.noSpam ? '<div class="mt-2"><span class="badge bg-rose-50 text-rose-500 text-[10px]">🚩</span></div>' : ''}
+          <div class="kanban-card" onclick="showView('comms'); selectPatient('${p.id}')">
+            <div style="font-size:13px;font-weight:500">${p.name}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px">${p.channelLabel}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.preview || ''}</div>
+            ${p.noSpam ? '<div style="margin-top:8px"><span class="badge rose">🚩</span></div>' : ''}
           </div>`).join('');
-        return `<div class="kanban-col flex flex-col bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div class="px-4 py-3 border-b border-slate-100 bg-${colors[s.num]}-50/50">
-            <div class="flex items-center justify-between">
-              <span class="font-semibold text-[13px] text-slate-800">${s.label}</span>
-              <span class="badge bg-${colors[s.num]}-100 text-${colors[s.num]}-700">${(byStage[s.num]||[]).length}</span>
-            </div>
+        return `<div class="kanban-col">
+          <div class="kanban-col-head" style="background:${headBg[s.num]}">
+            <span>${s.label}</span>
+            <span class="badge">${(byStage[s.num]||[]).length}</span>
           </div>
-          <div class="flex-1 overflow-y-auto p-2.5 space-y-2">${cards || '<div class="text-[12px] text-slate-300 text-center py-6">пусто</div>'}</div>
+          <div class="kanban-col-body">${cards || '<div style="font-size:12px;color:#cbd5e1;text-align:center;padding:24px 0">пусто</div>'}</div>
         </div>`;
       }).join('');
     }
@@ -823,8 +939,9 @@
       window._toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     }
 
+    loadDB();
     renderInbox();
-    renderPatient('ivanov', false);
+    renderPatient(currentPatientId, false);
   </script>
 </body>
 </html>
