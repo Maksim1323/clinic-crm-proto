@@ -550,99 +550,10 @@
     .profile-actions-bar button:hover { filter: brightness(0.98); }
 
     /* When showing profile panel instead of full history layout */
-    /* profile-mode: only design card; chat-mode: header + chat + actions */
     .patient-col.profile-mode .content-row { display: none; }
     .patient-col.profile-mode .patient-header { display: none; }
     .patient-col .profile-card { display: none; flex: 1; min-height: 0; }
     .patient-col.profile-mode .profile-card { display: flex; }
-    .patient-col:not(.profile-mode) .patient-header { display: block; }
-    .patient-col:not(.profile-mode) .content-row { display: flex; }
-  
-    /* Chat / communications */
-    .chat-panel {
-      flex: 1; min-width: 0; display: flex; flex-direction: column;
-      overflow: hidden; background: #fff; border-radius: 16px;
-      border: 1px solid #e2e8f0;
-    }
-    .chat-header {
-      padding: 12px 16px; border-bottom: 1px solid #f1f5f9;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      flex-shrink: 0;
-    }
-    .chat-header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .chat-header-icon {
-      width: 36px; height: 36px; border-radius: 10px; background: #f0fdfa;
-      display: flex; align-items: center; justify-content: center; font-size: 16px;
-    }
-    .chat-header-title { font-size: 14px; font-weight: 600; color: #0f172a; }
-    .chat-header-sub { font-size: 12px; color: #94a3b8; }
-    .chat-header-actions { display: flex; gap: 6px; flex-shrink: 0; }
-    .chat-hbtn {
-      border: 1px solid #e2e8f0; background: #fff; border-radius: 8px;
-      padding: 6px 10px; font-size: 12px; cursor: pointer; color: #475569;
-    }
-    .chat-hbtn:hover { background: #f8fafc; }
-    .chat-hbtn.primary { background: #f0fdfa; border-color: #99f6e4; color: #0f766e; }
-
-    .chat-feed {
-      flex: 1; overflow-y: auto; padding: 16px;
-      display: flex; flex-direction: column; gap: 10px;
-      background: #f8fafc;
-    }
-    .bubble-row { display: flex; flex-direction: column; max-width: 85%; }
-    .bubble-row.in { align-self: flex-start; align-items: flex-start; }
-    .bubble-row.out { align-self: flex-end; align-items: flex-end; }
-    .bubble-row.sys { align-self: center; max-width: 95%; align-items: center; }
-    .bubble {
-      padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.45;
-      color: #0f172a; word-break: break-word;
-    }
-    .bubble-row.in .bubble {
-      background: #fff; border: 1px solid #e2e8f0;
-      border-bottom-left-radius: 4px;
-    }
-    .bubble-row.out .bubble {
-      background: #ccfbf1; border: 1px solid #99f6e4;
-      border-bottom-right-radius: 4px;
-    }
-    .bubble-row.sys .bubble {
-      background: #f1f5f9; border: none; color: #64748b;
-      font-size: 12px; border-radius: 12px; text-align: center;
-    }
-    .bubble-meta {
-      font-size: 11px; color: #94a3b8; margin-top: 4px; padding: 0 4px;
-    }
-    .bubble-call {
-      background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
-      padding: 12px 14px; min-width: 260px;
-    }
-    .bubble-call .call-top {
-      display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px;
-    }
-    .bubble-call .call-ai {
-      margin-top: 8px; background: #f8fafc; border-radius: 10px; padding: 10px;
-      font-size: 12px; color: #475569;
-    }
-    .bubble-call .call-hint {
-      margin-top: 8px; background: #f0fdfa; border: 1px solid #99f6e4;
-      border-radius: 8px; padding: 8px 10px; font-size: 12px; color: #0f766e;
-    }
-
-    .composer-bar {
-      border-top: 1px solid #f1f5f9; background: #fff; flex-shrink: 0;
-    }
-    .composer-templates {
-      display: flex; gap: 6px; padding: 8px 12px 0; flex-wrap: wrap;
-    }
-    .tpl-chip {
-      border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 20px;
-      padding: 4px 10px; font-size: 11px; cursor: pointer; color: #475569;
-    }
-    .tpl-chip:hover { background: #f0fdfa; border-color: #99f6e4; color: #0f766e; }
-    .composer {
-      border-top: none;
-      padding: 10px 12px 12px;
-    }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -776,33 +687,15 @@
         </div>
 
         <div class="content-row">
-          <div class="chat-panel">
-            <div class="chat-header">
-              <div class="chat-header-left">
-                <div class="chat-header-icon" id="chat-icon">💬</div>
-                <div>
-                  <div class="chat-header-title" id="chat-title">Диалог</div>
-                  <div class="chat-header-sub" id="chat-sub">—</div>
-                </div>
-              </div>
-              <div class="chat-header-actions">
-                <button type="button" class="chat-hbtn" onclick="showPatientProfile()">← Карточка</button>
-                <button type="button" class="chat-hbtn" onclick="demoIncoming()">↓ Входящее</button>
-                <button type="button" class="chat-hbtn primary" onclick="demoCall()">📞 Звонок</button>
-              </div>
+          <div class="card history-card">
+            <div class="history-head">
+              <h3 style="font-size:14px;font-weight:600">История</h3>
+              <span id="history-count" style="font-size:12px;color:#94a3b8">0 событий</span>
             </div>
-            <div class="chat-feed" id="history-feed"></div>
-            <div class="composer-bar">
-              <div class="composer-templates">
-                <button type="button" class="tpl-chip" onclick="actionTemplate('address')">📍 Адрес</button>
-                <button type="button" class="tpl-chip" onclick="actionTemplate('price')">💰 Прайс</button>
-                <button type="button" class="tpl-chip" onclick="insertTpl('Добрый день! Чем могу помочь?')">👋 Приветствие</button>
-                <button type="button" class="tpl-chip" onclick="insertTpl('Подскажите удобное время для записи')">📅 Запись</button>
-              </div>
-              <div class="composer">
-                <textarea id="msg-input" rows="1" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
-                <button class="composer-send" onclick="sendMessage()">Отправить</button>
-              </div>
+            <div class="history-feed" id="history-feed"></div>
+            <div class="composer">
+              <textarea id="msg-input" rows="1" placeholder="Написать сообщение пациенту..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+              <button class="composer-send" onclick="sendMessage()">Отправить</button>
             </div>
           </div>
 
@@ -814,8 +707,7 @@
             <button onclick="actionPlan()" class="btn-soft">📄 План лечения</button>
             <button onclick="actionReminder()" class="btn-soft">🔔 Напоминание</button>
             <button onclick="openStageModal()" class="btn-soft indigo">🔄 Сменить статус</button>
-            <button onclick="openPatientModal('edit')" class="btn-soft">✏️ Редактировать</button>
-            <div class="actions-hint">Действия и сообщения сохраняются в истории. Не удаляются при обновлении страницы.</div>
+            <div class="actions-hint">Действия пишутся в историю и меняют карточку пациента.</div>
           </div>
         </div>
       </div>
@@ -931,7 +823,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v1.2 · Восстановлены действия + чат</span>
+    <span>ClinicCRM · v1.0.1 · Карточка + Чат</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -1140,7 +1032,7 @@
     let currentPatientId = 'ivanov';
     let pendingStage = null;
 
-    const STORAGE_KEY = 'cliniccrm_v12';
+    const STORAGE_KEY = 'cliniccrm_v10';
 
     function saveDB() {
       try {
@@ -1327,91 +1219,6 @@
       }
     }
 
-
-    function renderChatItem(h) {
-      const dir = h.dir || guessDir(h);
-      if (h.type === 'call' || (h.icon === '📞' && h.title && h.title.indexOf('Звонок') >= 0)) {
-        return `<div class="bubble-row sys">
-          <div class="bubble-call">
-            <div class="call-top">${h.icon || '📞'} ${escapeHtml(h.title || 'Звонок')} <span style="font-weight:400;color:#94a3b8;margin-left:auto">${h.date || ''}</span></div>
-            <div class="call-ai">${h.body || ''}</div>
-          </div>
-        </div>`;
-      }
-      if (dir === 'sys') {
-        return `<div class="bubble-row sys"><div class="bubble">${h.icon || ''} ${escapeHtml(h.title || '')} · ${h.date || ''}<div style="margin-top:4px">${h.body || ''}</div></div></div>`;
-      }
-      const side = dir === 'out' ? 'out' : 'in';
-      const who = side === 'out' ? 'Вы' : 'Пациент';
-      // body may contain HTML from templates — for plain text messages we escape at insert time
-      return `<div class="bubble-row ${side}">
-        <div class="bubble">${h.body || escapeHtml(h.title || '')}</div>
-        <div class="bubble-meta">${who} · ${h.date || ''}</div>
-      </div>`;
-    }
-
-    function guessDir(h) {
-      if (h.dir) return h.dir;
-      if (h.type === 'action' || h.type === 'system' || h.type === 'note' || h.type === 'mis' || h.type === 'visit') return 'sys';
-      if (h.title && (h.title.indexOf('Шаблон') >= 0 || h.title.indexOf('Исходящее') >= 0 || h.title.indexOf('отправлено') >= 0)) return 'out';
-      if (h.icon === '💬' && h.title && h.title.indexOf('Исходящее') >= 0) return 'out';
-      return 'in';
-    }
-
-    function insertTpl(text) {
-      const input = document.getElementById('msg-input');
-      if (!input) return;
-      input.value = text;
-      input.focus();
-    }
-
-    function showPatientProfile() {
-      document.querySelector('.patient-col')?.classList.add('profile-mode');
-    }
-
-    function demoIncoming() {
-      const samples = [
-        'Спасибо, понял(а)!',
-        'А можно пораньше?',
-        'Сколько будет длиться приём?',
-        'Есть парковка рядом?',
-        'Можно записаться на субботу?'
-      ];
-      const text = samples[Math.floor(Math.random() * samples.length)];
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      p.history.unshift({
-        type: 'msg', dir: 'in', icon: p.channelIcon || '💬',
-        title: 'Входящее', date: nowLabel(),
-        body: escapeHtml(text)
-      });
-      p.preview = text;
-      p.unread = (p.unread || 0) + 1;
-      saveDB();
-      renderPatient(currentPatientId, false);
-      document.querySelector('.patient-col')?.classList.remove('profile-mode');
-      toast('↓ Входящее сообщение');
-    }
-
-    function demoCall() {
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      p.history.unshift({
-        type: 'call', dir: 'sys', icon: '📞',
-        title: 'Звонок UIS · Демо',
-        date: nowLabel(),
-        body: `<div style="margin-bottom:6px"><button onclick="toast('Воспроизведение записи...')" style="font-size:12px;color:#0d9488;background:none;border:none;cursor:pointer;padding:0">▶ Прослушать запись (1:24)</button></div>
-          <div><b>🤖 ИИ-транскрибация</b><br>«Здравствуйте, хотел бы уточнить стоимость и записаться на удобное время...»</div>
-          <div class="call-hint">💡 Подсказка: предложите 2 слота на этой неделе и отправьте адрес</div>`
-      });
-      p.preview = '📞 Звонок';
-      saveDB();
-      renderPatient(currentPatientId, false);
-      document.querySelector('.patient-col')?.classList.remove('profile-mode');
-      toast('📞 Демо-звонок добавлен');
-    }
-
-
     function sendMessage() {
       const input = document.getElementById('msg-input');
       if (!input) return;
@@ -1419,19 +1226,17 @@
       if (!text) return;
       const p = DB.patients[currentPatientId];
       if (!p) return;
-      p.history.unshift({
-        type: 'msg', dir: 'out', icon: '💬',
-        title: 'Исходящее сообщение',
-        date: nowLabel(),
-        body: escapeHtml(text).replace(/\n/g, '<br>')
-      });
+      if (p.noSpam) {
+        // still allow 1:1 reply, only block marketing templates
+      }
+      addHistory('💬', 'Исходящее сообщение',
+        `<div class="text-slate-700" style="white-space:pre-wrap">${escapeHtml(text)}</div>
+         <div style="margin-top:8px;font-size:12px;color:#0d9488">Отправлено · ${nowLabel()}</div>`);
       p.preview = 'Вы: ' + text.slice(0, 40);
       p.unread = 0;
       input.value = '';
       saveDB();
-      renderPatient(currentPatientId, false);
-      document.querySelector('.patient-col')?.classList.remove('profile-mode');
-      toast('✓ Сообщение отправлено');
+      toast('✓ Сообщение сохранено в истории');
     }
 
     function escapeHtml(s) {
@@ -1477,17 +1282,9 @@
           `<div class="text-rose-600">Попытка отправить «${t.title}» заблокирована: у пациента стоит отказ от рассылок.</div>`);
         return;
       }
-      const p = DB.patients[currentPatientId];
-      p.history.unshift({
-        type: 'msg', dir: 'out', icon: '💬',
-        title: t.title + ' · отправлено',
-        date: nowLabel(),
-        body: escapeHtml(t.text).replace(/\n/g, '<br>')
-      });
-      p.preview = 'Вы: ' + t.text.slice(0, 40);
-      saveDB();
-      renderPatient(currentPatientId, false);
-      document.querySelector('.patient-col')?.classList.remove('profile-mode');
+      addHistory('💬', t.title + ' · отправлено',
+        `<div class="text-slate-700 whitespace-pre-line">${t.text}</div>
+         <div class="mt-2 text-[12px] text-teal-600">Отправлено пациенту · ${nowLabel()}</div>`);
       toast('✓ ' + t.title + ' отправлен');
     }
 
@@ -1604,19 +1401,18 @@
       if (p.nps != null) bhtml += `<div class="badge sky">⭐ NPS ${p.nps}</div>`;
       badges.innerHTML = bhtml || '<span style="font-size:12px;color:#cbd5e1">нет меток</span>';
 
-      // chat header
-      const chatIcon = document.getElementById('chat-icon');
-      const chatTitle = document.getElementById('chat-title');
-      const chatSub = document.getElementById('chat-sub');
-      if (chatIcon) chatIcon.textContent = p.channelIcon || '💬';
-      if (chatTitle) chatTitle.textContent = p.name;
-      if (chatSub) chatSub.textContent = (p.channelLabel || '') + ' · ' + (p.phone || '');
-
       const feed = document.getElementById('history-feed');
-      // history is newest-first; show chronological (oldest top)
-      const items = [...p.history].reverse();
-      feed.innerHTML = items.map(h => renderChatItem(h)).join('');
-      feed.scrollTop = feed.scrollHeight;
+      document.getElementById('history-count').textContent = p.history.length + ' событий';
+      feed.innerHTML = p.history.map(h => `
+        <div class="hist-item">
+          <div class="hist-top">
+            <span class="hist-icon">${h.icon}</span>
+            <span class="hist-title">${h.title}</span>
+            <span class="hist-date">${h.date}</span>
+          </div>
+          <div class="hist-body">${h.body}</div>
+        </div>
+      `).join('');
 
       // Profile card (design)
       renderProfileCard(p);
@@ -1682,8 +1478,7 @@
 
     function showPatientHistory() {
       document.querySelector('.patient-col')?.classList.remove('profile-mode');
-      const feed = document.getElementById('history-feed');
-      if (feed) feed.scrollTop = feed.scrollHeight;
+      toast('Чат');
     }
 
     function selectPatient(id) { renderPatient(id); }
