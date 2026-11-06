@@ -406,6 +406,154 @@
       color: #475569;
     }
     .btn-edit-card:hover { background: #f8fafc; border-color: #cbd5e1; }
+  
+    /* Patient profile card (design match) */
+    .profile-card {
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid #e8ecf1;
+      box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+    }
+    .profile-card-head {
+      padding: 20px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .profile-card-head h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .profile-card-head .sub {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .profile-menu {
+      width: 32px; height: 32px; border: none; background: transparent;
+      border-radius: 8px; cursor: pointer; color: #94a3b8; font-size: 18px;
+    }
+    .profile-menu:hover { background: #f8fafc; }
+    .profile-hero {
+      text-align: center;
+      padding: 20px 24px 16px;
+    }
+    .profile-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: #fce7f3;
+      color: #be185d;
+      font-size: 22px; font-weight: 600;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .profile-avatar.male { background: #e0f2fe; color: #0369a1; }
+    .profile-avatar.female { background: #fce7f3; color: #be185d; }
+    .profile-name {
+      font-size: 20px; font-weight: 600; color: #0f172a;
+    }
+    .profile-since {
+      font-size: 13px; color: #94a3b8; margin-top: 4px;
+    }
+    .profile-tags {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 8px;
+      margin-top: 12px;
+    }
+    .tag {
+      font-size: 12px; font-weight: 500;
+      padding: 5px 12px; border-radius: 20px;
+      background: #eef2ff; color: #4f46e5;
+    }
+    .tag.muted { background: #f1f5f9; color: #64748b; }
+    .tag.pink { background: #fdf2f8; color: #be185d; }
+    .spam-banner {
+      margin: 12px 24px 0;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .spam-banner .flag { font-size: 16px; }
+    .spam-banner .t1 { font-size: 13px; font-weight: 600; color: #be123c; }
+    .spam-banner .t2 { font-size: 12px; color: #e11d48; margin-top: 2px; }
+    .profile-fields {
+      padding: 16px 24px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .profile-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; font-size: 13px;
+    }
+    .profile-row .label { color: #94a3b8; }
+    .profile-row .value {
+      color: #0f172a; font-weight: 500; text-align: right;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .profile-row .value.muted { color: #94a3b8; font-weight: 400; }
+    .mini-av {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #e0e7ff; color: #4338ca;
+      font-size: 9px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .process-box {
+      margin: 0 24px 16px;
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .process-box .plabel {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+      color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .process-box .ptitle {
+      font-size: 15px; font-weight: 600; color: #0f172a;
+    }
+    .process-box .pstatus {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: #64748b; margin-top: 6px;
+    }
+    .process-box .pdot {
+      width: 8px; height: 8px; border-radius: 50%; background: #6366f1;
+    }
+    .profile-links {
+      border-top: 1px solid #f1f5f9;
+      margin-top: auto;
+    }
+    .profile-link {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 24px;
+      font-size: 14px; color: #334155; cursor: pointer;
+      border: none; background: transparent; width: 100%; text-align: left;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .profile-link:last-child { border-bottom: none; }
+    .profile-link:hover { background: #f8fafc; }
+    .profile-link span.arrow { color: #cbd5e1; }
+    .profile-actions-bar {
+      padding: 12px 24px 16px;
+      display: flex; gap: 8px;
+    }
+    .profile-actions-bar button {
+      flex: 1; padding: 10px; border-radius: 12px; font-size: 13px;
+      font-weight: 500; cursor: pointer; border: 1px solid #e2e8f0;
+      background: #fff; color: #334155;
+    }
+    .profile-actions-bar button.primary {
+      background: #0d9488; color: #fff; border-color: #0d9488;
+    }
+    .profile-actions-bar button:hover { filter: brightness(0.98); }
+
+    /* When showing profile panel instead of full history layout */
+    .patient-col.profile-mode .content-row { display: none; }
+    .patient-col.profile-mode .patient-header { display: none; }
+    .patient-col .profile-card { display: none; flex: 1; min-height: 0; }
+    .patient-col.profile-mode .profile-card { display: flex; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -483,6 +631,66 @@
             <div class="badge indigo" id="p-stage">—</div>
             <div class="progress-track"><div class="progress-fill" id="p-progress" style="width:0%"></div></div>
             <span style="font-size:12px;color:#94a3b8" id="p-progress-label">—</span>
+          </div>
+        </div>
+
+
+        <!-- Design-matching patient profile card -->
+        <div class="profile-card" id="profile-card">
+          <div class="profile-card-head">
+            <div>
+              <h2>Карточка пациента</h2>
+              <div class="sub">Единый профиль</div>
+            </div>
+            <button type="button" class="profile-menu" onclick="openPatientModal('edit')" title="Меню">⋯</button>
+          </div>
+          <div class="profile-hero">
+            <div class="profile-avatar" id="pr-avatar">—</div>
+            <div class="profile-name" id="pr-name">—</div>
+            <div class="profile-since" id="pr-since">Пациент</div>
+            <div class="profile-tags" id="pr-tags"></div>
+          </div>
+          <div id="pr-spam" style="display:none" class="spam-banner">
+            <span class="flag">🚩</span>
+            <div>
+              <div class="t1">Отказ от рассылок</div>
+              <div class="t2">Маркетинговые сообщения заблокированы</div>
+            </div>
+          </div>
+          <div class="profile-fields">
+            <div class="profile-row">
+              <span class="label">Телефон</span>
+              <span class="value" id="pr-phone">—</span>
+            </div>
+            <div class="profile-row">
+              <span class="label">Ответственный</span>
+              <span class="value" id="pr-admin"><span class="mini-av" id="pr-admin-av">—</span> <span id="pr-admin-name">—</span></span>
+            </div>
+            <div class="profile-row">
+              <span class="label">Лечащий врач</span>
+              <span class="value" id="pr-doctor">—</span>
+            </div>
+            <div class="profile-row">
+              <span class="label">Бонусный баланс</span>
+              <span class="value" id="pr-bonuses">— ₽</span>
+            </div>
+          </div>
+          <div class="process-box">
+            <div class="plabel">Текущий процесс</div>
+            <div class="ptitle" id="pr-process">—</div>
+            <div class="pstatus"><span class="pdot"></span> <span id="pr-process-status">—</span></div>
+          </div>
+          <div class="profile-links">
+            <button type="button" class="profile-link" onclick="showPatientHistory()">
+              История пациента <span class="arrow">→</span>
+            </button>
+            <button type="button" class="profile-link" onclick="openPatientModal('edit')">
+              Открыть профиль <span class="arrow">↗</span>
+            </button>
+          </div>
+          <div class="profile-actions-bar">
+            <button type="button" onclick="showPatientHistory()">История</button>
+            <button type="button" class="primary" onclick="openPatientModal('edit')">Редактировать</button>
           </div>
         </div>
 
@@ -623,7 +831,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v0.9 · Карточки пациентов (CRUD)</span>
+    <span>ClinicCRM · v1.0 · Карточка по макету</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -753,7 +961,7 @@
     const DB = {
       patients: {
         ivanov: {
-          id: 'ivanov', name: 'Иванов Иван Иванович', age: '35 лет', emoji: '👨',
+          id: 'ivanov', name: 'Иванов Иван Иванович', age: '35 лет', emoji: '👨', createdAt: '12.05.2024', gender: 'male',
           phone: '+7 999 123-45-67', channelIcon: '📞', channelLabel: 'UIS · Первичный',
           timeLabel: '00:15', unread: 0, statusInClinic: true,
           admin: 'Анна Петрова', doctor: 'Смирнов А.А.',
@@ -770,7 +978,7 @@
           ]
         },
         smirnova: {
-          id: 'smirnova', name: 'Мария Смирнова', age: '28 лет', emoji: '👩',
+          id: 'smirnova', name: 'Мария Смирнова', age: '28 лет', emoji: '👩', createdAt: '06.11.2026', gender: 'female',
           phone: '+7 916 444-55-66', channelIcon: '✈️', channelLabel: 'Telegram',
           timeLabel: 'сейчас', unread: 1, statusInClinic: false,
           admin: 'Анна Петрова', doctor: '—',
@@ -785,7 +993,7 @@
           ]
         },
         alexey: {
-          id: 'alexey', name: 'Алексей Воронов', age: '41 год', emoji: '👨',
+          id: 'alexey', name: 'Алексей Воронов', age: '41 год', emoji: '👨', createdAt: '05.11.2026', gender: 'male',
           phone: '+7 903 777-88-99', channelIcon: '🌐', channelLabel: 'ВКонтакте',
           timeLabel: '12:40', unread: 0, statusInClinic: false,
           admin: 'Мария Ковалёва', doctor: '—',
@@ -798,7 +1006,7 @@
           ]
         },
         site: {
-          id: 'site', name: 'Неизвестный (сайт)', age: '—', emoji: '📧',
+          id: 'site', name: 'Неизвестный (сайт)', age: '—', emoji: '📧', createdAt: '06.11.2026', gender: null,
           phone: '+7 926 111-22-33', channelIcon: '📧', channelLabel: 'Сайт · Форма',
           timeLabel: '11:05', unread: 0, statusInClinic: false,
           admin: '—', doctor: '—',
@@ -811,7 +1019,7 @@
           ]
         },
         mis: {
-          id: 'mis', name: 'Козлова Елена', age: '32 года', emoji: '👩',
+          id: 'mis', name: 'Козлова Елена', age: '32 года', emoji: '👩', createdAt: '20.04.2024', gender: 'female',
           phone: '+7 905 333-44-55', channelIcon: '✔️', channelLabel: 'МИС · Подтверждение',
           timeLabel: 'авто', unread: 0, statusInClinic: false,
           admin: 'Анна Петрова', doctor: 'Кузнецова О.В.',
@@ -832,7 +1040,7 @@
     let currentPatientId = 'ivanov';
     let pendingStage = null;
 
-    const STORAGE_KEY = 'cliniccrm_v09';
+    const STORAGE_KEY = 'cliniccrm_v10';
 
     function saveDB() {
       try {
@@ -962,6 +1170,7 @@
           bonuses: parseInt(document.getElementById('pf-bonuses').value, 10) || 0,
           nps,
           preview: 'Новая карточка',
+          createdAt: new Date().toLocaleDateString('ru-RU'),
           plan: document.getElementById('pf-plan').value.trim() || null,
           note: document.getElementById('pf-note').value.trim() || '',
           history: [{
@@ -1213,8 +1422,71 @@
         </div>
       `).join('');
 
+      // Profile card (design)
+      renderProfileCard(p);
+
       renderInbox();
       if (showToast) toast('Карточка: ' + p.name);
+    }
+
+    function initials(name) {
+      const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) return '?';
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+
+    function renderProfileCard(p) {
+      const av = document.getElementById('pr-avatar');
+      av.textContent = initials(p.name);
+      av.className = 'profile-avatar ' + (p.gender === 'male' ? 'male' : (p.gender === 'female' ? 'female' : ''));
+      document.getElementById('pr-name').textContent = p.name;
+      const since = p.createdAt || '06.11.2026';
+      document.getElementById('pr-since').textContent = 'Пациент с ' + since;
+
+      const tags = document.getElementById('pr-tags');
+      const ageTag = (p.age && /\d+/.test(p.age) && parseInt(p.age) < 18) ? 'Ребёнок' : 'Взрослый';
+      let tagHtml = '<span class="tag muted">' + ageTag + '</span>';
+      if (p.plan) {
+        const short = p.plan.split('·')[0].trim().slice(0, 24);
+        tagHtml += '<span class="tag">' + short + '</span>';
+      } else if (p.stageNum === 1) {
+        tagHtml += '<span class="tag">Первичный</span>';
+      }
+      tags.innerHTML = tagHtml;
+
+      const spam = document.getElementById('pr-spam');
+      spam.style.display = p.noSpam ? 'flex' : 'none';
+
+      document.getElementById('pr-phone').textContent = p.phone || '—';
+      const adminName = p.admin && p.admin !== '—' ? p.admin : 'Не назначен';
+      document.getElementById('pr-admin-name').textContent = adminName;
+      document.getElementById('pr-admin-av').textContent = initials(adminName);
+      const doc = p.doctor && p.doctor !== '—' ? p.doctor : 'Не назначен';
+      const docEl = document.getElementById('pr-doctor');
+      docEl.textContent = doc;
+      docEl.className = 'value' + (doc === 'Не назначен' ? ' muted' : '');
+      document.getElementById('pr-bonuses').textContent =
+        (p.bonuses > 0 ? p.bonuses.toLocaleString('ru-RU') + ' ₽' : '— ₽');
+
+      const stage = STAGES.find(s => s.num === p.stageNum);
+      document.getElementById('pr-process').textContent = stage ? stage.label.replace(/^\d+ · /, '') : '—';
+      const statusMap = {
+        1: 'Новое обращение',
+        2: 'Согласование плана',
+        3: 'Лечение в процессе',
+        4: 'Плановый контроль',
+        5: 'В базе прогрева'
+      };
+      document.getElementById('pr-process-status').textContent = statusMap[p.stageNum] || '—';
+
+      // show profile card mode
+      document.querySelector('.patient-col')?.classList.add('profile-mode');
+    }
+
+    function showPatientHistory() {
+      document.querySelector('.patient-col')?.classList.remove('profile-mode');
+      toast('История пациента');
     }
 
     function selectPatient(id) { renderPatient(id); }
