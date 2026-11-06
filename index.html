@@ -4,218 +4,380 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ClinicCRM — Прототип v0.5</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    body { background: #f0f4f8; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      color: #1e293b;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
     ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-    .card {
-      background: white;
-      border-radius: 16px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    /* Header */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 8px 20px;
+      background: rgba(255,255,255,0.9);
+      border-bottom: 1px solid #e2e8f0;
+      flex-shrink: 0;
+      z-index: 20;
     }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 36px; height: 36px; border-radius: 12px;
+      background: linear-gradient(135deg, #14b8a6, #0891b2);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 18px;
+    }
+    .brand-title { font-weight: 600; font-size: 15px; line-height: 1.2; }
+    .brand-sub { font-size: 11px; color: #94a3b8; }
+    .nav {
+      display: flex; gap: 4px; background: #f1f5f9; border-radius: 12px; padding: 4px;
+    }
+    .nav-btn {
+      border: none; background: transparent; cursor: pointer;
+      padding: 6px 16px; border-radius: 8px; font-size: 13px; color: #475569;
+      transition: 0.15s;
+    }
+    .nav-btn:hover { background: #e2e8f0; }
+    .nav-btn.active { background: #f0fdfa; color: #0f766e; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .online { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; }
+    .dot {
+      width: 8px; height: 8px; background: #34d399; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 50% { opacity: 0.5; } }
+    .user { display: flex; align-items: center; gap: 10px; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, #2dd4bf, #0d9488);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+    }
+    .user-name { font-size: 13px; font-weight: 500; }
+    .user-role { font-size: 11px; color: #94a3b8; }
+
+    /* Main area */
+    .main-wrap {
+      flex: 1; overflow: hidden; padding: 12px;
+      min-height: 0;
+    }
+    .view { display: none; height: 100%; min-height: 0; }
+    .view.active { display: flex; gap: 12px; }
+
+    .card {
+      background: #fff; border-radius: 16px;
+      border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 300px; flex-shrink: 0;
+      display: flex; flex-direction: column; overflow: hidden;
+      background: #fff; border-radius: 16px; border: 1px solid #e2e8f0;
+    }
+    .sidebar-head {
+      padding: 14px 16px; border-bottom: 1px solid #f1f5f9;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .sidebar-head h2 { font-size: 15px; font-weight: 600; }
+    .filters { padding: 10px 12px; display: flex; gap: 6px; border-bottom: 1px solid #f8fafc; }
+    .inbox-list { flex: 1; overflow-y: auto; }
     .sidebar-item {
-      transition: all 0.15s ease;
-      border-left: 3px solid transparent;
-      cursor: pointer;
+      padding: 14px 16px; cursor: pointer;
+      border-left: 3px solid transparent; transition: 0.15s;
     }
     .sidebar-item:hover { background: #f8fafc; border-left-color: #94a3b8; }
     .sidebar-item.active { background: #f0fdfa; border-left-color: #14b8a6; }
-
-    .nav-btn { transition: all 0.15s ease; cursor: pointer; }
-    .nav-btn:hover { background: #f1f5f9; }
-    .nav-btn.active { background: #f0fdfa; color: #0f766e; font-weight: 600; }
-
-    .btn-soft {
-      transition: all 0.15s ease;
-      cursor: pointer;
-      border-radius: 12px;
+    .sidebar-item-row { display: flex; align-items: center; gap: 12px; }
+    .ch-icon {
+      width: 40px; height: 40px; border-radius: 50%; background: #f8fafc;
+      display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
     }
-    .btn-soft:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .btn-soft:active { transform: translateY(0); }
+    .ch-body { flex: 1; min-width: 0; }
+    .ch-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .ch-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ch-time { font-size: 11px; color: #cbd5e1; flex-shrink: 0; }
+    .ch-preview { font-size: 12px; color: #94a3b8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .unread {
+      width: 20px; height: 20px; background: #f43f5e; color: #fff;
+      font-size: 10px; font-weight: 700; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .sidebar-foot { padding: 12px; border-top: 1px solid #f1f5f9; }
+    .btn-primary {
+      width: 100%; padding: 10px; border: none; border-radius: 12px; cursor: pointer;
+      background: linear-gradient(90deg, #14b8a6, #06b6d4); color: #fff;
+      font-size: 13px; font-weight: 500;
+    }
+    .btn-primary:hover { filter: brightness(1.05); }
+
+    /* Patient column */
+    .patient-col {
+      flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden;
+    }
+    .patient-header { padding: 20px 24px; }
+    .patient-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+    .patient-left { display: flex; gap: 16px; align-items: flex-start; }
+    .patient-emoji {
+      width: 56px; height: 56px; border-radius: 16px; background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0;
+    }
+    .patient-name { font-size: 20px; font-weight: 600; }
+    .patient-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+    .patient-sub { font-size: 13px; color: #64748b; margin-top: 8px; }
+    .patient-sub b { color: #334155; font-weight: 500; }
+    .patient-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+    .patient-stage {
+      margin-top: 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .progress-track {
+      flex: 1; max-width: 180px; height: 6px; background: #f1f5f9; border-radius: 99px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, #818cf8, #a78bfa); border-radius: 99px; transition: width 0.3s;
+    }
+
+    .content-row { flex: 1; min-height: 0; display: flex; gap: 12px; overflow: hidden; }
+    .history-card { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .history-head {
+      padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .history-feed { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .hist-item {
+      background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px;
+    }
+    .hist-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .hist-icon {
+      width: 28px; height: 28px; border-radius: 8px; background: #fff; border: 1px solid #e2e8f0;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .hist-title { font-size: 13px; font-weight: 500; flex: 1; }
+    .hist-date { font-size: 11px; color: #94a3b8; }
+    .hist-body { font-size: 13px; color: #475569; line-height: 1.5; padding-left: 36px; }
+
+    .actions-card {
+      width: 220px; flex-shrink: 0; padding: 16px;
+      display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+    }
+    .actions-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .btn-soft {
+      width: 100%; text-align: left; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer;
+      font-size: 13px; color: #334155; display: flex; align-items: center; gap: 8px;
+      transition: 0.15s;
+    }
+    .btn-soft:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .btn-soft.primary { background: #f0fdfa; border-color: #99f6e4; color: #0f766e; font-weight: 500; }
+    .btn-soft.indigo { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; font-weight: 500; }
+    .actions-hint { margin-top: auto; padding-top: 12px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; line-height: 1.4; }
 
     .badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 20px;
+      font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+      background: #f1f5f9; color: #475569; border: 1px solid transparent;
+      display: inline-flex; align-items: center; gap: 4px;
     }
-    .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .flag-pulse { animation: flag-pulse 2.5s ease-in-out infinite; }
-    @keyframes flag-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25); }
-      50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+    .badge.teal { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; }
+    .badge.green { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .badge.rose { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
+    .badge.amber { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .badge.sky { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; }
+    .badge.indigo { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+    .flag-pulse { animation: flag 2.5s infinite; }
+    @keyframes flag {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.25); }
+      50% { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
     }
 
-    .view { display: none; }
-    .view.active { display: flex; }
-
-    .kanban-col { min-width: 220px; max-width: 260px; }
-    .kanban-card { transition: all 0.15s ease; cursor: pointer; }
+    /* Kanban */
+    .kanban-view { flex-direction: column; gap: 12px; }
+    .kanban-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+    .kanban-board { flex: 1; overflow-x: auto; display: flex; gap: 12px; padding-bottom: 8px; min-height: 0; }
+    .kanban-col {
+      min-width: 220px; max-width: 260px;
+      display: flex; flex-direction: column; overflow: hidden;
+      background: #fff; border-radius: 16px; border: 1px solid #e2e8f0;
+    }
+    .kanban-col-head {
+      padding: 12px 16px; border-bottom: 1px solid #f1f5f9;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px; font-weight: 600;
+    }
+    .kanban-col-body { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .kanban-card {
+      padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff;
+      cursor: pointer; transition: 0.15s;
+    }
     .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
 
-    .toast {
-      position: fixed; bottom: 24px; right: 24px;
-      background: #1e293b; color: white;
-      padding: 12px 20px; border-radius: 12px;
-      font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-      z-index: 100; opacity: 0; transform: translateY(12px);
-      transition: all 0.25s ease;
-    }
-    .toast.show { opacity: 1; transform: translateY(0); }
+    /* Analytics */
+    .analytics-view { flex-direction: column; gap: 12px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .kpi-card { padding: 16px; }
+    .kpi-label { font-size: 12px; color: #94a3b8; font-weight: 500; }
+    .kpi-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .kpi-sub { font-size: 12px; margin-top: 4px; color: #64748b; }
+    .kpi-sub.up { color: #059669; }
+    .analytics-row { flex: 1; min-height: 0; display: flex; gap: 12px; overflow: hidden; }
+    .analytics-panel { flex: 1; padding: 20px; overflow-y: auto; }
 
+    /* Footer */
+    .app-footer {
+      background: #fff; border-top: 1px solid #e2e8f0;
+      padding: 6px 20px; display: flex; justify-content: space-between;
+      font-size: 11px; color: #94a3b8; flex-shrink: 0;
+    }
+
+    /* Modal */
     .modal-bg {
       position: fixed; inset: 0; background: rgba(15,23,42,0.4);
       z-index: 50; display: none; align-items: center; justify-content: center;
     }
     .modal-bg.open { display: flex; }
     .modal {
-      background: white; border-radius: 20px; padding: 24px;
+      background: #fff; border-radius: 20px; padding: 24px;
       width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);
     }
     .stage-option {
-      cursor: pointer; transition: all 0.15s;
-      border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px;
+      cursor: pointer; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 12px 14px; margin-bottom: 8px; transition: 0.15s;
     }
-    .stage-option:hover { border-color: #14b8a6; background: #f0fdfa; }
-    .stage-option.selected { border-color: #14b8a6; background: #f0fdfa; ring: 2px; }
+    .stage-option:hover, .stage-option.selected { border-color: #14b8a6; background: #f0fdfa; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+    .modal-actions button {
+      flex: 1; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;
+      background: #fff; cursor: pointer; font-size: 14px; font-weight: 500;
+    }
+    .modal-actions .ok { background: #0d9488; color: #fff; border-color: #0d9488; }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff;
+      padding: 12px 20px; border-radius: 12px; font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100;
+      opacity: 0; transform: translateY(12px); transition: 0.25s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 960px) {
+      .app-header { flex-wrap: wrap; }
+      .sidebar { width: 260px; }
+      .actions-card { width: 180px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
   </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
 
-  <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-5 py-2 flex items-center justify-between z-20 shrink-0">
-    <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-sm">
-        <span class="text-white text-lg font-bold">C</span>
-      </div>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">C</div>
       <div>
-        <div class="font-semibold text-slate-800 text-[15px] leading-tight">ClinicCRM</div>
-        <div class="text-[11px] text-slate-400">для стоматологий</div>
+        <div class="brand-title">ClinicCRM</div>
+        <div class="brand-sub">для стоматологий</div>
       </div>
     </div>
-
-    <nav class="flex items-center gap-1 bg-slate-100/80 rounded-xl p-1">
-      <button onclick="showView('comms')" id="nav-comms" class="nav-btn active px-4 py-1.5 rounded-lg text-[13px] text-slate-600">Коммуникации</button>
-      <button onclick="showView('kanban')" id="nav-kanban" class="nav-btn px-4 py-1.5 rounded-lg text-[13px] text-slate-600">Бизнес-процессы</button>
-      <button onclick="showView('analytics')" id="nav-analytics" class="nav-btn px-4 py-1.5 rounded-lg text-[13px] text-slate-600">Аналитика</button>
+    <nav class="nav">
+      <button onclick="showView('comms')" id="nav-comms" class="nav-btn active">Коммуникации</button>
+      <button onclick="showView('kanban')" id="nav-kanban" class="nav-btn">Бизнес-процессы</button>
+      <button onclick="showView('analytics')" id="nav-analytics" class="nav-btn">Аналитика</button>
     </nav>
-
-    <div class="flex items-center gap-4">
-      <div class="flex items-center gap-2 text-sm">
-        <span class="w-2 h-2 bg-emerald-400 rounded-full pulse-dot"></span>
-        <span class="text-slate-600 text-[13px]">UIS · Онлайн</span>
-      </div>
-      <div class="h-6 w-px bg-slate-200"></div>
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white flex items-center justify-center text-xs font-semibold">АП</div>
-        <div class="text-right hidden sm:block">
-          <div class="text-[13px] font-medium text-slate-700 leading-tight">Анна Петрова</div>
-          <div class="text-[11px] text-slate-400">Администратор</div>
+    <div class="header-right">
+      <div class="online"><span class="dot"></span>UIS · Онлайн</div>
+      <div class="user">
+        <div class="avatar">АП</div>
+        <div>
+          <div class="user-name">Анна Петрова</div>
+          <div class="user-role">Администратор</div>
         </div>
       </div>
     </div>
   </header>
 
-  <div class="flex-1 overflow-hidden p-3">
+  <div class="main-wrap">
 
     <!-- VIEW: COMMUNICATIONS -->
-    <div id="view-comms" class="view active h-full gap-3">
-      <aside class="w-[300px] bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col overflow-hidden shrink-0">
-        <div class="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
-          <h2 class="font-semibold text-slate-800 text-[15px]">Входящие</h2>
-          <span class="badge bg-slate-100 text-slate-500" id="inbox-count">5</span>
+    <div id="view-comms" class="view active">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <h2>Входящие</h2>
+          <span class="badge" id="inbox-count">5</span>
         </div>
-        <div class="px-3 py-2.5 flex gap-1.5 border-b border-slate-50">
-          <button class="badge bg-teal-50 text-teal-700 border border-teal-100">Все</button>
-          <button class="badge bg-slate-50 text-slate-500 hover:bg-slate-100" onclick="toast('Фильтр: Первичные')">Первичные</button>
-          <button class="badge bg-slate-50 text-slate-500 hover:bg-slate-100" onclick="toast('Фильтр: Непрочитанные')">Непрочит.</button>
+        <div class="filters">
+          <button class="badge teal">Все</button>
+          <button class="badge" onclick="toast('Фильтр: Первичные')">Первичные</button>
+          <button class="badge" onclick="toast('Фильтр: Непрочитанные')">Непрочит.</button>
         </div>
-        <div class="flex-1 overflow-y-auto" id="inbox-list"></div>
-        <div class="p-3 border-t border-slate-100">
-          <button onclick="toast('Создание нового чата')" class="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-sm font-medium py-2.5 rounded-xl shadow-sm shadow-teal-500/20 btn-soft">+ Новый чат</button>
+        <div class="inbox-list" id="inbox-list"></div>
+        <div class="sidebar-foot">
+          <button onclick="toast('Создание нового чата')" class="btn-primary">+ Новый чат</button>
         </div>
       </aside>
 
-      <div class="flex-1 flex flex-col gap-3 overflow-hidden">
-        <div class="card px-6 py-5" id="patient-header">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex items-start gap-4">
-              <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-2xl" id="p-emoji">👨</div>
+      <div class="patient-col">
+        <div class="card patient-header" id="patient-header">
+          <div class="patient-top">
+            <div class="patient-left">
+              <div class="patient-emoji" id="p-emoji">👨</div>
               <div>
-                <div class="flex items-center gap-2.5 flex-wrap">
-                  <h1 class="text-xl font-semibold text-slate-900" id="p-name">—</h1>
-                  <span class="badge bg-slate-100 text-slate-600" id="p-age"></span>
+                <div class="patient-meta">
+                  <h1 class="patient-name" id="p-name">—</h1>
+                  <span class="badge" id="p-age"></span>
                   <span class="badge" id="p-status-badge"></span>
                 </div>
-                <div class="flex items-center gap-4 mt-2 text-[13px] text-slate-500">
-                  <span>Ответственный: <span class="text-slate-700 font-medium" id="p-admin">—</span></span>
-                  <span class="text-slate-300">|</span>
-                  <span>Врач: <span class="text-slate-700 font-medium" id="p-doctor">—</span></span>
+                <div class="patient-sub">
+                  Ответственный: <b id="p-admin">—</b>
+                  &nbsp;|&nbsp;
+                  Врач: <b id="p-doctor">—</b>
                 </div>
               </div>
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0" id="p-badges"></div>
+            <div class="patient-badges" id="p-badges"></div>
           </div>
-          <div class="mt-5 flex items-center gap-3">
-            <span class="text-[12px] text-slate-400 font-medium uppercase tracking-wider">Этап</span>
-            <div class="badge bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium" id="p-stage">—</div>
-            <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[180px]">
-              <div class="h-full bg-gradient-to-r from-indigo-400 to-violet-400 rounded-full transition-all duration-300" id="p-progress" style="width:0%"></div>
-            </div>
-            <span class="text-[12px] text-slate-400" id="p-progress-label">—</span>
+          <div class="patient-stage">
+            <span class="badge" style="text-transform:uppercase;letter-spacing:0.04em;font-size:10px;color:#94a3b8">Этап</span>
+            <div class="badge indigo" id="p-stage">—</div>
+            <div class="progress-track"><div class="progress-fill" id="p-progress" style="width:0%"></div></div>
+            <span style="font-size:12px;color:#94a3b8" id="p-progress-label">—</span>
           </div>
         </div>
 
-        <div class="flex flex-1 gap-3 overflow-hidden">
-          <div class="flex-1 card overflow-hidden flex flex-col">
-            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-              <h3 class="font-semibold text-slate-800 text-[14px]">История</h3>
-              <span class="text-[12px] text-slate-400" id="history-count">0 событий</span>
+        <div class="content-row">
+          <div class="card history-card">
+            <div class="history-head">
+              <h3 style="font-size:14px;font-weight:600">История</h3>
+              <span id="history-count" style="font-size:12px;color:#94a3b8">0 событий</span>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-3" id="history-feed"></div>
+            <div class="history-feed" id="history-feed"></div>
           </div>
 
-          <!-- ACTIONS — working -->
-          <div class="w-[220px] card p-4 flex flex-col gap-2 overflow-y-auto shrink-0">
-            <h3 class="font-semibold text-slate-800 text-[13px] mb-1">Действия</h3>
-            <button onclick="actionBookMIS()" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-teal-50 text-teal-800 text-[13px] font-medium border border-teal-100 flex items-center gap-2">
-              📝 Записать в МИС
-            </button>
-            <button onclick="actionTemplate('address')" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 text-slate-700 text-[13px] border border-slate-100 flex items-center gap-2">
-              📍 Адрес
-            </button>
-            <button onclick="actionTemplate('price')" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 text-slate-700 text-[13px] border border-slate-100 flex items-center gap-2">
-              💰 Прайс
-            </button>
-            <button onclick="actionPlan()" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 text-slate-700 text-[13px] border border-slate-100 flex items-center gap-2">
-              📄 План лечения
-            </button>
-            <button onclick="actionReminder()" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 text-slate-700 text-[13px] border border-slate-100 flex items-center gap-2">
-              🔔 Напоминание
-            </button>
-            <button onclick="openStageModal()" class="btn-soft w-full text-left px-3 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-[13px] font-medium border border-indigo-100 flex items-center gap-2">
-              🔄 Сменить статус
-            </button>
-            <div class="mt-auto pt-3 border-t border-slate-100 text-[11px] text-slate-400 leading-relaxed">
-              Действия пишутся в историю и меняют карточку пациента.
-            </div>
+          <div class="card actions-card">
+            <h3>Действия</h3>
+            <button onclick="actionBookMIS()" class="btn-soft primary">📝 Записать в МИС</button>
+            <button onclick="actionTemplate('address')" class="btn-soft">📍 Адрес</button>
+            <button onclick="actionTemplate('price')" class="btn-soft">💰 Прайс</button>
+            <button onclick="actionPlan()" class="btn-soft">📄 План лечения</button>
+            <button onclick="actionReminder()" class="btn-soft">🔔 Напоминание</button>
+            <button onclick="openStageModal()" class="btn-soft indigo">🔄 Сменить статус</button>
+            <div class="actions-hint">Действия пишутся в историю и меняют карточку пациента.</div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- VIEW: KANBAN -->
-    <div id="view-kanban" class="view h-full flex-col gap-3">
+    <div id="view-kanban" class="view kanban-view">
       <div class="flex items-center justify-between px-1">
         <h2 class="text-lg font-semibold text-slate-800">Бизнес-процессы</h2>
         <div class="flex gap-2">
@@ -229,7 +391,7 @@
     </div>
 
     <!-- VIEW: ANALYTICS -->
-    <div id="view-analytics" class="view h-full flex-col gap-3">
+    <div id="view-analytics" class="view analytics-view">
       <div class="flex items-center justify-between px-1">
         <h2 class="text-lg font-semibold text-slate-800">Аналитика</h2>
         <div class="flex gap-2">
@@ -323,8 +485,8 @@
     </div>
   </div>
 
-  <div class="bg-white border-t border-slate-200 px-5 py-1.5 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
-    <span>ClinicCRM · v0.5 · Рабочие действия</span>
+  <div class="app-footer">
+    <span>ClinicCRM · v0.6 · Стабильная вёрстка</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -554,14 +716,14 @@
         el.onclick = () => selectPatient(id);
         const title = p.channelIcon === '📞' ? p.phone : p.name;
         el.innerHTML = `
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-lg shrink-0">${p.channelIcon}</div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <span class="font-medium text-slate-800 text-sm truncate">${title}</span>
-                ${p.unread ? `<span class="w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">${p.unread}</span>` : `<span class="text-[11px] text-slate-300">${p.timeLabel}</span>`}
+          <div class="sidebar-item-row">
+            <div class="ch-icon">${p.channelIcon}</div>
+            <div class="ch-body">
+              <div class="ch-top">
+                <span class="ch-name">${title}</span>
+                ${p.unread ? `<span class="unread">${p.unread}</span>` : `<span class="ch-time">${p.timeLabel}</span>`}
               </div>
-              <div class="text-[12px] text-slate-400 mt-0.5 truncate">${p.preview}</div>
+              <div class="ch-preview">${p.preview}</div>
             </div>
           </div>`;
         list.appendChild(el);
@@ -580,36 +742,36 @@
       document.getElementById('p-age').textContent = p.age;
       document.getElementById('p-admin').textContent = p.admin;
       document.getElementById('p-doctor').textContent = p.doctor;
-      document.getElementById('p-stage').textContent = stage ? stage.label : '—';
+      const stageEl = document.getElementById('p-stage'); stageEl.textContent = stage ? stage.label : '—'; stageEl.className = 'badge indigo';
       document.getElementById('p-progress').style.width = ((p.stageNum / p.stageTotal) * 100) + '%';
       document.getElementById('p-progress-label').textContent = p.stageNum + ' из ' + p.stageTotal;
 
       const statusEl = document.getElementById('p-status-badge');
       if (p.statusInClinic) {
-        statusEl.className = 'badge bg-emerald-50 text-emerald-700 border border-emerald-100';
+        statusEl.className = 'badge green';
         statusEl.textContent = '● В клинике';
       } else {
-        statusEl.className = 'badge bg-slate-100 text-slate-500';
+        statusEl.className = 'badge';
         statusEl.textContent = 'не в клинике';
       }
 
       const badges = document.getElementById('p-badges');
-      let html = '';
-      if (p.noSpam) html += '<div class="flag-pulse badge bg-rose-50 text-rose-600 border border-rose-200">🚩 Отказ от рассылок</div>';
-      if (p.bonuses > 0) html += `<div class="badge bg-amber-50 text-amber-700 border border-amber-100">💰 ${p.bonuses.toLocaleString('ru-RU')} ₽</div>`;
-      if (p.nps != null) html += `<div class="badge bg-sky-50 text-sky-700 border border-sky-100">⭐ NPS ${p.nps}</div>`;
-      badges.innerHTML = html || '<span class="text-[12px] text-slate-300">нет меток</span>';
+      let bhtml = '';
+      if (p.noSpam) bhtml += '<div class="flag-pulse badge rose">🚩 Отказ от рассылок</div>';
+      if (p.bonuses > 0) bhtml += `<div class="badge amber">💰 ${p.bonuses.toLocaleString('ru-RU')} ₽</div>`;
+      if (p.nps != null) bhtml += `<div class="badge sky">⭐ NPS ${p.nps}</div>`;
+      badges.innerHTML = bhtml || '<span style="font-size:12px;color:#cbd5e1">нет меток</span>';
 
       const feed = document.getElementById('history-feed');
       document.getElementById('history-count').textContent = p.history.length + ' событий';
       feed.innerHTML = p.history.map(h => `
-        <div class="rounded-xl bg-slate-50/80 border border-slate-100 p-4">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-sm">${h.icon}</span>
-            <span class="text-[13px] font-medium text-slate-800">${h.title}</span>
-            <span class="ml-auto text-[11px] text-slate-400">${h.date}</span>
+        <div class="hist-item">
+          <div class="hist-top">
+            <span class="hist-icon">${h.icon}</span>
+            <span class="hist-title">${h.title}</span>
+            <span class="hist-date">${h.date}</span>
           </div>
-          <div class="text-[13px] text-slate-600 leading-relaxed pl-9">${h.body}</div>
+          <div class="hist-body">${h.body}</div>
         </div>
       `).join('');
 
