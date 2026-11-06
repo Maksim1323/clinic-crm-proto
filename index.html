@@ -377,6 +377,35 @@
       padding: 10px; border-radius: 12px; cursor: pointer;
     }
     .call-row:hover { background: #f8fafc; }
+  
+    /* Patient card modal form */
+    .modal.wide { max-width: 560px; max-height: 90vh; overflow-y: auto; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-field label {
+      display: block; font-size: 12px; font-weight: 500; color: #64748b;
+      margin-bottom: 4px;
+    }
+    .form-field input, .form-field select, .form-field textarea {
+      width: 100%; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 9px 12px; font-size: 13px; font-family: inherit;
+      outline: none; background: #fff;
+    }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+      border-color: #14b8a6; box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+    }
+    .form-field textarea { resize: vertical; min-height: 72px; }
+    .form-check {
+      display: flex; align-items: center; gap: 8px; font-size: 13px;
+      padding-top: 22px;
+    }
+    .form-check input { width: 16px; height: 16px; accent-color: #0d9488; }
+    .btn-edit-card {
+      border: 1px solid #e2e8f0; background: #fff; border-radius: 10px;
+      padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer;
+      color: #475569;
+    }
+    .btn-edit-card:hover { background: #f8fafc; border-color: #cbd5e1; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -422,7 +451,7 @@
         </div>
         <div class="inbox-list" id="inbox-list"></div>
         <div class="sidebar-foot">
-          <button onclick="toast('Создание нового чата')" class="btn-primary">+ Новый чат</button>
+          <button onclick="openPatientModal('create')" class="btn-primary">+ Новый пациент</button>
         </div>
       </aside>
 
@@ -444,7 +473,10 @@
                 </div>
               </div>
             </div>
-            <div class="patient-badges" id="p-badges"></div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+              <div class="patient-badges" id="p-badges"></div>
+              <button type="button" class="btn-edit-card" onclick="openPatientModal('edit')">✏️ Редактировать карточку</button>
+            </div>
           </div>
           <div class="patient-stage">
             <span class="badge" style="text-transform:uppercase;letter-spacing:0.04em;font-size:10px;color:#94a3b8">Этап</span>
@@ -591,7 +623,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v0.8 · Канбан и аналитика в ряд</span>
+    <span>ClinicCRM · v0.9 · Карточки пациентов (CRUD)</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -604,6 +636,94 @@
       <div class="flex gap-2 mt-5">
         <button onclick="closeStageModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50">Отмена</button>
         <button onclick="confirmStage()" class="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">Применить</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- Patient create/edit modal -->
+  <div class="modal-bg" id="patient-modal" onclick="if(event.target===this)closePatientModal()">
+    <div class="modal wide">
+      <h3 id="patient-modal-title" style="font-size:18px;font-weight:600;margin-bottom:4px">Карточка пациента</h3>
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px" id="patient-modal-sub">Заполните данные</p>
+      <input type="hidden" id="pf-id" />
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>ФИО *</label>
+          <input id="pf-name" type="text" placeholder="Иванов Иван Иванович" />
+        </div>
+        <div class="form-field">
+          <label>Телефон *</label>
+          <input id="pf-phone" type="text" placeholder="+7 999 123-45-67" />
+        </div>
+        <div class="form-field">
+          <label>Возраст</label>
+          <input id="pf-age" type="text" placeholder="35 лет" />
+        </div>
+        <div class="form-field">
+          <label>Пол</label>
+          <select id="pf-gender">
+            <option value="male">Мужской</option>
+            <option value="female">Женский</option>
+            <option value="">Не указан</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Канал обращения</label>
+          <select id="pf-channel">
+            <option value="call">Звонок (UIS)</option>
+            <option value="tg">Telegram</option>
+            <option value="vk">ВКонтакте</option>
+            <option value="email">Сайт / Email</option>
+            <option value="mis">МИС</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Ответственный</label>
+          <input id="pf-admin" type="text" placeholder="Анна Петрова" />
+        </div>
+        <div class="form-field">
+          <label>Лечащий врач</label>
+          <input id="pf-doctor" type="text" placeholder="Смирнов А.А." />
+        </div>
+        <div class="form-field">
+          <label>Этап</label>
+          <select id="pf-stage">
+            <option value="1">1 · Первичный приём</option>
+            <option value="2">2 · Продажа плана лечения</option>
+            <option value="3">3 · Лечение</option>
+            <option value="4">4 · Профосмотр</option>
+            <option value="5">5 · Потенциальный клиент</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Бонусы, ₽</label>
+          <input id="pf-bonuses" type="number" min="0" step="100" value="0" />
+        </div>
+        <div class="form-field">
+          <label>NPS (1–10)</label>
+          <input id="pf-nps" type="number" min="1" max="10" placeholder="—" />
+        </div>
+        <div class="form-field">
+          <label>&nbsp;</label>
+          <label class="form-check"><input id="pf-nospam" type="checkbox" /> Отказ от рассылок</label>
+        </div>
+        <div class="form-field">
+          <label>&nbsp;</label>
+          <label class="form-check"><input id="pf-inclinic" type="checkbox" /> Сейчас в клинике</label>
+        </div>
+        <div class="form-field full">
+          <label>План лечения</label>
+          <input id="pf-plan" type="text" placeholder="Например: Ортодонтия · 85 000 ₽" />
+        </div>
+        <div class="form-field full">
+          <label>Комментарий / заметка</label>
+          <textarea id="pf-note" placeholder="Важная информация о пациенте..."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" onclick="closePatientModal()">Отмена</button>
+        <button type="button" class="ok" onclick="savePatientCard()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -712,20 +832,15 @@
     let currentPatientId = 'ivanov';
     let pendingStage = null;
 
-    const STORAGE_KEY = 'cliniccrm_v06';
+    const STORAGE_KEY = 'cliniccrm_v09';
 
     function saveDB() {
       try {
-        const payload = { patients: {}, currentPatientId };
-        Object.keys(DB.patients).forEach(id => {
-          const p = DB.patients[id];
-          payload.patients[id] = {
-            history: p.history,
-            stageNum: p.stageNum,
-            preview: p.preview,
-            unread: p.unread
-          };
-        });
+        const payload = {
+          patients: DB.patients,
+          inboxOrder: DB.inboxOrder,
+          currentPatientId
+        };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       } catch (e) { console.warn('save failed', e); }
     }
@@ -735,18 +850,172 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         const data = JSON.parse(raw);
-        Object.keys(data.patients || {}).forEach(id => {
-          if (!DB.patients[id]) return;
-          const s = data.patients[id];
-          if (s.history) DB.patients[id].history = s.history;
-          if (s.stageNum) DB.patients[id].stageNum = s.stageNum;
-          if (s.preview) DB.patients[id].preview = s.preview;
-          if (s.unread != null) DB.patients[id].unread = s.unread;
-        });
+        if (data.patients && typeof data.patients === 'object') {
+          // merge: keep defaults for missing, overwrite with saved
+          Object.keys(data.patients).forEach(id => {
+            DB.patients[id] = Object.assign({}, DB.patients[id] || {}, data.patients[id]);
+          });
+        }
+        if (Array.isArray(data.inboxOrder) && data.inboxOrder.length) {
+          DB.inboxOrder = data.inboxOrder;
+        }
         if (data.currentPatientId && DB.patients[data.currentPatientId]) {
           currentPatientId = data.currentPatientId;
         }
       } catch (e) { console.warn('load failed', e); }
+    }
+
+    const CHANNEL_META = {
+      call:  { icon: '📞', label: 'UIS · Звонок' },
+      tg:    { icon: '✈️', label: 'Telegram' },
+      vk:    { icon: '🌐', label: 'ВКонтакте' },
+      email: { icon: '📧', label: 'Сайт · Форма' },
+      mis:   { icon: '✔️', label: 'МИС' }
+    };
+
+    let patientModalMode = 'edit';
+
+    function openPatientModal(mode) {
+      patientModalMode = mode || 'edit';
+      const modal = document.getElementById('patient-modal');
+      const title = document.getElementById('patient-modal-title');
+      const sub = document.getElementById('patient-modal-sub');
+
+      if (mode === 'create') {
+        title.textContent = 'Новый пациент';
+        sub.textContent = 'Создание карточки пациента';
+        document.getElementById('pf-id').value = '';
+        document.getElementById('pf-name').value = '';
+        document.getElementById('pf-phone').value = '';
+        document.getElementById('pf-age').value = '';
+        document.getElementById('pf-gender').value = 'male';
+        document.getElementById('pf-channel').value = 'tg';
+        document.getElementById('pf-admin').value = 'Анна Петрова';
+        document.getElementById('pf-doctor').value = '';
+        document.getElementById('pf-stage').value = '1';
+        document.getElementById('pf-bonuses').value = '0';
+        document.getElementById('pf-nps').value = '';
+        document.getElementById('pf-nospam').checked = false;
+        document.getElementById('pf-inclinic').checked = false;
+        document.getElementById('pf-plan').value = '';
+        document.getElementById('pf-note').value = '';
+      } else {
+        const p = DB.patients[currentPatientId];
+        if (!p) { toast('Пациент не выбран'); return; }
+        title.textContent = 'Редактирование карточки';
+        sub.textContent = p.name;
+        document.getElementById('pf-id').value = p.id;
+        document.getElementById('pf-name').value = p.name || '';
+        document.getElementById('pf-phone').value = p.phone || '';
+        document.getElementById('pf-age').value = p.age || '';
+        document.getElementById('pf-gender').value = p.gender || '';
+        // detect channel from icon
+        let ch = 'call';
+        if (p.channelIcon === '✈️') ch = 'tg';
+        else if (p.channelIcon === '🌐') ch = 'vk';
+        else if (p.channelIcon === '📧') ch = 'email';
+        else if (p.channelIcon === '✔️') ch = 'mis';
+        document.getElementById('pf-channel').value = ch;
+        document.getElementById('pf-admin').value = p.admin || '';
+        document.getElementById('pf-doctor').value = p.doctor || '';
+        document.getElementById('pf-stage').value = String(p.stageNum || 1);
+        document.getElementById('pf-bonuses').value = p.bonuses || 0;
+        document.getElementById('pf-nps').value = p.nps != null ? p.nps : '';
+        document.getElementById('pf-nospam').checked = !!p.noSpam;
+        document.getElementById('pf-inclinic').checked = !!p.statusInClinic;
+        document.getElementById('pf-plan').value = p.plan || '';
+        document.getElementById('pf-note').value = p.note || '';
+      }
+      modal.classList.add('open');
+      setTimeout(() => document.getElementById('pf-name').focus(), 50);
+    }
+
+    function closePatientModal() {
+      document.getElementById('patient-modal').classList.remove('open');
+    }
+
+    function savePatientCard() {
+      const name = document.getElementById('pf-name').value.trim();
+      const phone = document.getElementById('pf-phone').value.trim();
+      if (!name) { toast('Укажите ФИО'); return; }
+      if (!phone) { toast('Укажите телефон'); return; }
+
+      const ch = document.getElementById('pf-channel').value;
+      const meta = CHANNEL_META[ch] || CHANNEL_META.call;
+      const gender = document.getElementById('pf-gender').value;
+      const emoji = gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤');
+      const stageNum = parseInt(document.getElementById('pf-stage').value, 10) || 1;
+      const npsRaw = document.getElementById('pf-nps').value;
+      const nps = npsRaw === '' ? null : parseInt(npsRaw, 10);
+
+      if (patientModalMode === 'create') {
+        const id = 'p_' + Date.now();
+        const patient = {
+          id, name, age: document.getElementById('pf-age').value.trim() || '—',
+          emoji, gender: gender || null, phone,
+          channelIcon: meta.icon, channelLabel: meta.label,
+          timeLabel: 'сейчас', unread: 0, statusInClinic: document.getElementById('pf-inclinic').checked,
+          admin: document.getElementById('pf-admin').value.trim() || '—',
+          doctor: document.getElementById('pf-doctor').value.trim() || '—',
+          stageNum, stageTotal: 5,
+          noSpam: document.getElementById('pf-nospam').checked,
+          bonuses: parseInt(document.getElementById('pf-bonuses').value, 10) || 0,
+          nps,
+          preview: 'Новая карточка',
+          plan: document.getElementById('pf-plan').value.trim() || null,
+          note: document.getElementById('pf-note').value.trim() || '',
+          history: [{
+            type: 'system', icon: '📋', title: 'Карточка создана',
+            date: nowLabel(),
+            body: '<div class="text-slate-700">Пациент добавлен в CRM · канал: ' + meta.label + '</div>'
+          }]
+        };
+        const note = document.getElementById('pf-note').value.trim();
+        if (note) {
+          patient.history.unshift({
+            type: 'note', icon: '📝', title: 'Заметка',
+            date: nowLabel(),
+            body: '<div class="text-slate-700" style="white-space:pre-wrap">' + escapeHtml(note) + '</div>'
+          });
+        }
+        DB.patients[id] = patient;
+        DB.inboxOrder.unshift(id);
+        closePatientModal();
+        saveDB();
+        showView('comms');
+        selectPatient(id);
+        toast('✓ Карточка создана: ' + name);
+      } else {
+        const id = document.getElementById('pf-id').value || currentPatientId;
+        const p = DB.patients[id];
+        if (!p) { toast('Пациент не найден'); return; }
+        const oldName = p.name;
+        p.name = name;
+        p.phone = phone;
+        p.age = document.getElementById('pf-age').value.trim() || '—';
+        p.gender = gender || null;
+        p.emoji = emoji;
+        p.channelIcon = meta.icon;
+        p.channelLabel = meta.label;
+        p.admin = document.getElementById('pf-admin').value.trim() || '—';
+        p.doctor = document.getElementById('pf-doctor').value.trim() || '—';
+        p.stageNum = stageNum;
+        p.bonuses = parseInt(document.getElementById('pf-bonuses').value, 10) || 0;
+        p.nps = nps;
+        p.noSpam = document.getElementById('pf-nospam').checked;
+        p.statusInClinic = document.getElementById('pf-inclinic').checked;
+        p.plan = document.getElementById('pf-plan').value.trim() || null;
+        p.note = document.getElementById('pf-note').value.trim() || '';
+        p.history.unshift({
+          type: 'system', icon: '✏️', title: 'Карточка обновлена',
+          date: nowLabel(),
+          body: '<div class="text-slate-700">Данные пациента изменены' + (oldName !== name ? ' (ФИО: ' + escapeHtml(oldName) + ' → ' + escapeHtml(name) + ')' : '') + '</div>'
+        });
+        closePatientModal();
+        saveDB();
+        renderPatient(id, false);
+        toast('✓ Карточка сохранена');
+      }
     }
 
     function sendMessage() {
