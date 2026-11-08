@@ -659,6 +659,62 @@
     }
     .tasks-stat .n { font-size: 20px; font-weight: 700; color: #0f172a; }
     .tasks-stat .l { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+  
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+    .chart-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .chart-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+      padding: 16px 18px; display: flex; flex-direction: column; min-height: 0;
+    }
+    .chart-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .chart-card .chart-sub { font-size: 12px; color: #94a3b8; margin-bottom: 12px; }
+    .bars {
+      display: flex; align-items: flex-end; gap: 8px; flex: 1;
+      min-height: 140px; padding-top: 8px;
+    }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+    .bar-col .bar {
+      width: 100%; max-width: 36px; border-radius: 8px 8px 4px 4px;
+      background: linear-gradient(180deg, #2dd4bf, #0d9488);
+      transition: height 0.35s ease;
+      min-height: 4px;
+    }
+    .bar-col .bar.muted { background: linear-gradient(180deg, #cbd5e1, #94a3b8); }
+    .bar-col .lbl { font-size: 10px; color: #94a3b8; }
+    .bar-col .val { font-size: 11px; font-weight: 600; color: #334155; }
+    .funnel { display: flex; flex-direction: column; gap: 8px; }
+    .funnel-row { display: flex; align-items: center; gap: 10px; }
+    .funnel-row .fname { width: 110px; font-size: 12px; color: #475569; flex-shrink: 0; }
+    .funnel-track { flex: 1; height: 28px; background: #f1f5f9; border-radius: 8px; overflow: hidden; }
+    .funnel-fill {
+      height: 100%; border-radius: 8px;
+      display: flex; align-items: center; padding-left: 10px;
+      font-size: 12px; font-weight: 600; color: #fff;
+    }
+    .channel-list { display: flex; flex-direction: column; gap: 10px; }
+    .channel-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .channel-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .donut-wrap { display: flex; align-items: center; gap: 16px; }
+    .donut {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: conic-gradient(#14b8a6 0 38%, #38bdf8 38% 62%, #a78bfa 62% 82%, #fbbf24 82% 100%);
+      position: relative; flex-shrink: 0;
+    }
+    .donut::after {
+      content: ''; position: absolute; inset: 22px; background: #fff; border-radius: 50%;
+    }
+    .period-btn.active { background: #f0fdfa !important; color: #0f766e !important; border-color: #99f6e4 !important; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -857,94 +913,43 @@
     <div id="view-analytics" class="view analytics-view">
       <div class="kanban-toolbar">
         <h2 style="font-size:18px;font-weight:600">Аналитика</h2>
-        <div style="display:flex;gap:8px">
-          <button class="badge teal">Сегодня</button>
-          <button onclick="toast('Период: Неделя')" class="badge">Неделя</button>
-          <button onclick="toast('Период: Месяц')" class="badge">Месяц</button>
+        <div style="display:flex;gap:8px" id="period-btns">
+          <button type="button" class="badge period-btn active" data-period="today" onclick="setAnalyticsPeriod('today')">Сегодня</button>
+          <button type="button" class="badge period-btn" data-period="week" onclick="setAnalyticsPeriod('week')">Неделя</button>
+          <button type="button" class="badge period-btn" data-period="month" onclick="setAnalyticsPeriod('month')">Месяц</button>
         </div>
       </div>
-      <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;width:100%">
-        <div class="card kpi-card">
-          <div class="kpi-label">Первичные обращения</div>
-          <div class="kpi-value">24</div>
-          <div class="kpi-sub up">↑ 12% к вчера</div>
+      <div class="kpi-grid" id="kpi-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;width:100%"></div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h3>Обращения по дням</h3>
+          <div class="chart-sub" id="chart-leads-sub">Динамика первичных обращений</div>
+          <div class="bars" id="chart-bars"></div>
         </div>
-        <div class="card kpi-card">
-          <div class="kpi-label">Записались на приём</div>
-          <div class="kpi-value">18</div>
-          <div class="kpi-sub">конверсия 75%</div>
-        </div>
-        <div class="card kpi-card">
-          <div class="kpi-label">Среднее время ответа</div>
-          <div class="kpi-value">4:12</div>
-          <div class="kpi-sub up">↓ лучше цели 5 мин</div>
-        </div>
-        <div class="card kpi-card">
-          <div class="kpi-label">Просроченные задачи</div>
-          <div class="kpi-value" style="color:#e11d48">3</div>
-          <div class="kpi-sub">требуют внимания</div>
+        <div class="chart-card">
+          <h3>Воронка записи</h3>
+          <div class="chart-sub">От обращения до визита</div>
+          <div class="funnel" id="chart-funnel"></div>
         </div>
       </div>
-      <div class="analytics-row" style="display:flex;flex-direction:row;gap:12px;flex:1;min-height:0;width:100%">
-        <div class="card analytics-panel">
-          <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Конверсия администраторов</h3>
-          <div class="admin-row">
-            <div class="admin-avatar" style="background:#ccfbf1;color:#0f766e">АП</div>
-            <div style="flex:1">
-              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-                <span style="font-weight:500">Анна Петрова</span><span style="color:#64748b">12 / 14 · 86%</span>
-              </div>
-              <div class="bar-fill"><span style="width:86%;background:#2dd4bf"></span></div>
-            </div>
-          </div>
-          <div class="admin-row">
-            <div class="admin-avatar" style="background:#e0f2fe;color:#0369a1">МК</div>
-            <div style="flex:1">
-              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-                <span style="font-weight:500">Мария Ковалёва</span><span style="color:#64748b">8 / 11 · 73%</span>
-              </div>
-              <div class="bar-fill"><span style="width:73%;background:#38bdf8"></span></div>
-            </div>
-          </div>
-          <div class="admin-row">
-            <div class="admin-avatar" style="background:#ede9fe;color:#6d28d9">ДС</div>
-            <div style="flex:1">
-              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-                <span style="font-weight:500">Дмитрий Соколов</span><span style="color:#64748b">5 / 9 · 56%</span>
-              </div>
-              <div class="bar-fill"><span style="width:56%;background:#a78bfa"></span></div>
-            </div>
+      <div class="chart-grid-3">
+        <div class="chart-card">
+          <h3>Каналы</h3>
+          <div class="chart-sub">Откуда приходят пациенты</div>
+          <div class="donut-wrap">
+            <div class="donut" id="chart-donut"></div>
+            <div class="channel-list" id="chart-channels"></div>
           </div>
         </div>
-        <div class="card analytics-panel">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 style="font-size:14px;font-weight:600">Первичные звонки сегодня</h3>
-            <button onclick="toast('Фильтр: только первичные')" class="badge teal">Только первичные</button>
-          </div>
-          <div class="call-row" onclick="toast('Звонок +7 999...')">
-            <span style="font-size:18px">📞</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:500">+7 999 123-45-67</div>
-              <div style="font-size:11px;color:#94a3b8">09:14 · 2:30 · записался</div>
-            </div>
-            <span class="badge green">Успех</span>
-          </div>
-          <div class="call-row" onclick="toast('Звонок +7 916...')">
-            <span style="font-size:18px">📞</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:500">+7 916 555-01-02</div>
-              <div style="font-size:11px;color:#94a3b8">10:02 · 1:45 · думает</div>
-            </div>
-            <span class="badge amber">В работе</span>
-          </div>
-          <div class="call-row" onclick="toast('Звонок +7 903...')">
-            <span style="font-size:18px">📞</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:500">+7 903 222-33-44</div>
-              <div style="font-size:11px;color:#94a3b8">11:30 · 0:40 · сбросил</div>
-            </div>
-            <span class="badge rose">Отказ</span>
-          </div>
+        <div class="chart-card">
+          <h3>Конверсия администраторов</h3>
+          <div class="chart-sub">Запись / обращения</div>
+          <div id="chart-admins"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Скорость ответа</h3>
+          <div class="chart-sub">Цель &lt; 5 мин</div>
+          <div class="bars" id="chart-speed" style="min-height:100px"></div>
         </div>
       </div>
     </div>
@@ -968,7 +973,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v1.4 · Раздел Задачи</span>
+    <span>ClinicCRM · v1.5 · Аналитика: дашборд и графики</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -1923,6 +1928,203 @@
       toast('✓ Задача создана');
     }
 
+
+    const ANALYTICS_DATA = {
+      today: {
+        kpis: [
+          { label: 'Первичные обращения', value: '24', sub: '↑ 12% к вчера', up: true },
+          { label: 'Записались на приём', value: '18', sub: 'конверсия 75%', up: false },
+          { label: 'Среднее время ответа', value: '4:12', sub: '↓ лучше цели 5 мин', up: true },
+          { label: 'Просроченные задачи', value: '3', sub: 'требуют внимания', danger: true }
+        ],
+        bars: [
+          { lbl: 'Пн', v: 18 }, { lbl: 'Вт', v: 22 }, { lbl: 'Ср', v: 15 },
+          { lbl: 'Чт', v: 28 }, { lbl: 'Пт', v: 24 }, { lbl: 'Сб', v: 12 }, { lbl: 'Вс', v: 8 }
+        ],
+        funnel: [
+          { name: 'Обращения', n: 24, pct: 100, color: '#14b8a6' },
+          { name: 'Квалификация', n: 21, pct: 88, color: '#2dd4bf' },
+          { name: 'Запись', n: 18, pct: 75, color: '#38bdf8' },
+          { name: 'Визит', n: 14, pct: 58, color: '#818cf8' }
+        ],
+        channels: [
+          { name: 'Телефон / UIS', pct: 38, color: '#14b8a6' },
+          { name: 'Telegram', pct: 24, color: '#38bdf8' },
+          { name: 'ВКонтакте', pct: 20, color: '#a78bfa' },
+          { name: 'Сайт', pct: 18, color: '#fbbf24' }
+        ],
+        donut: 'conic-gradient(#14b8a6 0 38%, #38bdf8 38% 62%, #a78bfa 62% 82%, #fbbf24 82% 100%)',
+        admins: [
+          { name: 'Анна Петрова', av: 'АП', c: '12 / 14 · 86%', w: 86, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
+          { name: 'Мария Ковалёва', av: 'МК', c: '8 / 11 · 73%', w: 73, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
+          { name: 'Дмитрий Соколов', av: 'ДС', c: '5 / 9 · 56%', w: 56, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
+        ],
+        speed: [
+          { lbl: '9:00', v: 6.2 }, { lbl: '11:00', v: 4.1 }, { lbl: '13:00', v: 3.8 },
+          { lbl: '15:00', v: 5.5 }, { lbl: '17:00', v: 4.0 }, { lbl: '19:00', v: 3.2 }
+        ],
+        sub: 'Последние 7 дней · сегодня выделено'
+      },
+      week: {
+        kpis: [
+          { label: 'Первичные обращения', value: '142', sub: '↑ 8% к прошлой неделе', up: true },
+          { label: 'Записались на приём', value: '98', sub: 'конверсия 69%', up: false },
+          { label: 'Среднее время ответа', value: '5:04', sub: 'на уровне цели', up: false },
+          { label: 'Просроченные задачи', value: '7', sub: 'за неделю', danger: true }
+        ],
+        bars: [
+          { lbl: 'Пн', v: 22 }, { lbl: 'Вт', v: 19 }, { lbl: 'Ср', v: 25 },
+          { lbl: 'Чт', v: 18 }, { lbl: 'Пт', v: 28 }, { lbl: 'Сб', v: 16 }, { lbl: 'Вс', v: 14 }
+        ],
+        funnel: [
+          { name: 'Обращения', n: 142, pct: 100, color: '#14b8a6' },
+          { name: 'Квалификация', n: 118, pct: 83, color: '#2dd4bf' },
+          { name: 'Запись', n: 98, pct: 69, color: '#38bdf8' },
+          { name: 'Визит', n: 71, pct: 50, color: '#818cf8' }
+        ],
+        channels: [
+          { name: 'Телефон / UIS', pct: 42, color: '#14b8a6' },
+          { name: 'Telegram', pct: 22, color: '#38bdf8' },
+          { name: 'ВКонтакте', pct: 18, color: '#a78bfa' },
+          { name: 'Сайт', pct: 18, color: '#fbbf24' }
+        ],
+        donut: 'conic-gradient(#14b8a6 0 42%, #38bdf8 42% 64%, #a78bfa 64% 82%, #fbbf24 82% 100%)',
+        admins: [
+          { name: 'Анна Петрова', av: 'АП', c: '41 / 52 · 79%', w: 79, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
+          { name: 'Мария Ковалёва', av: 'МК', c: '33 / 48 · 69%', w: 69, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
+          { name: 'Дмитрий Соколов', av: 'ДС', c: '24 / 42 · 57%', w: 57, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
+        ],
+        speed: [
+          { lbl: 'Пн', v: 5.1 }, { lbl: 'Вт', v: 4.8 }, { lbl: 'Ср', v: 5.5 },
+          { lbl: 'Чт', v: 4.2 }, { lbl: 'Пт', v: 6.0 }, { lbl: 'Сб', v: 3.9 }
+        ],
+        sub: 'Текущая неделя'
+      },
+      month: {
+        kpis: [
+          { label: 'Первичные обращения', value: '586', sub: '↑ 15% к прошлому месяцу', up: true },
+          { label: 'Записались на приём', value: '401', sub: 'конверсия 68%', up: false },
+          { label: 'Среднее время ответа', value: '5:22', sub: 'чуть выше цели', up: false },
+          { label: 'Просроченные задачи', value: '19', sub: 'за месяц', danger: true }
+        ],
+        bars: [
+          { lbl: 'Нед1', v: 120 }, { lbl: 'Нед2', v: 135 }, { lbl: 'Нед3', v: 148 },
+          { lbl: 'Нед4', v: 183 }
+        ],
+        funnel: [
+          { name: 'Обращения', n: 586, pct: 100, color: '#14b8a6' },
+          { name: 'Квалификация', n: 492, pct: 84, color: '#2dd4bf' },
+          { name: 'Запись', n: 401, pct: 68, color: '#38bdf8' },
+          { name: 'Визит', n: 312, pct: 53, color: '#818cf8' }
+        ],
+        channels: [
+          { name: 'Телефон / UIS', pct: 40, color: '#14b8a6' },
+          { name: 'Telegram', pct: 25, color: '#38bdf8' },
+          { name: 'ВКонтакте', pct: 19, color: '#a78bfa' },
+          { name: 'Сайт', pct: 16, color: '#fbbf24' }
+        ],
+        donut: 'conic-gradient(#14b8a6 0 40%, #38bdf8 40% 65%, #a78bfa 65% 84%, #fbbf24 84% 100%)',
+        admins: [
+          { name: 'Анна Петрова', av: 'АП', c: '168 / 210 · 80%', w: 80, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
+          { name: 'Мария Ковалёва', av: 'МК', c: '132 / 190 · 69%', w: 69, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
+          { name: 'Дмитрий Соколов', av: 'ДС', c: '101 / 186 · 54%', w: 54, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
+        ],
+        speed: [
+          { lbl: 'Нед1', v: 5.4 }, { lbl: 'Нед2', v: 5.1 }, { lbl: 'Нед3', v: 4.9 }, { lbl: 'Нед4', v: 5.6 }
+        ],
+        sub: 'Текущий месяц по неделям'
+      }
+    };
+    let analyticsPeriod = 'today';
+
+    function setAnalyticsPeriod(p) {
+      analyticsPeriod = p;
+      document.querySelectorAll('.period-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-period') === p);
+      });
+      renderAnalytics();
+    }
+
+    function renderAnalytics() {
+      const d = ANALYTICS_DATA[analyticsPeriod] || ANALYTICS_DATA.today;
+      const kpi = document.getElementById('kpi-grid');
+      if (!kpi) return;
+      kpi.innerHTML = d.kpis.map(k => `
+        <div class="card kpi-card">
+          <div class="kpi-label">${k.label}</div>
+          <div class="kpi-value" ${k.danger ? 'style="color:#e11d48"' : ''}>${k.value}</div>
+          <div class="kpi-sub ${k.up ? 'up' : ''}">${k.sub}</div>
+        </div>`).join('');
+
+      const maxB = Math.max(...d.bars.map(b => b.v), 1);
+      const bars = document.getElementById('chart-bars');
+      if (bars) {
+        bars.innerHTML = d.bars.map((b, i) => {
+          const h = Math.round((b.v / maxB) * 100);
+          const active = analyticsPeriod === 'today' && i === d.bars.length - 3;
+          return `<div class="bar-col">
+            <div class="val">${b.v}</div>
+            <div class="bar ${active ? '' : ''}" style="height:${h}%"></div>
+            <div class="lbl">${b.lbl}</div>
+          </div>`;
+        }).join('');
+      }
+      const sub = document.getElementById('chart-leads-sub');
+      if (sub) sub.textContent = d.sub;
+
+      const funnel = document.getElementById('chart-funnel');
+      if (funnel) {
+        funnel.innerHTML = d.funnel.map(f => `
+          <div class="funnel-row">
+            <div class="fname">${f.name}</div>
+            <div class="funnel-track">
+              <div class="funnel-fill" style="width:${f.pct}%;background:${f.color}">${f.n} · ${f.pct}%</div>
+            </div>
+          </div>`).join('');
+      }
+
+      const donut = document.getElementById('chart-donut');
+      if (donut) donut.style.background = d.donut;
+      const ch = document.getElementById('chart-channels');
+      if (ch) {
+        ch.innerHTML = d.channels.map(c => `
+          <div class="channel-row">
+            <span class="channel-dot" style="background:${c.color}"></span>
+            <span style="flex:1">${c.name}</span>
+            <span style="font-weight:600;color:#334155">${c.pct}%</span>
+          </div>`).join('');
+      }
+
+      const adm = document.getElementById('chart-admins');
+      if (adm) {
+        adm.innerHTML = d.admins.map(a => `
+          <div class="admin-row">
+            <div class="admin-avatar" style="background:${a.bg};color:${a.fg}">${a.av}</div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                <span style="font-weight:500">${a.name}</span><span style="color:#64748b">${a.c}</span>
+              </div>
+              <div class="bar-fill"><span style="width:${a.w}%;background:${a.bar}"></span></div>
+            </div>
+          </div>`).join('');
+      }
+
+      const maxS = Math.max(...d.speed.map(s => s.v), 1);
+      const speed = document.getElementById('chart-speed');
+      if (speed) {
+        speed.innerHTML = d.speed.map(s => {
+          const h = Math.round((s.v / maxS) * 100);
+          const over = s.v > 5;
+          return `<div class="bar-col">
+            <div class="val">${s.v.toFixed(1)}</div>
+            <div class="bar ${over ? 'muted' : ''}" style="height:${h}%;${over ? 'background:linear-gradient(180deg,#fda4af,#e11d48)' : ''}"></div>
+            <div class="lbl">${s.lbl}</div>
+          </div>`;
+        }).join('');
+      }
+    }
+
+
     function showView(name) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -1932,6 +2134,7 @@
       if (nav) nav.classList.add('active');
       if (name === 'kanban') renderKanban();
       if (name === 'tasks') renderTasks();
+      if (name === 'analytics') renderAnalytics();
     }
 
     function toast(msg) {
