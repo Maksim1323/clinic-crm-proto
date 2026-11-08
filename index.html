@@ -627,6 +627,38 @@
       border-color: #fecdd3; color: #be123c; background: #fff1f2;
     }
     .composer { border-top: none; }
+  
+    .tasks-view { flex-direction: column !important; gap: 12px; width: 100%; }
+    .tasks-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tasks-list {
+      flex: 1; min-height: 0; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .task-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+      padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;
+      cursor: pointer; transition: 0.15s;
+    }
+    .task-card:hover { border-color: #99f6e4; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+    .task-card.done { opacity: 0.55; }
+    .task-card.overdue { border-color: #fecdd3; background: #fffafa; }
+    .task-check {
+      width: 22px; height: 22px; border-radius: 6px; border: 2px solid #cbd5e1;
+      flex-shrink: 0; margin-top: 2px; cursor: pointer; background: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 12px;
+    }
+    .task-check.on { background: #0d9488; border-color: #0d9488; color: #fff; }
+    .task-body { flex: 1; min-width: 0; }
+    .task-title { font-size: 14px; font-weight: 600; color: #0f172a; }
+    .task-meta { font-size: 12px; color: #64748b; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .task-right { text-align: right; flex-shrink: 0; }
+    .tasks-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    .tasks-stat {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 10px 14px; min-width: 100px;
+    }
+    .tasks-stat .n { font-size: 20px; font-weight: 700; color: #0f172a; }
+    .tasks-stat .l { font-size: 11px; color: #94a3b8; margin-top: 2px; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -643,6 +675,7 @@
       <button onclick="showView('comms')" id="nav-comms" class="nav-btn active">Коммуникации</button>
       <button onclick="showView('kanban')" id="nav-kanban" class="nav-btn">Бизнес-процессы</button>
       <button onclick="showView('analytics')" id="nav-analytics" class="nav-btn">Аналитика</button>
+      <button onclick="showView('tasks')" id="nav-tasks" class="nav-btn">Задачи</button>
     </nav>
     <div class="header-right">
       <div class="online"><span class="dot"></span>UIS · Онлайн</div>
@@ -915,10 +948,27 @@
         </div>
       </div>
     </div>
+
+    <!-- VIEW: TASKS -->
+    <div id="view-tasks" class="view tasks-view">
+      <div class="kanban-toolbar">
+        <h2 style="font-size:18px;font-weight:600">Задачи администратора</h2>
+        <div class="tasks-filters">
+          <button type="button" class="badge teal" id="tf-all" onclick="filterTasks('all')">Все</button>
+          <button type="button" class="badge" id="tf-mine" onclick="filterTasks('mine')">Мои</button>
+          <button type="button" class="badge" id="tf-overdue" onclick="filterTasks('overdue')">Просроченные</button>
+          <button type="button" class="badge" id="tf-done" onclick="filterTasks('done')">Выполненные</button>
+          <button type="button" class="badge" onclick="addDemoTask()">+ Задача</button>
+        </div>
+      </div>
+      <div class="tasks-stats" id="tasks-stats"></div>
+      <div class="tasks-list" id="tasks-list"></div>
+    </div>
+
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v1.3.1 · Действия над полем ввода</span>
+    <span>ClinicCRM · v1.4 · Раздел Задачи</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -1785,12 +1835,103 @@
       }).join('');
     }
 
+
+    let TASKS = [
+      { id: 't1', title: 'Подтвердить запись на чистку', patientId: 'smirnova', patient: 'Мария Смирнова', assignee: 'Анна Петрова', due: 'сегодня 18:00', overdue: false, done: false, source: 'ИИ · запись' },
+      { id: 't2', title: 'Перезвонить по цене проф. чистки', patientId: 'alexey', patient: 'Алексей Воронов', assignee: 'Анна Петрова', due: 'сегодня 14:00', overdue: true, done: false, source: 'ВКонтакте' },
+      { id: 't3', title: 'Дожать план лечения (48 ч)', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Мария Ковалёва', due: 'завтра 12:00', overdue: false, done: false, source: 'ИИ · курация' },
+      { id: 't4', title: 'Проверить визит и NPS', patientId: 'mis', patient: 'Козлова Елена', assignee: 'Анна Петрова', due: 'сегодня 16:30', overdue: false, done: false, source: 'МИС' },
+      { id: 't5', title: 'Связаться: форма с сайта', patientId: 'site', patient: 'Неизвестный (сайт)', assignee: 'Анна Петрова', due: 'вчера 17:00', overdue: true, done: false, source: 'Сайт' },
+      { id: 't6', title: 'Отправить памятку после удаления', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Дмитрий Соколов', due: '06.11', overdue: false, done: true, source: 'Регламент' }
+    ];
+    let taskFilter = 'all';
+
+    function filterTasks(f) {
+      taskFilter = f;
+      ['all','mine','overdue','done'].forEach(x => {
+        const el = document.getElementById('tf-' + x);
+        if (el) el.className = 'badge' + (x === f ? ' teal' : '');
+      });
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('tasks-list');
+      const stats = document.getElementById('tasks-stats');
+      if (!list) return;
+      const mine = 'Анна Петрова';
+      let items = TASKS.slice();
+      if (taskFilter === 'mine') items = items.filter(t => t.assignee === mine && !t.done);
+      else if (taskFilter === 'overdue') items = items.filter(t => t.overdue && !t.done);
+      else if (taskFilter === 'done') items = items.filter(t => t.done);
+      else items = items.filter(t => !t.done).concat(items.filter(t => t.done));
+
+      const open = TASKS.filter(t => !t.done).length;
+      const od = TASKS.filter(t => t.overdue && !t.done).length;
+      const my = TASKS.filter(t => t.assignee === mine && !t.done).length;
+      const done = TASKS.filter(t => t.done).length;
+      if (stats) {
+        stats.innerHTML = `
+          <div class="tasks-stat"><div class="n">${open}</div><div class="l">Открытых</div></div>
+          <div class="tasks-stat"><div class="n" style="color:#e11d48">${od}</div><div class="l">Просрочено</div></div>
+          <div class="tasks-stat"><div class="n">${my}</div><div class="l">Мои</div></div>
+          <div class="tasks-stat"><div class="n" style="color:#0d9488">${done}</div><div class="l">Выполнено</div></div>`;
+      }
+
+      list.innerHTML = items.map(t => `
+        <div class="task-card ${t.done ? 'done' : ''} ${t.overdue && !t.done ? 'overdue' : ''}">
+          <div class="task-check ${t.done ? 'on' : ''}" onclick="event.stopPropagation(); toggleTask('${t.id}')">${t.done ? '✓' : ''}</div>
+          <div class="task-body" onclick="openTaskPatient('${t.patientId}')">
+            <div class="task-title">${t.title}</div>
+            <div class="task-meta">
+              <span>👤 ${t.patient}</span>
+              <span>👷 ${t.assignee}</span>
+              <span>🏷 ${t.source}</span>
+            </div>
+          </div>
+          <div class="task-right">
+            <div class="badge ${t.overdue && !t.done ? 'rose' : ''}">${t.due}</div>
+          </div>
+        </div>
+      `).join('') || '<div style="padding:24px;color:#94a3b8;text-align:center">Нет задач в этом фильтре</div>';
+    }
+
+    function toggleTask(id) {
+      const t = TASKS.find(x => x.id === id);
+      if (!t) return;
+      t.done = !t.done;
+      if (t.done) t.overdue = false;
+      renderTasks();
+      toast(t.done ? '✓ Задача выполнена' : 'Задача снова открыта');
+    }
+
+    function openTaskPatient(pid) {
+      if (!pid || !DB.patients[pid]) { toast('Пациент не найден'); return; }
+      showView('comms');
+      selectPatient(pid);
+    }
+
+    function addDemoTask() {
+      const id = 't' + Date.now();
+      TASKS.unshift({
+        id, title: 'Новая задача администратора',
+        patientId: currentPatientId, patient: (DB.patients[currentPatientId] || {}).name || '—',
+        assignee: 'Анна Петрова', due: 'сегодня 19:00', overdue: false, done: false, source: 'Вручную'
+      });
+      taskFilter = 'all';
+      filterTasks('all');
+      toast('✓ Задача создана');
+    }
+
     function showView(name) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('view-' + name)?.classList.add('active');
-      document.getElementById('nav-' + name)?.classList.add('active');
+      const view = document.getElementById('view-' + name);
+      if (view) view.classList.add('active');
+      const nav = document.getElementById('nav-' + name);
+      if (nav) nav.classList.add('active');
       if (name === 'kanban') renderKanban();
+      if (name === 'tasks') renderTasks();
     }
 
     function toast(msg) {
