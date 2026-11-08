@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IDENT × amoCRM · ИИ ведёт процесс — AI Native · Вариант В</title>
+  <title>IDENT × amoCRM — AI Native Integration</title>
   <style>
     :root {
       --bg: #f4f6f9;
@@ -762,21 +762,9 @@
     .notif-item .time { font-size: 11px; color: var(--text-muted); }
 
 
-    .principle-banner {
-      background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
-      color: white; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;
-      display: flex; gap: 16px; align-items: flex-start;
-    }
-    .principle-banner .pb-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
-    .principle-banner strong { display: block; font-size: 14px; margin-bottom: 4px; }
-    .principle-banner p { font-size: 12.5px; opacity: 0.92; margin: 0; line-height: 1.45; }
-    .principle-banner .pb-tag {
-      margin-left: auto; flex-shrink: 0; background: rgba(255,255,255,0.2);
-      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap;
-    }
-    .process-steps { display: flex; gap: 4px; margin: 8px 0 10px; flex-wrap: wrap; }
+    .process-steps { display: flex; gap: 4px; margin: 6px 0 8px; flex-wrap: wrap; }
     .process-step {
-      font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+      font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px;
       background: #f1f5f9; color: #64748b;
     }
     .process-step.done { background: #ccfbf1; color: #0f766e; }
@@ -784,42 +772,13 @@
     .process-step.blocked { background: #fee2e2; color: #b91c1c; }
     .badge-scenario {
       background: #e0e7ff; color: #3730a3; font-size: 10px; font-weight: 700;
-      padding: 2px 7px; border-radius: 5px;
-    }
-    .badge-protocol {
-      background: #1e293b; color: white; font-size: 10px; font-weight: 700;
-      padding: 2px 7px; border-radius: 5px;
+      padding: 2px 6px; border-radius: 5px;
     }
     .flag-nocall {
       display: inline-flex; align-items: center; gap: 4px;
       background: #fff1f2; color: #be123c; border: 1px solid #fecdd3;
-      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
     }
-    .scenario-strip {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
-    }
-    .scenario-card {
-      background: white; border: 1px solid var(--border); border-radius: 12px;
-      padding: 14px 16px; box-shadow: var(--shadow); cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .scenario-card:hover { border-color: #99f6e4; box-shadow: var(--shadow-md); }
-    .scenario-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-    .scenario-card p { font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; }
-    .scenario-card .sc-flow {
-      display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; align-items: center;
-      font-size: 10px; color: var(--text-muted);
-    }
-    .scenario-card .sc-flow span { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
-    .handover-box {
-      background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 14px;
-      font-size: 12.5px; line-height: 1.5; margin-bottom: 12px;
-    }
-    .handover-box h5 {
-      color: #f87171; font-size: 12px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;
-    }
-    .handover-box .row { margin-bottom: 6px; }
-    .handover-box .row b { color: #94a3b8; font-weight: 500; display: inline-block; min-width: 120px; }
 
     /* Settings */
     .settings-card {
@@ -898,7 +857,7 @@
       <div class="sidebar-brand">
         <div class="logo">AI</div>
         <div>
-          <div>IDENT × amoCRM · ИИ ведёт процесс</div>
+          <div>IDENT × amoCRM</div>
           <div style="font-size:11px;color:var(--text-muted);font-weight:400;">AI Native Integration</div>
         </div>
       </div>
@@ -992,33 +951,6 @@
       <div class="content">
         <!-- DASHBOARD -->
         <div class="page active" id="page-dashboard">
-
-          <div class="principle-banner">
-            <div class="pb-icon">◈</div>
-            <div>
-              <strong>ИИ ведёт процесс от события до результата</strong>
-              <p>ИИ замечает событие, собирает контекст, предлагает действие и проверяет исход. Человек задаёт цели, подтверждает подготовленные решения, общается с пациентом и разрешает исключения. Медицинские решения принимает только врач.</p>
-            </div>
-            <div class="pb-tag">Вариант В</div>
-          </div>
-
-          <div class="scenario-strip">
-            <div class="scenario-card" onclick="navigate('inbox'); showToast('Сценарий С1: запись — откройте входящие')">
-              <h4><span class="badge-scenario">С1</span> Запись на приём</h4>
-              <p>ИИ замечает обращение → собирает контекст и цель → готовит слоты и черновик → человек подтверждает → ИИ проверяет МИС.</p>
-              <div class="sc-flow">
-                <span>Событие</span>→<span>Контекст</span>→<span>Действие</span>→<span>Проверка МИС</span>
-              </div>
-            </div>
-            <div class="scenario-card" onclick="navigate('support'); showToast('Сценарий С2: сопровождение после консультации')">
-              <h4><span class="badge-scenario">С2</span> Сопровождение после консультации</h4>
-              <p>ИИ отслеживает срок и договорённость → ведёт план → куратор общается и решает исключения → ИИ обновляет план. Ограничение «не звонить» сохраняется между процессами.</p>
-              <div class="sc-flow">
-                <span>Срок</span>→<span>План</span>→<span>Исключения</span>→<span>Итог</span>
-              </div>
-            </div>
-          </div>
-
           <div class="stats-row">
             <div class="stat-card">
               <div class="stat-label">Новые обращения</div>
@@ -1281,8 +1213,7 @@
         processes: ['Упущенные (ограничение контакта)'],
         context: {
           reason: 'Просьба не звонить после отказа от плана',
-          plan: 'Ортодонтия ≈ 95 000 ₽',
-          note: 'Ограничение контакта сохраняется при смене воронки (разрыв D1)'
+          note: 'Ограничение сохраняется между воронками (D1)'
         }
       },
       olga: {
@@ -1336,7 +1267,7 @@
         id: 't3',
         type: 'escalation',
         scenario: 'SOS',
-        protocol: '№1 · Острая боль',
+        protocol: 'Регламент №1',
         processStep: 0,
         patientId: 'elena',
         event: 'Пациент сообщил о сильной боли после процедуры',
@@ -1423,20 +1354,16 @@
 
     function renderProcessSteps(task) {
       if (task.type === 'escalation') {
-        return `<div class="process-steps">
-          <span class="process-step blocked">Стоп авто-сценариев</span>
-          <span class="process-step current">Handoff человеку</span>
-          <span class="process-step">SLA ≤ 5 мин</span>
-        </div>`;
+        return '<div class="process-steps"><span class="process-step blocked">Стоп авто</span><span class="process-step current">Handoff</span><span class="process-step">SLA ≤5 мин</span></div>';
       }
       const labels = task.type === 's2'
-        ? ['Событие/срок', 'План по договорённости', 'Куратор / исключение', 'Итог в CRM']
-        : ['Обращение', 'Контекст + цель', 'Действие (черновик)', 'Проверка МИС'];
+        ? ['Срок', 'План', 'Куратор', 'Итог']
+        : ['Обращение', 'Контекст', 'Действие', 'МИС'];
       const step = task.processStep || 2;
-      return `<div class="process-steps">` + labels.map((l, i) => {
+      return '<div class="process-steps">' + labels.map((l, i) => {
         const cls = i + 1 < step ? 'done' : (i + 1 === step ? 'current' : '');
-        return `<span class="process-step ${cls}">${l}</span>`;
-      }).join('') + `</div>`;
+        return '<span class="process-step ' + cls + '">' + l + '</span>';
+      }).join('') + '</div>';
     }
 
     function renderAICard(task, compact = false) {
@@ -1468,7 +1395,6 @@
             </div>
             <div class="ai-card-badges">
               ${task.scenario ? `<span class="badge-scenario">${task.scenario}</span>` : ''}
-              ${task.protocol ? `<span class="badge-protocol">${task.protocol}</span>` : ''}
               <span class="badge ${priorityClass(task.priority)}">${priorityLabel(task.priority)}</span>
               <span class="badge ${statusClass(task.status)}">${statusLabel(task.status)}</span>
             </div>
@@ -1661,17 +1587,9 @@
       const p = patients[task.patientId];
 
       if (task.type === 'escalation') {
-        openModal('Экстренный handoff · Регламент №1', `
-          <div class="handover-box">
-            <h5>Карточка ввода в курс дела</h5>
-            <div class="row"><b>Причина</b> ${task.protocol || '№1 · Острая боль / осложнение'}</div>
-            <div class="row"><b>Пациент</b> ${p.name} · ${p.phone}</div>
-            <div class="row"><b>Клинический контекст</b> ${p.context.procedure || '—'} (${p.context.procedureDate || '—'})</div>
-            <div class="row"><b>Суть диалога</b> «${(p.context.message || '').slice(0, 120)}»</div>
-            <div class="row"><b>Первое действие</b> Связаться в приоритете, без шаблонных рассылок</div>
-            <div class="row"><b>SLA</b> ≤ 5 минут</div>
-          </div>
-          <p style="margin-bottom:12px;font-size:13px;">ИИ остановил авто-сценарии. Медицинских рекомендаций нет. Передайте дежурному врачу / старшему администратору.</p>
+        openModal('Эскалация · ' + (task.protocol || 'Регламент №1'), `
+          <p style="margin-bottom:10px;font-size:13px;"><strong>Handoff:</strong> ${task.protocol || 'Регламент №1'} · SLA ≤ 5 мин. ИИ остановил авто-сценарии. Медрекомендаций нет.</p>
+          <p style="margin-bottom:12px;font-size:12.5px;color:#64748b;">Контекст: ${p.context.procedure || '—'} (${p.context.procedureDate || '—'}). Сообщение: «${(p.context.message || '').slice(0,100)}»</p>
           <div class="form-group">
             <label>Кому передать</label>
             <select id="transfer-to">
@@ -1681,13 +1599,13 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Комментарий</label>
-            <textarea id="transfer-comment">Пациентка ${p.name}: боль и температура после процедуры. Контекст из IDENT и переписки приложен. Просьба связаться ASAP.</textarea>
+            <label>Комментарий для врача</label>
+            <textarea id="transfer-comment">Пациентка ${p.name}: боль/температура после процедуры. Контекст IDENT + переписка. Связаться в приоритете.</textarea>
           </div>
           <div class="form-group">
             <label>Срок реакции</label>
             <select id="transfer-deadline">
-              <option>Немедленно (≤ 5 мин) — по регламенту №1</option>
+              <option>Немедленно (≤ 5 мин) — регламент №1</option>
               <option>В течение 15 минут</option>
               <option>В течение часа</option>
             </select>
@@ -1728,7 +1646,7 @@
       if (!task) return;
       const p = patients[task.patientId];
       if (p && p.noCall) {
-        showToast('Стоп: у пациента ограничение «не звонить / не писать». Действие заблокировано (D1).');
+        showToast('Стоп: ограничение «не звонить». Действие заблокировано (D1).');
         return;
       }
       const draftEl = document.getElementById('exec-draft');
@@ -1737,7 +1655,7 @@
       if (task.processStep) task.processStep = Math.min(4, (task.processStep || 1) + 1);
       closeModal();
       refreshAll();
-      showToast('Подтверждено. ИИ отметил шаг выполненным и проверит результат в МИС (имитация).');
+      showToast('Подтверждено. Шаг отмечен; проверка МИС — имитация.');
     }
 
     function confirmEscalate(id) {
@@ -1913,21 +1831,21 @@
     function openPatient(id) {
       const p = patients[id];
       if (!p) return;
-      const procs = (p.processes || []).map(x => `<span class="badge badge-status" style="margin:2px;">${x}</span>`).join(' ');
+      const procs = (p.processes || []).map(x => x).join(', ') || '—';
       openModal(p.name, `
         <div class="patient-cell" style="margin-bottom:16px;">
           <div class="patient-avatar" style="width:48px;height:48px;font-size:16px;">${p.initials}</div>
           <div>
             <div style="font-weight:600;font-size:15px;">${p.name}</div>
             <div class="text-sm text-muted">${p.phone}</div>
-            ${p.noCall ? '<div style="margin-top:6px;"><span class="flag-nocall">🚩 Отказ от контакта · сохраняется между процессами</span></div>' : ''}
+            ${p.noCall ? '<div style="margin-top:6px;"><span class="flag-nocall">Не звонить · ограничение контакта</span></div>' : ''}
           </div>
         </div>
-        <div class="context-item"><label>Статус профиля</label>${p.status}</div>
-        <div class="context-item"><label>Активные процессы</label>${procs || '—'}</div>
+        <div class="context-item"><label>Статус</label>${p.status}</div>
+        <div class="context-item"><label>Активные процессы</label>${procs}</div>
         <div class="context-item"><label>Последний контакт</label>${p.lastContact}</div>
         <div class="context-item"><label>Ответственный</label>${p.responsible}</div>
-        <p class="text-sm text-muted mt-2">Профиль отделён от процессов (D3). Демо-данные; в продукте — IDENT + amoCRM без мед. тайны в облаке.</p>
+        <p class="text-sm text-muted mt-2">В прототипе демо-данные. В продукте — IDENT + amoCRM.</p>
       `, `<button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>`);
     }
 
