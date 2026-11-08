@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IDENT × amoCRM · ИИ ведёт процесс — AI Native · Вариант В</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --primary: #0d9488;
+      --primary-hover: #0f766e;
+      --primary-light: #ccfbf1;
+      --accent: #0ea5e9;
+      --danger: #ef4444;
+      --danger-bg: #fef2f2;
+      --warning: #f59e0b;
+      --warning-bg: #fffbeb;
+      --success: #10b981;
+      --success-bg: #ecfdf5;
+      --info: #3b82f6;
+      --info-bg: #eff6ff;
+      --sidebar-w: 240px;
+      --header-h: 56px;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 14px;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* Layout */
+    .app {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-brand {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .sidebar-brand .logo {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #0d9488, #0ea5e9);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 10px;
+      overflow-y: auto;
+    }
+    .nav-section {
+      margin-bottom: 18px;
+    }
+    .nav-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      padding: 0 10px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 500;
+      position: relative;
+    }
+    .nav-item:hover { background: #f1f5f9; color: var(--text); }
+    .nav-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .nav-item .icon { width: 18px; text-align: center; font-size: 16px; }
+    .nav-item .badge {
+      margin-left: auto;
+      background: var(--danger);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 10px;
+      min-width: 20px;
+      text-align: center;
+    }
+    .nav-item .badge.teal { background: var(--primary); }
+    .nav-item .badge.gray { background: #94a3b8; }
+
+    .sidebar-footer {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .role-switch {
+      display: flex;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .role-btn {
+      flex: 1;
+      padding: 7px 8px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+    }
+    .role-btn.active {
+      background: white;
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+
+    /* Main */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* Header */
+    .header {
+      height: var(--header-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .header-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text);
+    }
+    .header-clinic {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-left: 4px;
+    }
+    .search-box {
+      margin-left: auto;
+      position: relative;
+      width: 280px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 8px 12px 8px 36px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: #f8fafc;
+      outline: none;
+      transition: border 0.15s;
+    }
+    .search-box input:focus {
+      border-color: var(--primary);
+      background: white;
+    }
+    .search-box .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      position: relative;
+      transition: background 0.15s;
+    }
+    .icon-btn:hover { background: #f1f5f9; }
+    .icon-btn .notif-dot {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 8px;
+      height: 8px;
+      background: var(--danger);
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px 4px 4px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .user-chip:hover { background: #f1f5f9; }
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .user-name { font-size: 13px; font-weight: 500; }
+    .user-role { font-size: 11px; color: var(--text-muted); }
+
+    /* Content */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .stat-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .stat-meta.up { color: var(--success); }
+    .stat-meta.down { color: var(--danger); }
+
+    /* Section */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .section-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .filter-chip {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+    }
+    .filter-chip:hover { border-color: #cbd5e1; }
+    .filter-chip.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    /* Cards grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 16px;
+    }
+
+    /* AI Action Card */
+    .ai-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: box-shadow 0.2s, border-color 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .ai-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: #cbd5e1;
+    }
+    .ai-card.escalation {
+      border-color: #fca5a5;
+      background: linear-gradient(to bottom, #fef2f2 0%, white 40px);
+    }
+    .ai-card-header {
+      padding: 14px 16px 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .ai-card-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #e0f2fe;
+      color: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .ai-card.escalation .ai-card-avatar {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .ai-card-meta { flex: 1; min-width: 0; }
+    .ai-card-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+    .ai-card-event {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .ai-card-badges {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .badge-priority-high { background: #fee2e2; color: #b91c1c; }
+    .badge-priority-medium { background: #fef3c7; color: #b45309; }
+    .badge-priority-low { background: #e0f2fe; color: #0369a1; }
+    .badge-status {
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .badge-status-new { background: #dbeafe; color: #1d4ed8; }
+    .badge-status-prepared { background: #ccfbf1; color: #0f766e; }
+    .badge-status-waiting { background: #fef3c7; color: #b45309; }
+    .badge-status-progress { background: #e0e7ff; color: #4338ca; }
+    .badge-status-escalated { background: #fee2e2; color: #b91c1c; }
+    .badge-status-done { background: #d1fae5; color: #047857; }
+
+    .ai-card-body {
+      padding: 0 16px 12px;
+      flex: 1;
+    }
+    .ai-insight {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .ai-insight-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .ai-insight p { color: var(--text-secondary); margin: 0; }
+    .ai-recommendation {
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    .ai-recommendation strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .ai-draft {
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      color: var(--text);
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .ai-draft-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .ai-card-footer {
+      padding: 10px 16px 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .ai-card-info {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .btn {
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary {
+      background: white;
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .btn-danger {
+      background: white;
+      border-color: #fecaca;
+      color: var(--danger);
+    }
+    .btn-danger:hover { background: var(--danger-bg); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+    }
+    .btn-ghost:hover { color: var(--text); background: #f1f5f9; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* Tables */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      text-align: left;
+      padding: 11px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbfc; }
+    .patient-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .patient-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #e0f2fe;
+      color: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    /* Two column layout */
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+    }
+    .context-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      height: fit-content;
+      position: sticky;
+      top: 0;
+    }
+    .context-panel h3 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+    }
+    .context-item {
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .context-item label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    /* Empty / helpers */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: var(--shadow-md);
+      z-index: 1000;
+      animation: slideIn 0.25s ease;
+      max-width: 360px;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    .modal {
+      background: white;
+      border-radius: 14px;
+      width: 520px;
+      max-width: 94vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      transform: scale(0.96);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-header {
+      padding: 18px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-title { font-size: 16px; font-weight: 600; }
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+    .modal-close:hover { background: #f1f5f9; }
+    .modal-body { padding: 16px 20px; }
+    .modal-footer {
+      padding: 12px 20px 18px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.15s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--primary);
+    }
+    .form-group textarea { min-height: 100px; resize: vertical; }
+
+    /* Notification dropdown */
+    .notif-panel {
+      position: absolute;
+      top: 44px;
+      right: 0;
+      width: 340px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      z-index: 100;
+      display: none;
+    }
+    .notif-panel.open { display: block; }
+    .notif-header {
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .notif-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .notif-item:hover { background: #f8fafc; }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item .title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+    .notif-item .time { font-size: 11px; color: var(--text-muted); }
+
+
+    .principle-banner {
+      background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
+      color: white; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .principle-banner .pb-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+    .principle-banner strong { display: block; font-size: 14px; margin-bottom: 4px; }
+    .principle-banner p { font-size: 12.5px; opacity: 0.92; margin: 0; line-height: 1.45; }
+    .principle-banner .pb-tag {
+      margin-left: auto; flex-shrink: 0; background: rgba(255,255,255,0.2);
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .process-steps { display: flex; gap: 4px; margin: 8px 0 10px; flex-wrap: wrap; }
+    .process-step {
+      font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+      background: #f1f5f9; color: #64748b;
+    }
+    .process-step.done { background: #ccfbf1; color: #0f766e; }
+    .process-step.current { background: #0d9488; color: white; }
+    .process-step.blocked { background: #fee2e2; color: #b91c1c; }
+    .badge-scenario {
+      background: #e0e7ff; color: #3730a3; font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 5px;
+    }
+    .badge-protocol {
+      background: #1e293b; color: white; font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 5px;
+    }
+    .flag-nocall {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #fff1f2; color: #be123c; border: 1px solid #fecdd3;
+      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+    }
+    .scenario-strip {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+    }
+    .scenario-card {
+      background: white; border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px; box-shadow: var(--shadow); cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .scenario-card:hover { border-color: #99f6e4; box-shadow: var(--shadow-md); }
+    .scenario-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .scenario-card p { font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4; }
+    .scenario-card .sc-flow {
+      display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; align-items: center;
+      font-size: 10px; color: var(--text-muted);
+    }
+    .scenario-card .sc-flow span { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+    .handover-box {
+      background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 14px;
+      font-size: 12.5px; line-height: 1.5; margin-bottom: 12px;
+    }
+    .handover-box h5 {
+      color: #f87171; font-size: 12px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .handover-box .row { margin-bottom: 6px; }
+    .handover-box .row b { color: #94a3b8; font-weight: 500; display: inline-block; min-width: 120px; }
+
+    /* Settings */
+    .settings-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .settings-card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle {
+      width: 40px;
+      height: 22px;
+      background: #cbd5e1;
+      border-radius: 11px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle.on { background: var(--primary); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle.on::after { transform: translateX(18px); }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .split { grid-template-columns: 1fr; }
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .search-box { width: 160px; }
+    }
+
+    /* Utilities */
+    .text-muted { color: var(--text-muted); }
+    .text-sm { font-size: 12px; }
+    .mt-1 { margin-top: 4px; }
+    .mt-2 { margin-top: 8px; }
+    .mb-2 { margin-bottom: 8px; }
+    .flex { display: flex; }
+    .gap-2 { gap: 8px; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo">AI</div>
+        <div>
+          <div>IDENT × amoCRM · ИИ ведёт процесс</div>
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">AI Native Integration</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Основное</div>
+          <div class="nav-item active" data-page="dashboard">
+            <span class="icon">▣</span> Dashboard
+          </div>
+          <div class="nav-item" data-page="inbox">
+            <span class="icon">✉</span> Входящие
+            <span class="badge" id="badge-inbox">3</span>
+          </div>
+          <div class="nav-item" data-page="ai-tasks">
+            <span class="icon">✦</span> AI-задачи
+            <span class="badge teal" id="badge-ai">5</span>
+          </div>
+          <div class="nav-item" data-page="patients">
+            <span class="icon">◎</span> Пациенты
+          </div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Работа</div>
+          <div class="nav-item" data-page="support">
+            <span class="icon">↻</span> Сопровождение
+            <span class="badge gray" id="badge-support">2</span>
+          </div>
+          <div class="nav-item" data-page="escalations">
+            <span class="icon">⚠</span> Эскалации
+            <span class="badge" id="badge-esc">1</span>
+          </div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Система</div>
+          <div class="nav-item" data-page="settings">
+            <span class="icon">⚙</span> Настройки AI
+          </div>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="role-switch">
+          <button class="role-btn active" data-role="admin">Администратор</button>
+          <button class="role-btn" data-role="curator">Куратор</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <header class="header">
+        <div>
+          <span class="header-title" id="page-title">Dashboard</span>
+          <span class="header-clinic">· Клиника «Дентал Плюс»</span>
+        </div>
+        <div class="search-box">
+          <span class="search-icon">⌕</span>
+          <input type="text" id="global-search" placeholder="Поиск пациентов, задач..." />
+        </div>
+        <div class="header-actions">
+          <div style="position:relative;">
+            <button class="icon-btn" id="notif-btn" title="Уведомления">
+              🔔
+              <span class="notif-dot"></span>
+            </button>
+            <div class="notif-panel" id="notif-panel">
+              <div class="notif-header">Уведомления</div>
+              <div class="notif-item" data-goto="ai-tasks">
+                <div class="title">AI подготовил ответ на новое обращение</div>
+                <div class="time">Анна Смирнова · 2 мин назад</div>
+              </div>
+              <div class="notif-item" data-goto="escalations">
+                <div class="title">Эскалация: сильная боль после процедуры</div>
+                <div class="time">Елена Волкова · 8 мин назад</div>
+              </div>
+              <div class="notif-item" data-goto="support">
+                <div class="title">Пациент не ответил на follow-up</div>
+                <div class="time">Михаил Орлов · 1 час назад</div>
+              </div>
+            </div>
+          </div>
+          <div class="user-chip">
+            <div class="avatar" id="user-avatar">М</div>
+            <div>
+              <div class="user-name" id="user-name">Мария</div>
+              <div class="user-role" id="user-role">Администратор</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+
+          <div class="principle-banner">
+            <div class="pb-icon">◈</div>
+            <div>
+              <strong>ИИ ведёт процесс от события до результата</strong>
+              <p>ИИ замечает событие, собирает контекст, предлагает действие и проверяет исход. Человек задаёт цели, подтверждает подготовленные решения, общается с пациентом и разрешает исключения. Медицинские решения принимает только врач.</p>
+            </div>
+            <div class="pb-tag">Вариант В</div>
+          </div>
+
+          <div class="scenario-strip">
+            <div class="scenario-card" onclick="navigate('inbox'); showToast('Сценарий С1: запись — откройте входящие')">
+              <h4><span class="badge-scenario">С1</span> Запись на приём</h4>
+              <p>ИИ замечает обращение → собирает контекст и цель → готовит слоты и черновик → человек подтверждает → ИИ проверяет МИС.</p>
+              <div class="sc-flow">
+                <span>Событие</span>→<span>Контекст</span>→<span>Действие</span>→<span>Проверка МИС</span>
+              </div>
+            </div>
+            <div class="scenario-card" onclick="navigate('support'); showToast('Сценарий С2: сопровождение после консультации')">
+              <h4><span class="badge-scenario">С2</span> Сопровождение после консультации</h4>
+              <p>ИИ отслеживает срок и договорённость → ведёт план → куратор общается и решает исключения → ИИ обновляет план. Ограничение «не звонить» сохраняется между процессами.</p>
+              <div class="sc-flow">
+                <span>Срок</span>→<span>План</span>→<span>Исключения</span>→<span>Итог</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-label">Новые обращения</div>
+              <div class="stat-value">7</div>
+              <div class="stat-meta up">+2 за сегодня</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">AI-рекомендации</div>
+              <div class="stat-value">5</div>
+              <div class="stat-meta">3 ожидают подтверждения</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Эскалации</div>
+              <div class="stat-value" style="color:var(--danger)">1</div>
+              <div class="stat-meta down">Требует внимания</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">В сопровождении</div>
+              <div class="stat-value">12</div>
+              <div class="stat-meta">4 требуют контакта</div>
+            </div>
+          </div>
+
+          <div class="section-header">
+            <div class="section-title">Приоритетные AI-задачи</div>
+            <button class="btn btn-secondary btn-sm" onclick="navigate('ai-tasks')">Все задачи →</button>
+          </div>
+          <div class="cards-grid" id="dashboard-cards"></div>
+
+          <div class="section-header" style="margin-top:28px;">
+            <div class="section-title">Последние эскалации</div>
+            <button class="btn btn-secondary btn-sm" onclick="navigate('escalations')">Открыть →</button>
+          </div>
+          <div id="dashboard-escalations"></div>
+        </div>
+
+        <!-- INBOX -->
+        <div class="page" id="page-inbox">
+          <div class="section-header">
+            <div class="section-title">Входящие обращения</div>
+            <div class="filters">
+              <span class="filter-chip active" data-filter="all">Все</span>
+              <span class="filter-chip" data-filter="new">Новые</span>
+              <span class="filter-chip" data-filter="ai">С AI-рекомендацией</span>
+            </div>
+          </div>
+          <div class="cards-grid" id="inbox-cards"></div>
+        </div>
+
+        <!-- AI TASKS -->
+        <div class="page" id="page-ai-tasks">
+          <div class="section-header">
+            <div class="section-title">AI-задачи и рекомендации</div>
+            <div class="filters" id="ai-filters">
+              <span class="filter-chip active" data-filter="all">Все</span>
+              <span class="filter-chip" data-filter="waiting">Ожидают</span>
+              <span class="filter-chip" data-filter="progress">В работе</span>
+              <span class="filter-chip" data-filter="done">Выполнены</span>
+            </div>
+          </div>
+          <div class="cards-grid" id="ai-tasks-cards"></div>
+        </div>
+
+        <!-- PATIENTS -->
+        <div class="page" id="page-patients">
+          <div class="section-header">
+            <div class="section-title">Пациенты</div>
+            <input type="text" id="patient-search" placeholder="Поиск по имени..." style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;width:220px;font-size:13px;" />
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Пациент</th>
+                  <th>Телефон</th>
+                  <th>Статус</th>
+                  <th>Последний контакт</th>
+                  <th>Ответственный</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="patients-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUPPORT (Curator) -->
+        <div class="page" id="page-support">
+          <div class="section-header">
+            <div class="section-title">Сопровождение пациентов</div>
+          </div>
+          <div class="cards-grid" id="support-cards"></div>
+        </div>
+
+        <!-- ESCALATIONS -->
+        <div class="page" id="page-escalations">
+          <div class="section-header">
+            <div class="section-title">Эскалации к человеку</div>
+            <span class="text-sm text-muted">AI не продолжает сценарий — требуется решение сотрудника</span>
+          </div>
+          <div class="cards-grid" id="escalation-cards"></div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="page" id="page-settings">
+          <div class="section-header">
+            <div class="section-title">Настройки AI</div>
+          </div>
+          <div class="settings-card">
+            <h3>Разрешённые действия AI</h3>
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:500;">Подготовка черновиков сообщений</div>
+                <div class="text-sm text-muted">AI формирует текст, отправка только после подтверждения</div>
+              </div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:500;">Предложение записи на приём</div>
+                <div class="text-sm text-muted">AI предлагает слот, запись — только вручную</div>
+              </div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:500;">Автоматические напоминания</div>
+                <div class="text-sm text-muted">Только по согласованным сценариям follow-up</div>
+              </div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:500;">Автоматическая запись пациента</div>
+                <div class="text-sm text-muted">Запрещено — всегда требуется подтверждение человека</div>
+              </div>
+              <div class="toggle" data-toggle></div>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h3>Правила эскалации</h3>
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:500;">Жалобы на боль / симптомы</div>
+                <div class="text-sm text-muted">Немедленная передача врачу / старшему администратору</div>
+              </div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:500;">Запрос «поговорить с человеком»</div>
+                <div class="text-sm text-muted">AI прекращает диалог и передаёт сотруднику</div>
+              </div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:500;">Юридически чувствительные темы</div>
+                <div class="text-sm text-muted">Конфликт, претензии, возврат — только человек</div>
+              </div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div style="font-weight:500;">Низкая уверенность AI (&lt; 70%)</div>
+                <div class="text-sm text-muted">Передача с пометкой «AI не уверен»</div>
+              </div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h3>Источники данных</h3>
+            <div class="text-sm" style="color:var(--text-secondary);line-height:1.6;">
+              <p>• <strong>IDENT</strong> — медицинская карта, план лечения, визиты, процедуры</p>
+              <p>• <strong>amoCRM</strong> — обращения, переписка, сделки, задачи, ответственные</p>
+              <p style="margin-top:8px;">AI анализирует события из обеих систем и формирует рекомендации в рамках правил клиники. Медицинские решения всегда остаются за врачом.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">Действие</div>
+        <button class="modal-close" id="modal-close">×</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <script>
+    // ========== DEMO DATA ==========
+    const patients = {
+      anna: {
+        id: 'anna',
+        name: 'Анна Смирнова',
+        initials: 'АС',
+        phone: '+7 916 234-56-78',
+        status: 'Новый интерес',
+        lastContact: 'Сегодня, 14:12',
+        responsible: 'Мария',
+        noCall: false,
+        processes: ['Запись на консультацию'],
+        context: {
+          source: 'WhatsApp',
+          message: 'Здравствуйте! Хочу записаться на консультацию по имплантации. Сколько это стоит примерно?',
+          history: 'Новый пациент. Нет записи в IDENT. Первое обращение.',
+          age: '34 года',
+          preferred: 'После 18:00'
+        }
+      },
+      mikhail: {
+        id: 'mikhail',
+        name: 'Михаил Орлов',
+        initials: 'МО',
+        phone: '+7 903 111-22-33',
+        status: 'Думает над планом',
+        lastContact: 'Вчера, 16:40',
+        responsible: 'Алексей',
+        noCall: false,
+        processes: ['Сопровождение плана лечения'],
+        context: {
+          consultDate: '5 ноября 2026',
+          doctor: 'Доктор Иванов',
+          plan: 'Имплантация 2 зубов + коронки (≈ 180 000 ₽)',
+          agreement: 'Пациент сказал «подумаю до конца недели», следующий контакт — 8 ноября',
+          decision: 'Не принято',
+          daysSince: 3
+        }
+      },
+      elena: {
+        id: 'elena',
+        name: 'Елена Волкова',
+        initials: 'ЕВ',
+        phone: '+7 926 555-44-33',
+        status: 'Эскалация',
+        lastContact: 'Сегодня, 13:48',
+        responsible: 'Мария',
+        context: {
+          procedure: 'Профессиональная гигиена + закрытый кюретаж',
+          procedureDate: '7 ноября 2026',
+          message: 'После процедуры очень сильная боль, не могу жевать, температура 37.8. Что делать?',
+          source: 'Telegram'
+        }
+      },
+      dmitry: {
+        id: 'dmitry',
+        name: 'Дмитрий Козлов',
+        initials: 'ДК',
+        phone: '+7 915 777-88-99',
+        status: 'Отказ · не звонить',
+        lastContact: '12 дней назад',
+        responsible: 'Алексей',
+        noCall: true,
+        processes: ['Упущенные (ограничение контакта)'],
+        context: {
+          reason: 'Просьба не звонить после отказа от плана',
+          plan: 'Ортодонтия ≈ 95 000 ₽',
+          note: 'Ограничение контакта сохраняется при смене воронки (разрыв D1)'
+        }
+      },
+      olga: {
+        id: 'olga',
+        name: 'Ольга Петрова',
+        initials: 'ОП',
+        phone: '+7 926 333-22-11',
+        status: 'В лечении',
+        lastContact: '4 дня назад',
+        responsible: 'Алексей',
+        context: {}
+      }
+    };
+
+    let tasks = [
+      {
+        id: 't1',
+        type: 's1',
+        scenario: 'С1',
+        processStep: 3,
+        patientId: 'anna',
+        event: 'Новое обращение в WhatsApp',
+        status: 'prepared',
+        priority: 'high',
+        responsible: 'Мария',
+        source: 'Правило: новое обращение + запрос консультации',
+        discovered: 'Пациент интересуется имплантацией. В IDENT нет карточки — вероятно новый пациент.',
+        why: 'Высокий интерес к услуге с высоким чеком. Рекомендуется быстрый ответ и предложение записи на консультацию.',
+        nextStep: 'Отправить ответ и предложить запись на консультацию к имплантологу',
+        draft: 'Анна, здравствуйте! Спасибо за обращение. Стоимость имплантации зависит от клинической ситуации и обычно обсуждается на очной консультации. Можем записать вас к доктору Иванову — есть свободные слоты на этой неделе после 18:00. Удобно будет?',
+        role: 'admin'
+      },
+      {
+        id: 't2',
+        type: 's2',
+        scenario: 'С2',
+        processStep: 2,
+        patientId: 'mikhail',
+        event: 'Пациент не принял решение после консультации',
+        status: 'waiting',
+        priority: 'medium',
+        responsible: 'Алексей',
+        source: 'Правило: follow-up через 3 дня после консультации без решения',
+        discovered: 'Консультация 5 ноября. Согласован план (имплантация 2 зубов). Пациент просил время до конца недели. Сегодня 8 ноября — решения нет.',
+        why: 'Срок, о котором договорились, истёк. Мягкий персонализированный контакт повышает вероятность закрытия сделки без давления.',
+        nextStep: 'Связаться с пациентом, уточнить вопросы по плану лечения',
+        draft: 'Михаил, добрый день! Это Алексей, куратор клиники «Дентал Плюс». На консультации 5 ноября мы обсудили план имплантации. Хотел узнать — остались ли у вас вопросы? Готов подробно рассказать или предложить удобное время для повторной встречи с доктором.',
+        role: 'curator'
+      },
+      {
+        id: 't3',
+        type: 'escalation',
+        scenario: 'SOS',
+        protocol: '№1 · Острая боль',
+        processStep: 0,
+        patientId: 'elena',
+        event: 'Пациент сообщил о сильной боли после процедуры',
+        status: 'escalated',
+        priority: 'high',
+        responsible: 'Мария → Врач',
+        source: 'Правило эскалации: жалобы на боль / симптомы',
+        discovered: 'Пациентка пишет о сильной боли, невозможности жевать и температуре 37.8 после гигиены и кюретажа вчера.',
+        why: 'AI не ставит диагнозов и не даёт медицинских рекомендаций. Ситуация требует немедленной оценки врачом.',
+        nextStep: 'Немедленно передать обращение врачу или старшему администратору',
+        draft: null,
+        role: 'admin',
+        escalationReason: 'Медицинский симптом (боль + температура). AI не продолжает автоматический сценарий.'
+      },
+      {
+        id: 't4',
+        type: 'support',
+        patientId: 'olga',
+        event: 'Напоминание о следующем визите',
+        status: 'progress',
+        priority: 'low',
+        responsible: 'Алексей',
+        source: 'Правило: напоминание за 2 дня до визита',
+        discovered: 'Визит запланирован на 10 ноября. Пациентка в активном лечении.',
+        why: 'Стандартное напоминание снижает no-show.',
+        nextStep: 'Отправить напоминание о визите',
+        draft: 'Ольга, добрый день! Напоминаем о визите 10 ноября в 11:00 к доктору Иванову. Если нужно перенести — напишите нам.',
+        role: 'curator'
+      },
+      {
+        id: 't5',
+        type: 's1',
+        patientId: 'dmitry',
+        event: 'Запрос на перенос записи',
+        status: 'done',
+        priority: 'medium',
+        responsible: 'Мария',
+        source: 'Правило: запрос изменения записи',
+        discovered: 'Пациент просит перенести приём с 9 на 12 ноября.',
+        why: 'Простая операционная задача, AI подготовил варианты слотов.',
+        nextStep: 'Подтвердить новый слот',
+        draft: 'Дмитрий, здравствуйте! Можем перенести на 12 ноября, 15:30 или 17:00. Какой вариант удобнее?',
+        role: 'admin'
+      }
+    ];
+
+    let currentRole = 'admin';
+    let currentFilter = 'all';
+    let activeTaskId = null;
+
+    // ========== HELPERS ==========
+    function statusLabel(s) {
+      const map = {
+        new: 'Новая',
+        prepared: 'AI подготовил',
+        waiting: 'Ожидает подтверждения',
+        progress: 'В работе',
+        escalated: 'Передана человеку',
+        done: 'Выполнена'
+      };
+      return map[s] || s;
+    }
+    function statusClass(s) {
+      return 'badge-status-' + (s === 'prepared' ? 'prepared' : s === 'waiting' ? 'waiting' : s === 'progress' ? 'progress' : s === 'escalated' ? 'escalated' : s === 'done' ? 'done' : 'new');
+    }
+    function priorityLabel(p) {
+      return p === 'high' ? 'Высокий' : p === 'medium' ? 'Средний' : 'Низкий';
+    }
+    function priorityClass(p) {
+      return 'badge-priority-' + p;
+    }
+
+    function showToast(msg) {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3200);
+    }
+
+    // ========== RENDER AI CARD ==========
+
+    function renderProcessSteps(task) {
+      if (task.type === 'escalation') {
+        return `<div class="process-steps">
+          <span class="process-step blocked">Стоп авто-сценариев</span>
+          <span class="process-step current">Handoff человеку</span>
+          <span class="process-step">SLA ≤ 5 мин</span>
+        </div>`;
+      }
+      const labels = task.type === 's2'
+        ? ['Событие/срок', 'План по договорённости', 'Куратор / исключение', 'Итог в CRM']
+        : ['Обращение', 'Контекст + цель', 'Действие (черновик)', 'Проверка МИС'];
+      const step = task.processStep || 2;
+      return `<div class="process-steps">` + labels.map((l, i) => {
+        const cls = i + 1 < step ? 'done' : (i + 1 === step ? 'current' : '');
+        return `<span class="process-step ${cls}">${l}</span>`;
+      }).join('') + `</div>`;
+    }
+
+    function renderAICard(task, compact = false) {
+      const p = patients[task.patientId];
+      if (!p) return '';
+
+      const isEsc = task.type === 'escalation';
+      let actions = '';
+      if (task.status !== 'done') {
+        actions = `
+          <button class="btn btn-primary btn-sm" onclick="actionExecute('${task.id}')">Выполнить</button>
+          <button class="btn btn-secondary btn-sm" onclick="actionEdit('${task.id}')">Редактировать</button>
+          <button class="btn btn-secondary btn-sm" onclick="actionTransfer('${task.id}')">Передать человеку</button>
+          <button class="btn btn-ghost btn-sm" onclick="actionDetails('${task.id}')">Подробнее</button>
+          <button class="btn btn-danger btn-sm" onclick="actionReject('${task.id}')">Отклонить</button>
+        `;
+      } else {
+        actions = `<span class="text-sm text-muted">Задача выполнена</span>
+          <button class="btn btn-ghost btn-sm" onclick="actionDetails('${task.id}')">Подробнее</button>`;
+      }
+
+      return `
+        <div class="ai-card ${isEsc ? 'escalation' : ''}" data-id="${task.id}">
+          <div class="ai-card-header">
+            <div class="ai-card-avatar">${p.initials}</div>
+            <div class="ai-card-meta">
+              <div class="ai-card-name">${p.name}</div>
+              <div class="ai-card-event">${task.event}</div>
+            </div>
+            <div class="ai-card-badges">
+              ${task.scenario ? `<span class="badge-scenario">${task.scenario}</span>` : ''}
+              ${task.protocol ? `<span class="badge-protocol">${task.protocol}</span>` : ''}
+              <span class="badge ${priorityClass(task.priority)}">${priorityLabel(task.priority)}</span>
+              <span class="badge ${statusClass(task.status)}">${statusLabel(task.status)}</span>
+            </div>
+          </div>
+          <div class="ai-card-body">
+            ${renderProcessSteps(task)}
+            <div class="ai-insight">
+              <div class="ai-insight-label">✦ Что обнаружил AI</div>
+              <p>${task.discovered}</p>
+            </div>
+            <div class="ai-recommendation">
+              <strong>Рекомендуемый шаг:</strong>
+              ${task.nextStep}
+            </div>
+            ${task.draft ? `
+              <div class="ai-draft">
+                <div class="ai-draft-label">Черновик сообщения</div>
+                ${task.draft}
+              </div>
+            ` : ''}
+            ${isEsc ? `
+              <div class="ai-insight" style="background:#fef2f2;border:1px solid #fecaca;">
+                <div class="ai-insight-label" style="color:#b91c1c;">⚠ Причина эскалации</div>
+                <p>${task.escalationReason || 'Требуется решение человека'}</p>
+              </div>
+            ` : ''}
+          </div>
+          <div class="ai-card-footer">
+            <div class="ai-card-info">
+              <span>Ответственный: <strong>${task.responsible}</strong></span>
+              <span>${task.source}</span>
+            </div>
+            ${actions}
+          </div>
+        </div>
+      `;
+    }
+
+    // ========== RENDER PAGES ==========
+    function renderDashboard() {
+      const priority = tasks.filter(t => t.status !== 'done').slice(0, 3);
+      document.getElementById('dashboard-cards').innerHTML = priority.map(t => renderAICard(t)).join('') || '<div class="empty-state">Нет активных задач</div>';
+
+      const esc = tasks.filter(t => t.type === 'escalation' && t.status !== 'done');
+      document.getElementById('dashboard-escalations').innerHTML = esc.length
+        ? esc.map(t => renderAICard(t)).join('')
+        : '<div class="empty-state" style="padding:24px;">Нет активных эскалаций</div>';
+    }
+
+    function renderInbox() {
+      const list = tasks.filter(t => t.type === 's1' || (t.type === 'escalation' && t.role === 'admin'));
+      document.getElementById('inbox-cards').innerHTML = list.map(t => renderAICard(t)).join('') || '<div class="empty-state">Нет входящих</div>';
+    }
+
+    function renderAITasks() {
+      let list = tasks.filter(t => t.status !== 'done' || currentFilter === 'done' || currentFilter === 'all');
+      if (currentFilter === 'waiting') list = tasks.filter(t => t.status === 'waiting' || t.status === 'prepared');
+      if (currentFilter === 'progress') list = tasks.filter(t => t.status === 'progress');
+      if (currentFilter === 'done') list = tasks.filter(t => t.status === 'done');
+
+      // Role filter soft
+      if (currentRole === 'curator') {
+        list = list.filter(t => t.role === 'curator' || t.type === 'support' || t.type === 's2');
+      }
+
+      document.getElementById('ai-tasks-cards').innerHTML = list.map(t => renderAICard(t)).join('') || '<div class="empty-state">Нет задач по фильтру</div>';
+    }
+
+    function renderPatients() {
+      const q = (document.getElementById('patient-search')?.value || '').toLowerCase();
+      const rows = Object.values(patients)
+        .filter(p => !q || p.name.toLowerCase().includes(q) || p.phone.includes(q))
+        .map(p => `
+          <tr>
+            <td>
+              <div class="patient-cell">
+                <div class="patient-avatar">${p.initials}</div>
+                <div>
+                  <div style="font-weight:500;">${p.name}</div>
+                </div>
+              </div>
+            </td>
+            <td>${p.phone}</td>
+            <td><span class="badge badge-status">${p.status}</span></td>
+            <td>${p.lastContact}</td>
+            <td>${p.responsible}</td>
+            <td><button class="btn btn-secondary btn-sm" onclick="openPatient('${p.id}')">Открыть</button></td>
+          </tr>
+        `).join('');
+      document.getElementById('patients-tbody').innerHTML = rows;
+    }
+
+    function renderSupport() {
+      const list = tasks.filter(t => t.role === 'curator' || t.type === 's2' || t.type === 'support');
+      document.getElementById('support-cards').innerHTML = list.map(t => renderAICard(t)).join('') || '<div class="empty-state">Нет задач сопровождения</div>';
+    }
+
+    function renderEscalations() {
+      const list = tasks.filter(t => t.type === 'escalation');
+      document.getElementById('escalation-cards').innerHTML = list.map(t => renderAICard(t)).join('') || '<div class="empty-state">Нет эскалаций</div>';
+    }
+
+    function updateBadges() {
+      const inbox = tasks.filter(t => (t.type === 's1' || t.type === 'escalation') && t.status !== 'done').length;
+      const ai = tasks.filter(t => t.status !== 'done').length;
+      const support = tasks.filter(t => (t.role === 'curator' || t.type === 's2') && t.status !== 'done').length;
+      const esc = tasks.filter(t => t.type === 'escalation' && t.status !== 'done').length;
+      document.getElementById('badge-inbox').textContent = inbox;
+      document.getElementById('badge-ai').textContent = ai;
+      document.getElementById('badge-support').textContent = support;
+      document.getElementById('badge-esc').textContent = esc;
+      document.getElementById('badge-inbox').style.display = inbox ? '' : 'none';
+      document.getElementById('badge-esc').style.display = esc ? '' : 'none';
+    }
+
+    function refreshAll() {
+      renderDashboard();
+      renderInbox();
+      renderAITasks();
+      renderPatients();
+      renderSupport();
+      renderEscalations();
+      updateBadges();
+    }
+
+    // ========== NAVIGATION ==========
+    function navigate(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const el = document.getElementById('page-' + page);
+      if (el) el.classList.add('active');
+      const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
+      if (nav) nav.classList.add('active');
+
+      const titles = {
+        dashboard: 'Dashboard',
+        inbox: 'Входящие',
+        'ai-tasks': 'AI-задачи',
+        patients: 'Пациенты',
+        support: 'Сопровождение',
+        escalations: 'Эскалации',
+        settings: 'Настройки AI'
+      };
+      document.getElementById('page-title').textContent = titles[page] || page;
+
+      if (page === 'ai-tasks') renderAITasks();
+      if (page === 'patients') renderPatients();
+    }
+
+    // ========== ROLE ==========
+    function setRole(role) {
+      currentRole = role;
+      document.querySelectorAll('.role-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.role === role);
+      });
+      if (role === 'admin') {
+        document.getElementById('user-name').textContent = 'Мария';
+        document.getElementById('user-role').textContent = 'Администратор';
+        document.getElementById('user-avatar').textContent = 'М';
+      } else {
+        document.getElementById('user-name').textContent = 'Алексей';
+        document.getElementById('user-role').textContent = 'Куратор';
+        document.getElementById('user-avatar').textContent = 'А';
+      }
+      refreshAll();
+      showToast(role === 'admin' ? 'Режим: Администратор' : 'Режим: Куратор');
+    }
+
+    // ========== MODAL ==========
+    function openModal(title, bodyHtml, footerHtml) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').innerHTML = bodyHtml;
+      document.getElementById('modal-footer').innerHTML = footerHtml || '';
+      document.getElementById('modal-overlay').classList.add('open');
+    }
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      activeTaskId = null;
+    }
+
+    // ========== ACTIONS ==========
+    function getTask(id) {
+      return tasks.find(t => t.id === id);
+    }
+
+    function actionExecute(id) {
+      const task = getTask(id);
+      if (!task) return;
+      activeTaskId = id;
+      const p = patients[task.patientId];
+
+      if (task.type === 'escalation') {
+        openModal('Экстренный handoff · Регламент №1', `
+          <div class="handover-box">
+            <h5>Карточка ввода в курс дела</h5>
+            <div class="row"><b>Причина</b> ${task.protocol || '№1 · Острая боль / осложнение'}</div>
+            <div class="row"><b>Пациент</b> ${p.name} · ${p.phone}</div>
+            <div class="row"><b>Клинический контекст</b> ${p.context.procedure || '—'} (${p.context.procedureDate || '—'})</div>
+            <div class="row"><b>Суть диалога</b> «${(p.context.message || '').slice(0, 120)}»</div>
+            <div class="row"><b>Первое действие</b> Связаться в приоритете, без шаблонных рассылок</div>
+            <div class="row"><b>SLA</b> ≤ 5 минут</div>
+          </div>
+          <p style="margin-bottom:12px;font-size:13px;">ИИ остановил авто-сценарии. Медицинских рекомендаций нет. Передайте дежурному врачу / старшему администратору.</p>
+          <div class="form-group">
+            <label>Кому передать</label>
+            <select id="transfer-to">
+              <option>Доктор Иванов (лечащий врач)</option>
+              <option>Старший администратор смены</option>
+              <option>Дежурный врач</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Комментарий</label>
+            <textarea id="transfer-comment">Пациентка ${p.name}: боль и температура после процедуры. Контекст из IDENT и переписки приложен. Просьба связаться ASAP.</textarea>
+          </div>
+          <div class="form-group">
+            <label>Срок реакции</label>
+            <select id="transfer-deadline">
+              <option>Немедленно (≤ 5 мин) — по регламенту №1</option>
+              <option>В течение 15 минут</option>
+              <option>В течение часа</option>
+            </select>
+          </div>
+        `, `
+          <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+          <button class="btn btn-primary" onclick="confirmEscalate('${id}')">Передать врачу</button>
+        `);
+        return;
+      }
+
+      openModal('Выполнить рекомендацию', `
+        <p style="margin-bottom:12px;"><strong>${task.nextStep}</strong></p>
+        ${task.draft ? `
+          <div class="form-group">
+            <label>Сообщение пациенту (можно отредактировать перед отправкой)</label>
+            <textarea id="exec-draft">${task.draft}</textarea>
+          </div>
+        ` : ''}
+        <div class="form-group">
+          <label>Дополнительное действие</label>
+          <select id="exec-extra">
+            <option value="none">Только отправить сообщение</option>
+            <option value="book">Предложить запись (без авто-записи)</option>
+            <option value="task">Создать задачу на follow-up</option>
+            <option value="note">Только зафиксировать в CRM</option>
+          </select>
+        </div>
+        <p class="text-sm text-muted">AI не выполняет запись или медицинские действия без вашего подтверждения.</p>
+      `, `
+        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" onclick="confirmExecute('${id}')">Подтвердить и выполнить</button>
+      `);
+    }
+
+    function confirmExecute(id) {
+      const task = getTask(id);
+      if (!task) return;
+      const p = patients[task.patientId];
+      if (p && p.noCall) {
+        showToast('Стоп: у пациента ограничение «не звонить / не писать». Действие заблокировано (D1).');
+        return;
+      }
+      const draftEl = document.getElementById('exec-draft');
+      if (draftEl) task.draft = draftEl.value;
+      task.status = 'done';
+      if (task.processStep) task.processStep = Math.min(4, (task.processStep || 1) + 1);
+      closeModal();
+      refreshAll();
+      showToast('Подтверждено. ИИ отметил шаг выполненным и проверит результат в МИС (имитация).');
+    }
+
+    function confirmEscalate(id) {
+      const task = getTask(id);
+      if (!task) return;
+      task.status = 'escalated';
+      task.responsible = document.getElementById('transfer-to')?.value || 'Доктор Иванов';
+      closeModal();
+      refreshAll();
+      showToast('Эскалация передана. Врач получит уведомление.');
+    }
+
+    function actionEdit(id) {
+      const task = getTask(id);
+      if (!task) return;
+      activeTaskId = id;
+      openModal('Редактировать рекомендацию', `
+        <div class="form-group">
+          <label>Рекомендуемый шаг</label>
+          <input type="text" id="edit-step" value="${task.nextStep}" />
+        </div>
+        <div class="form-group">
+          <label>Черновик сообщения</label>
+          <textarea id="edit-draft">${task.draft || ''}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Приоритет</label>
+          <select id="edit-priority">
+            <option value="high" ${task.priority==='high'?'selected':''}>Высокий</option>
+            <option value="medium" ${task.priority==='medium'?'selected':''}>Средний</option>
+            <option value="low" ${task.priority==='low'?'selected':''}>Низкий</option>
+          </select>
+        </div>
+      `, `
+        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" onclick="confirmEdit('${id}')">Сохранить</button>
+      `);
+    }
+
+    function confirmEdit(id) {
+      const task = getTask(id);
+      if (!task) return;
+      task.nextStep = document.getElementById('edit-step').value;
+      task.draft = document.getElementById('edit-draft').value;
+      task.priority = document.getElementById('edit-priority').value;
+      task.status = 'waiting';
+      closeModal();
+      refreshAll();
+      showToast('Рекомендация обновлена');
+    }
+
+    function actionReject(id) {
+      const task = getTask(id);
+      if (!task) return;
+      openModal('Отклонить рекомендацию', `
+        <p style="margin-bottom:12px;">AI-рекомендация будет отклонена. Укажите причину (опционально) — это поможет улучшить правила.</p>
+        <div class="form-group">
+          <label>Причина отклонения</label>
+          <select id="reject-reason">
+            <option>Не актуально</option>
+            <option>Неверный контекст пациента</option>
+            <option>Уже обработано вручную</option>
+            <option>Другое</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Комментарий</label>
+          <textarea id="reject-comment" placeholder="Необязательно"></textarea>
+        </div>
+      `, `
+        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-danger" onclick="confirmReject('${id}')">Отклонить</button>
+      `);
+    }
+
+    function confirmReject(id) {
+      const task = getTask(id);
+      if (!task) return;
+      task.status = 'done';
+      closeModal();
+      refreshAll();
+      showToast('Рекомендация отклонена');
+    }
+
+    function actionTransfer(id) {
+      const task = getTask(id);
+      if (!task) return;
+      openModal('Передать задачу человеку', `
+        <p style="margin-bottom:12px;">Задача будет передана другому сотруднику. AI сохранит контекст и историю.</p>
+        <div class="form-group">
+          <label>Кому передать</label>
+          <select id="human-to">
+            <option>Мария — администратор</option>
+            <option>Алексей — куратор</option>
+            <option>Доктор Иванов</option>
+            <option>Старший администратор</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Комментарий</label>
+          <textarea id="human-comment" placeholder="Почему передаёте..."></textarea>
+        </div>
+      `, `
+        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" onclick="confirmTransfer('${id}')">Передать</button>
+      `);
+    }
+
+    function confirmTransfer(id) {
+      const task = getTask(id);
+      if (!task) return;
+      task.responsible = document.getElementById('human-to').value;
+      task.status = 'escalated';
+      closeModal();
+      refreshAll();
+      showToast('Задача передана: ' + task.responsible);
+    }
+
+    function actionDetails(id) {
+      const task = getTask(id);
+      if (!task) return;
+      const p = patients[task.patientId];
+      let contextHtml = '';
+      if (task.type === 's1') {
+        contextHtml = `
+          <div class="context-item"><label>Источник</label>${p.context.source || '—'}</div>
+          <div class="context-item"><label>Сообщение пациента</label>«${p.context.message || '—'}»</div>
+          <div class="context-item"><label>История</label>${p.context.history || '—'}</div>
+        `;
+      } else if (task.type === 's2') {
+        contextHtml = `
+          <div class="context-item"><label>Дата консультации</label>${p.context.consultDate}</div>
+          <div class="context-item"><label>Врач</label>${p.context.doctor}</div>
+          <div class="context-item"><label>План лечения</label>${p.context.plan}</div>
+          <div class="context-item"><label>Договорённость</label>${p.context.agreement}</div>
+          <div class="context-item"><label>Решение пациента</label>${p.context.decision}</div>
+        `;
+      } else if (task.type === 'escalation') {
+        contextHtml = `
+          <div class="context-item"><label>Процедура</label>${p.context.procedure}</div>
+          <div class="context-item"><label>Дата процедуры</label>${p.context.procedureDate}</div>
+          <div class="context-item"><label>Сообщение</label>«${p.context.message}»</div>
+          <div class="context-item"><label>Канал</label>${p.context.source}</div>
+        `;
+      }
+
+      openModal('Подробности · ' + p.name, `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div class="context-item"><label>Событие</label>${task.event}</div>
+          <div class="context-item"><label>Статус</label>${statusLabel(task.status)}</div>
+          <div class="context-item"><label>Приоритет</label>${priorityLabel(task.priority)}</div>
+          <div class="context-item"><label>Ответственный</label>${task.responsible}</div>
+        </div>
+        <div class="ai-insight">
+          <div class="ai-insight-label">✦ Что обнаружил AI</div>
+          <p>${task.discovered}</p>
+        </div>
+        <div class="ai-insight" style="margin-top:8px;">
+          <div class="ai-insight-label">Почему AI предлагает это</div>
+          <p>${task.why}</p>
+        </div>
+        <div style="margin-top:14px;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:8px;">Контекст пациента</div>
+          ${contextHtml}
+        </div>
+        <div class="text-sm text-muted mt-2">Источник правила: ${task.source}</div>
+      `, `
+        <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
+        ${task.status !== 'done' ? `<button class="btn btn-primary" onclick="closeModal();actionExecute('${id}')">Выполнить</button>` : ''}
+      `);
+    }
+
+    function openPatient(id) {
+      const p = patients[id];
+      if (!p) return;
+      const procs = (p.processes || []).map(x => `<span class="badge badge-status" style="margin:2px;">${x}</span>`).join(' ');
+      openModal(p.name, `
+        <div class="patient-cell" style="margin-bottom:16px;">
+          <div class="patient-avatar" style="width:48px;height:48px;font-size:16px;">${p.initials}</div>
+          <div>
+            <div style="font-weight:600;font-size:15px;">${p.name}</div>
+            <div class="text-sm text-muted">${p.phone}</div>
+            ${p.noCall ? '<div style="margin-top:6px;"><span class="flag-nocall">🚩 Отказ от контакта · сохраняется между процессами</span></div>' : ''}
+          </div>
+        </div>
+        <div class="context-item"><label>Статус профиля</label>${p.status}</div>
+        <div class="context-item"><label>Активные процессы</label>${procs || '—'}</div>
+        <div class="context-item"><label>Последний контакт</label>${p.lastContact}</div>
+        <div class="context-item"><label>Ответственный</label>${p.responsible}</div>
+        <p class="text-sm text-muted mt-2">Профиль отделён от процессов (D3). Демо-данные; в продукте — IDENT + amoCRM без мед. тайны в облаке.</p>
+      `, `<button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>`);
+    }
+
+    // ========== INIT ==========
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => navigate(item.dataset.page));
+    });
+
+    document.querySelectorAll('.role-btn').forEach(btn => {
+      btn.addEventListener('click', () => setRole(btn.dataset.role));
+    });
+
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('modal-overlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modal-overlay')) closeModal();
+    });
+
+    document.getElementById('notif-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('notif-panel').classList.toggle('open');
+    });
+    document.addEventListener('click', () => {
+      document.getElementById('notif-panel').classList.remove('open');
+    });
+    document.querySelectorAll('.notif-item').forEach(item => {
+      item.addEventListener('click', () => {
+        navigate(item.dataset.goto);
+        document.getElementById('notif-panel').classList.remove('open');
+      });
+    });
+
+    document.querySelectorAll('#ai-filters .filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#ai-filters .filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentFilter = chip.dataset.filter;
+        renderAITasks();
+      });
+    });
+
+    document.querySelectorAll('[data-toggle]').forEach(t => {
+      t.addEventListener('click', () => t.classList.toggle('on'));
+    });
+
+    const patientSearch = document.getElementById('patient-search');
+    if (patientSearch) {
+      patientSearch.addEventListener('input', renderPatients);
+    }
+
+    document.getElementById('global-search').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) return;
+        const found = Object.values(patients).find(p => p.name.toLowerCase().includes(q));
+        if (found) {
+          navigate('patients');
+          document.getElementById('patient-search').value = q;
+          renderPatients();
+          showToast('Найден: ' + found.name);
+        } else {
+          showToast('Ничего не найдено');
+        }
+      }
+    });
+
+    // Initial render
+    refreshAll();
+  </script>
+</body>
+</html>
