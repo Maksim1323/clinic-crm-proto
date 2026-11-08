@@ -554,6 +554,58 @@
     .patient-col.profile-mode .patient-header { display: none; }
     .patient-col .profile-card { display: none; flex: 1; min-height: 0; }
     .patient-col.profile-mode .profile-card { display: flex; }
+  
+    .ai-panel {
+      background: linear-gradient(180deg, #f0fdfa 0%, #fff 60%);
+      border: 1px solid #99f6e4;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .ai-panel-head {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; color: #0f766e;
+      margin-bottom: 8px;
+    }
+    .ai-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      background: #0d9488; color: #fff; border-radius: 6px;
+      padding: 2px 6px;
+    }
+    .ai-title { font-size: 13px; font-weight: 600; color: #134e4a; margin-bottom: 4px; }
+    .ai-body { font-size: 12px; color: #475569; line-height: 1.45; margin-bottom: 10px; }
+    .ai-actions { display: flex; flex-direction: column; gap: 6px; }
+    .ai-actions button {
+      width: 100%; text-align: left; padding: 8px 10px; border-radius: 10px;
+      border: 1px solid #99f6e4; background: #fff; cursor: pointer;
+      font-size: 12px; color: #0f766e; font-weight: 500;
+    }
+    .ai-actions button:hover { background: #ccfbf1; }
+    .ai-actions button.confirm {
+      background: #0d9488; color: #fff; border-color: #0d9488;
+    }
+    .esc-banner {
+      display: none; margin: 0 0 10px; background: #fff1f2;
+      border: 1px solid #fecdd3; border-radius: 12px; padding: 12px 14px;
+    }
+    .esc-banner.show { display: block; }
+    .esc-banner .t1 { font-size: 13px; font-weight: 700; color: #be123c; }
+    .esc-banner .t2 { font-size: 12px; color: #9f1239; margin-top: 4px; line-height: 1.4; }
+    .esc-banner .t3 { font-size: 11px; color: #64748b; margin-top: 6px; }
+    .process-strip {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      padding: 8px 12px; margin-bottom: 10px;
+      background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;
+      font-size: 11px; color: #64748b;
+    }
+    .process-strip .step {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 4px 8px; color: #334155;
+    }
+    .process-strip .step.active {
+      background: #f0fdfa; border-color: #99f6e4; color: #0f766e; font-weight: 600;
+    }
+    .process-strip .arrow { color: #cbd5e1; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -699,7 +751,27 @@
             </div>
           </div>
 
-          <div class="card actions-card">
+          <div class="card actions-card" style="width:260px">
+            <div class="process-strip" id="ai-process-strip">
+              <span class="step active">Событие</span><span class="arrow">→</span>
+              <span class="step">Контекст</span><span class="arrow">→</span>
+              <span class="step">Действие</span><span class="arrow">→</span>
+              <span class="step">Результат</span>
+            </div>
+            <div class="esc-banner" id="esc-banner">
+              <div class="t1" id="esc-title">🚩 Эскалация</div>
+              <div class="t2" id="esc-body">—</div>
+              <div class="t3" id="esc-sla">SLA: —</div>
+            </div>
+            <div class="ai-panel" id="ai-panel">
+              <div class="ai-panel-head">
+                <span class="ai-badge">ИИ</span>
+                <span>Рекомендация по регламенту</span>
+              </div>
+              <div class="ai-title" id="ai-rec-title">—</div>
+              <div class="ai-body" id="ai-rec-body">—</div>
+              <div class="ai-actions" id="ai-rec-actions"></div>
+            </div>
             <h3>Действия</h3>
             <button onclick="actionBookMIS()" class="btn-soft primary">📝 Записать в МИС</button>
             <button onclick="actionTemplate('address')" class="btn-soft">📍 Адрес</button>
@@ -707,7 +779,8 @@
             <button onclick="actionPlan()" class="btn-soft">📄 План лечения</button>
             <button onclick="actionReminder()" class="btn-soft">🔔 Напоминание</button>
             <button onclick="openStageModal()" class="btn-soft indigo">🔄 Сменить статус</button>
-            <div class="actions-hint">Действия пишутся в историю и меняют карточку пациента.</div>
+            <button onclick="demoEscalation()" class="btn-soft" style="border-color:#fecdd3;color:#be123c">🚩 Демо эскалации</button>
+            <div class="actions-hint">ИИ предлагает шаг → человек подтверждает. Без подтверждения запись в МИС не выполняется.</div>
           </div>
         </div>
       </div>
@@ -823,7 +896,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v1.0.1 · Карточка + Чат</span>
+    <span>ClinicCRM · v1.3 · ИИ ведёт процесс (добавлено)</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -924,6 +997,19 @@
       <div class="modal-actions">
         <button type="button" onclick="closePatientModal()">Отмена</button>
         <button type="button" class="ok" onclick="savePatientCard()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="modal-bg" id="handoff-modal" onclick="if(event.target===this)closeHandoff()">
+    <div class="modal wide">
+      <h3 style="font-size:18px;font-weight:600;margin-bottom:4px">Карточка передачи (Handoff)</h3>
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px">Контекст для человека · ИИ не решает за сотрудника</p>
+      <div id="handoff-content" style="font-size:13px;line-height:1.5;color:#334155"></div>
+      <div class="modal-actions">
+        <button type="button" onclick="closeHandoff()">Закрыть</button>
+        <button type="button" class="ok" onclick="acceptHandoff()">Принято в работу</button>
       </div>
     </div>
   </div>
@@ -1032,7 +1118,7 @@
     let currentPatientId = 'ivanov';
     let pendingStage = null;
 
-    const STORAGE_KEY = 'cliniccrm_v10';
+    const STORAGE_KEY = 'cliniccrm_v13';
 
     function saveDB() {
       try {
@@ -1370,6 +1456,172 @@
       document.getElementById('inbox-count').textContent = DB.inboxOrder.length;
     }
 
+
+    const AI_RECS = {
+      1: {
+        title: 'Сценарий: запись на приём',
+        body: 'По регламенту первичного приёма: уточнить специализацию, предложить 2 реальных слота из МИС, не создавать запись без подтверждения администратора.',
+        actions: [
+          { label: '✓ Подтвердить предложение слотов', fn: 'aiConfirmSlots' },
+          { label: '✎ Править черновик сообщения', fn: 'aiEditDraft' },
+          { label: 'Передать человеку', fn: 'demoEscalation' }
+        ],
+        process: 2
+      },
+      2: {
+        title: 'Сценарий: сопровождение после консультации',
+        body: 'План лечения в МИС есть, оплата частичная, следующий визит не назначен. По регламенту курации: связаться в течение 48 часов, предложить поэтапную оплату, не закрывать в отказ без предложения рассрочки.',
+        actions: [
+          { label: '✓ Подтвердить задачу куратору', fn: 'aiConfirmCurator' },
+          { label: 'Открыть шпаргалку звонка', fn: 'aiShowBrief' },
+          { label: 'Передать куратору', fn: 'demoEscalation' }
+        ],
+        process: 2
+      },
+      3: {
+        title: 'Контроль лечения',
+        body: 'ИИ отслеживает явки и оплаты по плану. Отклонений по регламенту не обнаружено. Следующий шаг — напоминание о визите за 24 часа.',
+        actions: [
+          { label: '✓ Поставить напоминание', fn: 'actionReminder' },
+          { label: 'Без изменений', fn: 'aiDismiss' }
+        ],
+        process: 3
+      },
+      4: {
+        title: 'Профосмотр / recall',
+        body: 'По регламенту гарантии: через 6 месяцев после имплантации/коронок нужна профгигиена. ИИ подобрал окна у гигиениста.',
+        actions: [
+          { label: '✓ Отправить приглашение', fn: 'aiConfirmSlots' },
+          { label: 'Отложить', fn: 'aiDismiss' }
+        ],
+        process: 2
+      },
+      5: {
+        title: 'Потенциальный / прогрев',
+        body: 'Пациент в базе прогрева. Проверка D1: если есть отказ от рассылок — не звонить автоматически. Человек решает, допустим ли контакт.',
+        actions: [
+          { label: 'Разрешить один контакт', fn: 'aiConfirmCurator' },
+          { label: 'Оставить в покое', fn: 'aiDismiss' }
+        ],
+        process: 1
+      }
+    };
+
+    function renderAIRec(p) {
+      const rec = AI_RECS[p.stageNum] || AI_RECS[1];
+      const title = document.getElementById('ai-rec-title');
+      const body = document.getElementById('ai-rec-body');
+      const acts = document.getElementById('ai-rec-actions');
+      const strip = document.getElementById('ai-process-strip');
+      if (!title) return;
+      title.textContent = rec.title;
+      let extra = '';
+      if (p.noSpam) extra = ' ⚠ У пациента отказ от рассылок — маркетинг заблокирован.';
+      body.textContent = rec.body + extra;
+      acts.innerHTML = rec.actions.map(a => {
+        const cls = a.label.indexOf('✓') === 0 ? 'confirm' : '';
+        return `<button type="button" class="${cls}" onclick="${a.fn}()">${a.label}</button>`;
+      }).join('');
+      if (strip) {
+        const steps = strip.querySelectorAll('.step');
+        steps.forEach((s, i) => s.classList.toggle('active', i === (rec.process || 1)));
+      }
+      // auto show escalation visual if noSpam + stage 5 or conflict markers in history
+      const esc = document.getElementById('esc-banner');
+      if (esc && p._escalation) {
+        esc.classList.add('show');
+        document.getElementById('esc-title').textContent = p._escalation.title;
+        document.getElementById('esc-body').textContent = p._escalation.body;
+        document.getElementById('esc-sla').textContent = 'SLA: ' + p._escalation.sla;
+      } else if (esc) {
+        esc.classList.remove('show');
+      }
+    }
+
+    function aiConfirmSlots() {
+      const p = DB.patients[currentPatientId];
+      if (!p) return;
+      addHistory('🤖', 'ИИ · подтверждены слоты',
+        '<div>Администратор подтвердил предложение ИИ: 2 окна из МИС. Запись <b>не создана автоматически</b> — требуется финальный клик «Записать в МИС».</div>');
+      p.preview = 'ИИ: слоты подтверждены';
+      toast('✓ Предложение принято · запись ждёт подтверждения в МИС');
+      setProcessStep(3);
+    }
+    function aiEditDraft() {
+      const input = document.getElementById('msg-input');
+      if (input) {
+        input.value = 'Добрый день! Могу предложить приём: завтра 14:00 или послезавтра 11:30 к стоматологу. Какой вариант удобнее?';
+        showPatientHistory();
+        input.focus();
+      }
+      toast('Черновик подставлен · отправьте вручную');
+    }
+    function aiConfirmCurator() {
+      const p = DB.patients[currentPatientId];
+      if (!p) return;
+      addHistory('🤖', 'ИИ · задача куратору',
+        '<div>Сформирован Action Package: связаться в 48 ч, предложить поэтапную оплату, не закрывать в отказ без рассрочки.</div>');
+      toast('✓ Задача куратору поставлена (демо)');
+      setProcessStep(3);
+    }
+    function aiShowBrief() {
+      const p = DB.patients[currentPatientId];
+      const html = `
+        <div style="margin-bottom:12px"><b>Причина:</b> план лечения без следующего визита</div>
+        <div style="margin-bottom:12px"><b>Контекст МИС:</b> план · оплата частичная · врач ${p && p.doctor || '—'}</div>
+        <div style="margin-bottom:12px"><b>Суть:</b> пациент «подумает» · по регламенту нельзя закрывать без предложения рассрочки</div>
+        <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:10px">
+          <b>Рекомендуемое первое действие:</b><br>
+          Позвонить, напомнить про временную фиксацию (до 3 недель), предложить этап 1 и 2 окна на этой неделе.
+        </div>`;
+      document.getElementById('handoff-content').innerHTML = html;
+      document.getElementById('handoff-modal').classList.add('open');
+    }
+    function aiDismiss() {
+      toast('Рекомендация отложена');
+      setProcessStep(0);
+    }
+    function setProcessStep(n) {
+      const strip = document.getElementById('ai-process-strip');
+      if (!strip) return;
+      strip.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i === n));
+    }
+    function demoEscalation() {
+      const p = DB.patients[currentPatientId];
+      if (!p) return;
+      p._escalation = {
+        title: '🚩 Регламент №2 · Конфликт / претензия (демо)',
+        body: 'Обнаружены маркеры негатива или запрос «верните деньги». Авто-рассылки заморожены. Нужен человек.',
+        sla: '≤ 15 мин · Директор / Главврач / Сервис'
+      };
+      const handoff = `
+        <div style="margin-bottom:10px;padding:8px 10px;background:#fff1f2;border-radius:8px;color:#be123c;font-weight:600">
+          Причина: Регламент №2 · Юридический и репутационный щит
+        </div>
+        <div style="margin-bottom:10px"><b>Клинический контекст (IDENT):</b> последний визит и план подтягиваются из МИС (в прототипе — демо).</div>
+        <div style="margin-bottom:10px"><b>Суть диалога:</b> ${(p.preview || '—')}</div>
+        <div style="margin-bottom:10px"><b>Пациент:</b> ${p.name} · ${p.phone || ''}</div>
+        <div style="background:#f8fafc;border-radius:10px;padding:10px">
+          <b>Рекомендуемое действие:</b> перехватить диалог живым сотрудником, не отправлять шаблоны, зафиксировать претензию.
+        </div>`;
+      document.getElementById('handoff-content').innerHTML = handoff;
+      document.getElementById('handoff-modal').classList.add('open');
+      renderAIRec(p);
+      addHistory('🚩', 'Эскалация · handoff',
+        '<div>ИИ передал карточку человеку. Авто-сценарии остановлены. SLA ≤ 15 мин.</div>');
+      toast('Эскалация: человек вызван');
+    }
+    function closeHandoff() {
+      document.getElementById('handoff-modal').classList.remove('open');
+    }
+    function acceptHandoff() {
+      addHistory('👤', 'Человек принял handoff',
+        '<div>Сотрудник подтвердил приём в работу. ИИ остаётся в режиме ассистента.</div>');
+      closeHandoff();
+      toast('✓ В работе у сотрудника');
+      setProcessStep(3);
+    }
+
     function renderPatient(id, showToast = true) {
       const p = DB.patients[id];
       if (!p) return;
@@ -1416,6 +1668,7 @@
 
       // Profile card (design)
       renderProfileCard(p);
+      renderAIRec(p);
 
       renderInbox();
       if (showToast) toast('Карточка: ' + p.name);
