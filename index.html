@@ -715,6 +715,27 @@
       content: ''; position: absolute; inset: 22px; background: #fff; border-radius: 50%;
     }
     .period-btn.active { background: #f0fdfa !important; color: #0f766e !important; border-color: #99f6e4 !important; }
+  
+    .kanban-col.drag-over {
+      outline: 2px dashed #14b8a6;
+      outline-offset: -2px;
+      background: #f0fdfa !important;
+    }
+    .kanban-card {
+      cursor: grab;
+      user-select: none;
+    }
+    .kanban-card.dragging { opacity: 0.5; cursor: grabbing; }
+    .kanban-card .move-btns {
+      display: flex; gap: 4px; margin-top: 8px;
+    }
+    .kanban-card .move-btns button {
+      flex: 1; border: 1px solid #e2e8f0; background: #f8fafc;
+      border-radius: 8px; padding: 4px 6px; font-size: 11px;
+      cursor: pointer; color: #475569;
+    }
+    .kanban-card .move-btns button:hover { background: #f0fdfa; border-color: #99f6e4; color: #0f766e; }
+    .kanban-card .move-btns button:disabled { opacity: 0.35; cursor: default; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -901,7 +922,8 @@
     <div id="view-kanban" class="view kanban-view">
       <div class="kanban-toolbar">
         <h2 style="font-size:18px;font-weight:600">Бизнес-процессы</h2>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:12px;color:#94a3b8">Перетащите карточку или ← →</span>
           <button onclick="toast('Фильтр по врачу')" class="badge">Все врачи</button>
           <button onclick="toast('Фильтр по филиалу')" class="badge">Все филиалы</button>
         </div>
@@ -973,7 +995,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v1.5 · Аналитика: дашборд и графики</span>
+    <span>ClinicCRM · v1.6 · Канбан: drag-and-drop этапов</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
@@ -1822,23 +1844,96 @@
         1: '#f0f9ff', 2: '#eef2ff', 3: '#f5f3ff', 4: '#ecfdf5', 5: '#fffbeb'
       };
       const board = document.getElementById('kanban-board');
+      if (!board) return;
       board.innerHTML = STAGES.map(s => {
         const cards = (byStage[s.num] || []).map(p => `
-          <div class="kanban-card" onclick="showView('comms'); selectPatient('${p.id}')">
+          <div class="kanban-card" draggable="true"
+               data-id="${p.id}" data-stage="${s.num}"
+               ondragstart="kanbanDragStart(event)"
+               ondragend="kanbanDragEnd(event)"
+               onclick="if(!window._kanbanDragged){showView('comms');selectPatient('${p.id}')}">
             <div style="font-size:13px;font-weight:500">${p.name}</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:4px">${p.channelLabel}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px">${p.channelLabel || ''}</div>
             <div style="font-size:11px;color:#64748b;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.preview || ''}</div>
-            ${p.noSpam ? '<div style="margin-top:8px"><span class="badge rose">🚩</span></div>' : ''}
+            ${p.noSpam ? '<div style="margin-top:6px"><span class="badge rose">🚩</span></div>' : ''}
+            <div class="move-btns" onclick="event.stopPropagation()">
+              <button type="button" ${s.num <= 1 ? 'disabled' : ''} onclick="movePatientStage('${p.id}', ${s.num - 1})" title="На этап назад">←</button>
+              <button type="button" ${s.num >= 5 ? 'disabled' : ''} onclick="movePatientStage('${p.id}', ${s.num + 1})" title="На этап вперёд">→</button>
+            </div>
           </div>`).join('');
-        return `<div class="kanban-col" style="flex:0 0 240px;width:240px;min-width:240px;display:flex;flex-direction:column;background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;height:100%">
+        return `<div class="kanban-col" data-stage="${s.num}"
+          style="flex:0 0 240px;width:240px;min-width:240px;display:flex;flex-direction:column;background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;height:100%"
+          ondragover="kanbanDragOver(event)" ondragleave="kanbanDragLeave(event)" ondrop="kanbanDrop(event)">
           <div class="kanban-col-head" style="background:${headBg[s.num]};padding:12px 16px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600">
             <span>${s.label}</span>
             <span class="badge">${(byStage[s.num]||[]).length}</span>
           </div>
-          <div class="kanban-col-body" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px">${cards || '<div style="font-size:12px;color:#cbd5e1;text-align:center;padding:24px 0">пусто</div>'}</div>
+          <div class="kanban-col-body" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px">${cards || '<div style="font-size:12px;color:#cbd5e1;text-align:center;padding:24px 0">перетащите карточку</div>'}</div>
         </div>`;
       }).join('');
     }
+
+    let _dragPatientId = null;
+    window._kanbanDragged = false;
+
+    function kanbanDragStart(e) {
+      const card = e.target.closest('.kanban-card');
+      if (!card) return;
+      _dragPatientId = card.getAttribute('data-id');
+      window._kanbanDragged = false;
+      card.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', _dragPatientId);
+      e.dataTransfer.effectAllowed = 'move';
+    }
+    function kanbanDragEnd(e) {
+      const card = e.target.closest('.kanban-card');
+      if (card) card.classList.remove('dragging');
+      document.querySelectorAll('.kanban-col.drag-over').forEach(c => c.classList.remove('drag-over'));
+      setTimeout(() => { window._kanbanDragged = false; }, 50);
+    }
+    function kanbanDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const col = e.target.closest('.kanban-col');
+      if (col) col.classList.add('drag-over');
+    }
+    function kanbanDragLeave(e) {
+      const col = e.target.closest('.kanban-col');
+      if (col && !col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+    }
+    function kanbanDrop(e) {
+      e.preventDefault();
+      window._kanbanDragged = true;
+      const col = e.target.closest('.kanban-col');
+      if (!col) return;
+      col.classList.remove('drag-over');
+      const stage = parseInt(col.getAttribute('data-stage'), 10);
+      const id = e.dataTransfer.getData('text/plain') || _dragPatientId;
+      if (!id || !stage) return;
+      movePatientStage(id, stage);
+    }
+
+    function movePatientStage(id, newStage) {
+      newStage = parseInt(newStage, 10);
+      if (newStage < 1 || newStage > 5) return;
+      const p = DB.patients[id];
+      if (!p) return;
+      if (p.stageNum === newStage) return;
+      const old = STAGES.find(s => s.num === p.stageNum);
+      const neu = STAGES.find(s => s.num === newStage);
+      p.stageNum = newStage;
+      p.history.unshift({
+        type: 'system', icon: '🔄',
+        title: 'Смена этапа',
+        date: nowLabel(),
+        body: `<div>Этап: <b>${old ? old.label : '—'}</b> → <b>${neu ? neu.label : '—'}</b> (канбан)</div>`
+      });
+      if (typeof saveDB === 'function') saveDB();
+      renderKanban();
+      if (currentPatientId === id) renderPatient(id, false);
+      toast('→ ' + (neu ? neu.label : newStage));
+    }
+
 
 
     let TASKS = [
