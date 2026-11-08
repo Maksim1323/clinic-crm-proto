@@ -606,6 +606,27 @@
       background: #f0fdfa; border-color: #99f6e4; color: #0f766e; font-weight: 600;
     }
     .process-strip .arrow { color: #cbd5e1; }
+  
+    .action-bar {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 10px 12px 0;
+      border-top: 1px solid #f1f5f9;
+      background: #fff;
+    }
+    .action-bar button {
+      border: 1px solid #e2e8f0; background: #f8fafc;
+      border-radius: 20px; padding: 6px 12px;
+      font-size: 12px; color: #334155; cursor: pointer;
+      white-space: nowrap;
+    }
+    .action-bar button:hover { background: #f0fdfa; border-color: #99f6e4; color: #0f766e; }
+    .action-bar button.primary {
+      background: #f0fdfa; border-color: #99f6e4; color: #0f766e; font-weight: 600;
+    }
+    .action-bar button.danger {
+      border-color: #fecdd3; color: #be123c; background: #fff1f2;
+    }
+    .composer { border-top: none; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -745,6 +766,15 @@
               <span id="history-count" style="font-size:12px;color:#94a3b8">0 событий</span>
             </div>
             <div class="history-feed" id="history-feed"></div>
+            <div class="action-bar">
+              <button type="button" class="primary" onclick="actionBookMIS()">📝 Записать в МИС</button>
+              <button type="button" onclick="actionTemplate('address')">📍 Адрес</button>
+              <button type="button" onclick="actionTemplate('price')">💰 Прайс</button>
+              <button type="button" onclick="actionPlan()">📄 План лечения</button>
+              <button type="button" onclick="actionReminder()">🔔 Напоминание</button>
+              <button type="button" onclick="openStageModal()">🔄 Статус</button>
+              <button type="button" class="danger" onclick="demoEscalation()">🚩 Эскалация</button>
+            </div>
             <div class="composer">
               <textarea id="msg-input" rows="1" placeholder="Написать сообщение пациенту..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
               <button class="composer-send" onclick="sendMessage()">Отправить</button>
@@ -772,15 +802,7 @@
               <div class="ai-body" id="ai-rec-body">—</div>
               <div class="ai-actions" id="ai-rec-actions"></div>
             </div>
-            <h3>Действия</h3>
-            <button onclick="actionBookMIS()" class="btn-soft primary">📝 Записать в МИС</button>
-            <button onclick="actionTemplate('address')" class="btn-soft">📍 Адрес</button>
-            <button onclick="actionTemplate('price')" class="btn-soft">💰 Прайс</button>
-            <button onclick="actionPlan()" class="btn-soft">📄 План лечения</button>
-            <button onclick="actionReminder()" class="btn-soft">🔔 Напоминание</button>
-            <button onclick="openStageModal()" class="btn-soft indigo">🔄 Сменить статус</button>
-            <button onclick="demoEscalation()" class="btn-soft" style="border-color:#fecdd3;color:#be123c">🚩 Демо эскалации</button>
-            <div class="actions-hint">ИИ предлагает шаг → человек подтверждает. Без подтверждения запись в МИС не выполняется.</div>
+            <div class="actions-hint">ИИ предлагает шаг → человек подтверждает. Набор действий — над полем сообщения.</div>
           </div>
         </div>
       </div>
@@ -896,7 +918,7 @@
   </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v1.3 · ИИ ведёт процесс (добавлено)</span>
+    <span>ClinicCRM · v1.3.1 · Действия над полем ввода</span>
     <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
   </div>
 
