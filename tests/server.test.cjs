@@ -2,7 +2,7 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const fs=require('node:fs');const os=require('node:os');const path=require('node:path');
-const {createServer}=require('./server');
+const {createServer}=require('../src/app');
 test('Telegram, Gemini и ручное подтверждение: серверный сценарий',async t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crm-test-')), dataFile=path.join(dir,'data.json');
   const admin='test-admin-token-with-more-than-24-chars', secret='test_webhook_secret_1234567890', calls=[];
@@ -26,7 +26,9 @@ test('Telegram, Gemini и ручное подтверждение: сервер�
   x=await req('/api/telegram/conversations/123/send',{method:'POST',headers:jsonHeaders,body:JSON.stringify(msg)});assert.equal(x.status,409);assert.equal(calls.filter(c=>c.url.includes('sendMessage')).length,1,'защита от повтора');
   x=await req('/api/telegram/conversations/123',{headers:authorized});assert.equal(x.data.messages.length,2);assert.equal(x.data.messages[1].text,'Проверенный ответ');
   assert.ok(fs.readFileSync(dataFile,'utf8').includes('Добрый день'),'история сохранена на диск');
-  const denied=await fetch(root+'/.env');assert.equal(denied.status,404,'секретные файлы не раздаются');
+  const page=await fetch(root+'/');assert.equal(page.status,200,'страница доступна');
+  for(const asset of ['/css/app.css','/js/app.js','/js/journey.js','/js/telegram.js']) assert.equal((await fetch(root+asset)).status,200,'доступен '+asset);
+  for(const hidden of ['/.env','/src/app.js','/tests/server.test.cjs','/package.json']) assert.equal((await fetch(root+hidden)).status,404,'сервер не раздаёт '+hidden);
 });
 
 test('Автоответ, триггеры, передача и возврат ИИ',async t=>{
