@@ -23,6 +23,7 @@
       <button onclick="showView('kanban')" id="nav-kanban" class="nav-btn">Бизнес-процессы</button>
       <button onclick="showView('analytics')" id="nav-analytics" class="nav-btn">Аналитика</button>
       <button onclick="showView('tasks')" id="nav-tasks" class="nav-btn">Задачи</button>
+      <button onclick="openTelegramView()" id="nav-telegram" class="nav-btn">Telegram · тест <span class="badge rose" id="tg-alert-count" style="display:none"></span></button>
       <button onclick="showView('auto')" id="nav-auto" class="nav-btn">Автоматизация</button>
     </nav>
     <div class="header-right">
@@ -280,6 +281,28 @@
   </div>
 
   
+    <!-- VIEW: TELEGRAM TEST (existing CRM components; no visual redesign) -->
+    <div id="view-telegram" class="view">
+      <aside class="sidebar">
+        <div class="sidebar-head"><h2>Telegram · тест</h2><span class="badge" id="tg-count">0</span></div>
+        <div class="filters"><button type="button" class="badge teal" onclick="tgRefresh()">Обновить</button><button type="button" class="badge" onclick="tgSetupWebhook()">Подключить бота</button><button type="button" class="badge" onclick="tgLogout()">Выйти</button></div>
+        <div class="inbox-list" id="tg-conversations"><div class="ch-preview" style="padding:16px">Войдите и подключите бота на сервере Render.</div></div>
+        <div class="sidebar-foot"><div class="ch-preview">Только вымышленные данные. Сообщения сохраняются на сервере.</div></div>
+      </aside>
+      <div class="patient-col">
+        <div class="card patient-header"><div class="patient-top"><div><h1 class="patient-name" id="tg-chat-name">Выберите диалог</h1><div class="patient-sub" id="tg-status">ИИ отвечает в тестовом диалоге; при передаче нужен администратор.</div></div><span class="badge" id="tg-connection">Сервер · тест</span></div></div>
+        <div class="content-row">
+          <div class="card history-card">
+            <div class="history-head"><h3 style="font-size:14px;font-weight:600">Сообщения Telegram</h3><span class="badge">Тестовый контур</span></div>
+            <div class="history-feed" id="tg-messages"><div class="ch-preview">Чтобы начать, подключите бота и отправьте ему тестовое сообщение.</div></div>
+            <div class="action-bar"><button type="button" class="primary" id="tg-draft-btn" onclick="tgDraft()" disabled>✨ Черновик Gemini</button></div>
+            <div class="composer"><textarea id="tg-input" rows="2" placeholder="Проверьте и отредактируйте ответ перед отправкой..."></textarea><button type="button" class="composer-send" id="tg-send-btn" onclick="tgSend()" disabled>Отправить</button></div>
+          </div>
+          <div class="card actions-card" style="width:260px"><div class="ai-panel"><div class="ai-panel-head"><span class="ai-badge">ИИ</span><span>Статус диалога</span></div><div class="ai-title" id="tg-handoff-status">Выберите чат</div><div class="ai-body" id="tg-handoff-reason">Причина и контекст передачи появятся здесь.</div><div class="ai-body" id="tg-handoff-summary" style="margin-top:8px;white-space:pre-wrap"></div><div class="ai-actions"><button type="button" class="confirm" id="tg-take" onclick="tgTake()" style="display:none">Взять в работу</button><button type="button" id="tg-resume" onclick="tgResume()" style="display:none">Вернуть ИИ</button></div></div><div class="actions-hint">Тестовые данные. МИС не подключена. Сводка ИИ может содержать ошибки; проверяйте историю.</div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- VIEW: AUTOMATION -->
     <div id="view-auto" class="view auto-view">
       <div class="kanban-toolbar">
@@ -435,10 +458,18 @@
     </div>
   </div>
 
+  <div class="modal-bg" id="tg-login-modal" role="dialog" aria-modal="true" aria-labelledby="tg-login-title">
+    <div class="modal wide"><h3 id="tg-login-title" style="font-size:18px;font-weight:600;margin-bottom:4px">Доступ к тестовому Telegram</h3>
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px">Введите ADMIN_TOKEN из настроек Render. Он хранится только в памяти этой вкладки.</p>
+      <div class="form-field"><label for="tg-admin-token">Ключ администратора</label><input id="tg-admin-token" type="password" autocomplete="off" /></div>
+      <div class="modal-actions"><button type="button" onclick="closeTelegramLogin()">Отмена</button><button type="button" class="ok" onclick="tgLogin()">Войти</button></div>
+    </div>
+  </div>
   <div id="toast" class="toast"></div>
 
     <script src="js/app.js"></script>
     <script src="js/journey.js"></script>
+    <script src="js/telegram.js"></script>
 
 </body>
 </html>
