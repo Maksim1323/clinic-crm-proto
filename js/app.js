@@ -346,7 +346,7 @@ const STAGES = [
       if (p.noSpam && key === 'price') {
         toast('⚠ У пациента отказ от рассылок — шаблон не отправлен');
         addHistory('🚫', 'Блок рассылки',
-          `<div class="text-rose-600">Попытка отправить «${t.title}» заблокирована: у пациента стоит отказ от рассылок.</div>`);
+          `<div class="text-rose-600">Попытка отправить «${escapeHtml(String(t.title || ""))}» заблокирована: у пациента стоит отказ от рассылок.</div>`);
         return;
       }
       addHistory('💬', t.title + ' · отправлено',
@@ -381,7 +381,7 @@ const STAGES = [
 
     function openStageModal() {
       const p = DB.patients[currentPatientId];
-      pendingStage = p.stageNum;
+      if (pendingStage == null) pendingStage = p.stageNum;
       const box = document.getElementById('stage-options');
       box.innerHTML = STAGES.map(s => `
         <div class="stage-option ${s.num === pendingStage ? 'selected' : ''}" onclick="pendingStage=${s.num}; openStageModal()">
@@ -675,7 +675,7 @@ const STAGES = [
       let tagHtml = '<span class="tag muted">' + ageTag + '</span>';
       if (p.plan) {
         const short = p.plan.split('·')[0].trim().slice(0, 24);
-        tagHtml += '<span class="tag">' + short + '</span>';
+        tagHtml += '<span class="tag">' + escapeHtml(short) + '</span>';
       } else if (p.stageNum === 1) {
         tagHtml += '<span class="tag">Первичный</span>';
       }
@@ -734,9 +734,9 @@ const STAGES = [
                ondragstart="kanbanDragStart(event)"
                ondragend="kanbanDragEnd(event)"
                onclick="if(!window._kanbanDragged){showView('comms');selectPatient('${p.id}')}">
-            <div style="font-size:13px;font-weight:500">${p.name}</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:4px">${p.channelLabel || ''}</div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.preview || ''}</div>
+            <div style="font-size:13px;font-weight:500">${escapeHtml(String(p.name || ""))}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px">${escapeHtml(String(p.channelLabel || ""))}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(String(p.preview || ""))}</div>
             ${p.noSpam ? '<div style="margin-top:6px"><span class="badge rose">🚩</span></div>' : ''}
             <div class="move-btns" onclick="event.stopPropagation()">
               <button type="button" ${s.num <= 1 ? 'disabled' : ''} onclick="movePatientStage('${p.id}', ${s.num - 1})" title="На этап назад">←</button>
@@ -823,7 +823,7 @@ const STAGES = [
     let TASKS = [
       { id: 't1', title: 'Подтвердить запись на чистку', patientId: 'smirnova', patient: 'Мария Смирнова', assignee: 'Анна Петрова', due: 'сегодня 18:00', overdue: false, done: false, source: 'ИИ · запись' },
       { id: 't2', title: 'Перезвонить по цене проф. чистки', patientId: 'alexey', patient: 'Алексей Воронов', assignee: 'Анна Петрова', due: 'сегодня 14:00', overdue: true, done: false, source: 'ВКонтакте' },
-      { id: 't3', title: 'Дожать план лечения (48 ч)', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Мария Ковалёва', due: 'завтра 12:00', overdue: false, done: false, source: 'ИИ · курация' },
+      { id: 't3', title: 'Уточнить следующий шаг после консультации', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Мария Ковалёва', due: 'завтра 12:00', overdue: false, done: false, source: 'ИИ · курация' },
       { id: 't4', title: 'Проверить визит и NPS', patientId: 'mis', patient: 'Козлова Елена', assignee: 'Анна Петрова', due: 'сегодня 16:30', overdue: false, done: false, source: 'МИС' },
       { id: 't5', title: 'Связаться: форма с сайта', patientId: 'site', patient: 'Неизвестный (сайт)', assignee: 'Анна Петрова', due: 'вчера 17:00', overdue: true, done: false, source: 'Сайт' },
       { id: 't6', title: 'Отправить памятку после удаления', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Дмитрий Соколов', due: '06.11', overdue: false, done: true, source: 'Регламент' }
@@ -866,15 +866,15 @@ const STAGES = [
         <div class="task-card ${t.done ? 'done' : ''} ${t.overdue && !t.done ? 'overdue' : ''}">
           <div class="task-check ${t.done ? 'on' : ''}" onclick="event.stopPropagation(); toggleTask('${t.id}')">${t.done ? '✓' : ''}</div>
           <div class="task-body" onclick="openTaskPatient('${t.patientId}')">
-            <div class="task-title">${t.title}</div>
+            <div class="task-title">${escapeHtml(String(t.title || ""))}</div>
             <div class="task-meta">
-              <span>👤 ${t.patient}</span>
-              <span>👷 ${t.assignee}</span>
-              <span>🏷 ${t.source}</span>
+              <span>👤 ${escapeHtml(String(t.patient || ""))}</span>
+              <span>👷 ${escapeHtml(String(t.assignee || ""))}</span>
+              <span>🏷 ${escapeHtml(String(t.source || ""))}</span>
             </div>
           </div>
           <div class="task-right">
-            <div class="badge ${t.overdue && !t.done ? 'rose' : ''}">${t.due}</div>
+            <div class="badge ${t.overdue && !t.done ? 'rose' : ''}">${escapeHtml(String(t.due || ""))}</div>
           </div>
         </div>
       `).join('') || '<div style="padding:24px;color:#94a3b8;text-align:center">Нет задач в этом фильтре</div>';

@@ -38,7 +38,7 @@
           </div>
         </div>
       </div>
-      <div class="online"><span class="dot"></span>UIS · Онлайн</div>
+      <div class="online"><span class="dot"></span>UIS · демо</div>
       <div class="user">
         <div class="avatar">АП</div>
         <div>
@@ -148,6 +148,7 @@
           </div>
           <div class="profile-actions-bar">
             <button type="button" onclick="showPatientHistory()">Чат</button>
+            <button type="button" onclick="openJourney()">Путь обращения</button>
             <button type="button" class="primary" onclick="openPatientModal('edit')">Редактировать</button>
           </div>
         </div>
@@ -160,7 +161,8 @@
             </div>
             <div class="history-feed" id="history-feed"></div>
             <div class="action-bar">
-              <button type="button" class="primary" onclick="actionBookMIS()">📝 Записать в МИС</button>
+              <button type="button" class="primary" onclick="openJourney()">Путь обращения</button>
+              <button type="button" onclick="actionBookMIS()">📝 Согласовать запись</button>
               <button type="button" onclick="actionTemplate('address')">📍 Адрес</button>
               <button type="button" onclick="actionTemplate('price')">💰 Прайс</button>
               <button type="button" onclick="actionPlan()">📄 План лечения</button>
@@ -217,7 +219,7 @@
     <!-- VIEW: ANALYTICS -->
     <div id="view-analytics" class="view analytics-view">
       <div class="kanban-toolbar">
-        <h2 style="font-size:18px;font-weight:600">Аналитика</h2>
+        <h2 style="font-size:18px;font-weight:600">Аналитика · демоданные</h2>
         <div style="display:flex;gap:8px" id="period-btns">
           <button type="button" class="badge period-btn active" data-period="today" onclick="setAnalyticsPeriod('today')">Сегодня</button>
           <button type="button" class="badge period-btn" data-period="week" onclick="setAnalyticsPeriod('week')">Неделя</button>
@@ -289,25 +291,25 @@
       <div class="auto-grid">
         <div class="auto-card">
           <h3>Шаблоны сообщений</h3>
-          <div class="sub">Готовые тексты для быстрых ответов и авто-отправки</div>
+          <div class="sub">Демонстрационные шаблоны для черновика</div>
           <div id="templates-list" style="overflow-y:auto;flex:1"></div>
         </div>
         <div class="auto-card">
           <h3>Триггеры</h3>
-          <div class="sub">Событие → действие. ИИ/система предлагает, человек может отключить</div>
+          <div class="sub">Демо-сценарии: реальные автоматизации не подключены</div>
           <div id="triggers-list" style="overflow-y:auto;flex:1"></div>
         </div>
       </div>
       <div class="auto-card" style="flex:0 0 auto;max-height:180px">
         <h3>Журнал автоматизаций</h3>
-        <div class="sub">Что сработало недавно</div>
+        <div class="sub">Демонстрация: реальные сообщения и действия не выполняются</div>
         <div class="log-list" id="auto-log"></div>
       </div>
     </div>
 
   <div class="app-footer">
-    <span>ClinicCRM · v1.8 · Модульная структура (css/js)</span>
-    <span id="status-hint">Кнопки справа меняют историю и статус пациента</span>
+    <span>ClinicCRM · демо · данные только в браузере</span>
+    <span id="status-hint">ИИ, каналы и МИС не подключены</span>
   </div>
 
   <!-- Stage modal -->
@@ -424,9 +426,19 @@
     </div>
   </div>
 
+  <div class="modal-bg" id="journey-modal" onclick="if(event.target===this)closeJourney()" role="dialog" aria-modal="true" aria-labelledby="journey-title">
+    <div class="modal wide">
+      <h3 id="journey-title" style="font-size:18px;font-weight:600;margin-bottom:4px">Путь обращения</h3>
+      <p id="journey-subtitle" style="font-size:13px;color:#64748b;margin-bottom:16px">Демонстрационный сценарий</p>
+      <div id="journey-content"></div>
+      <div class="modal-actions"><button type="button" onclick="closeJourney()">Закрыть</button></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
     <script src="js/app.js"></script>
+    <script src="js/journey.js"></script>
 
 </body>
 </html>
