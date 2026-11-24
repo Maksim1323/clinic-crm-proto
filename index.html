@@ -465,6 +465,16 @@
       <div class="modal-actions"><button type="button" onclick="closeTelegramLogin()">Отмена</button><button type="button" class="ok" onclick="tgLogin()">Войти</button></div>
     </div>
   </div>
+  <div class="modal-bg" id="tg-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="tg-confirm-title">
+    <div class="modal wide">
+      <h3 id="tg-confirm-title" style="font-size:18px;font-weight:600;margin-bottom:4px">Подтвердите действие</h3>
+      <p id="tg-confirm-message" style="font-size:13px;color:#64748b;line-height:1.5;margin-top:10px"></p>
+      <div class="modal-actions">
+        <button type="button" id="tg-confirm-cancel" onclick="tgConfirmAnswer(false)">Отмена</button>
+        <button type="button" class="ok" id="tg-confirm-accept" onclick="tgConfirmAnswer(true)">Подтвердить</button>
+      </div>
+    </div>
+  </div>
   <div id="toast" class="toast"></div>
 
     <script src="js/app.js"></script>

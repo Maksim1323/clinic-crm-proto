@@ -9,7 +9,7 @@ const {openStore} = require('./storage/json-store');
 const {createExternalClient} = require('./integrations/http-client');
 const {createGemini} = require('./integrations/gemini');
 const {createTelegram} = require('./integrations/telegram');
-const {initial, context, shortContext, trigger, riskyOutput} = require('./workflow/triage');
+const {initial, context, shortContext, trigger, riskyOutput, aiFailureReason} = require('./workflow/triage');
 
 function createServer(options = {}) {
   const env = options.env || process.env;
@@ -66,7 +66,7 @@ function createServer(options = {}) {
         let decision;
         try {
           decision=await ai.decide(context(c));
-        } catch (_) { if(c.mode==='ai')transfer(c,'ИИ не ответил или вернул непонятный результат');job.stage='done';persist();continue; }
+        } catch (error) { if(c.mode==='ai')transfer(c,aiFailureReason(error));job.stage='done';persist();continue; }
         // The administrator or another incoming message may have paused the bot while Gemini was running.
         if(c.mode!=='ai') {job.stage='done';persist();continue;}
         // Merge queued messages received while generating; avoid replying twice to the same context.

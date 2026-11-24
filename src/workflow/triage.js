@@ -26,4 +26,19 @@
     return /(диагноз|принимайте|вам необходимо лечить|принимат[ья] препарат|антибиотик|дозировк|у вас (кариес|воспаление)|вы записан|мы записали|ваш прием подтвержден|гарантир|стоимость составит)/i.test(text);
   }
 
-module.exports = {initial, context, shortContext, trigger, riskyOutput};
+// Do not include provider response bodies or request headers: they can contain secrets or personal data.
+function aiFailureReason(error) {
+  const descriptions = {
+    400: 'неверный запрос или настройки модели',
+    401: 'ключ Gemini отклонён',
+    403: 'доступ к Gemini запрещён; проверьте ключ, проект и регион',
+    404: 'модель Gemini недоступна для этого ключа',
+    429: 'исчерпан лимит или квота Gemini'
+  };
+  if (descriptions[error?.status]) return 'ИИ не ответил: ' + descriptions[error.status] + ' (HTTP ' + error.status + ').';
+  if (error?.status >= 500 && error?.status <= 599) return 'ИИ не ответил: ошибка сервиса Gemini (HTTP ' + error.status + ').';
+  if (error instanceof SyntaxError || error?.message === 'invalid_response') return 'ИИ не ответил: Gemini вернул пустой или некорректный формат.';
+  if (error?.name === 'TimeoutError' || error?.name === 'AbortError') return 'ИИ не ответил: истекло время ожидания Gemini.';
+  return 'ИИ не ответил: ошибка сети, настроек или сервиса Gemini.';
+}
+module.exports = {initial, context, shortContext, trigger, riskyOutput, aiFailureReason};

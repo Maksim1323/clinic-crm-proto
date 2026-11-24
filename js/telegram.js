@@ -2,6 +2,34 @@
 (() => {
   let adminToken = '', currentChat = null, poller = null, isSending = false, isDrafting = false;
   const el = id => document.getElementById(id);
+  let pendingConfirmation = null;
+  function askConfirmation(message) {
+    if (pendingConfirmation) return Promise.resolve(false);
+    el('tg-confirm-message').textContent = message;
+    el('tg-confirm-modal').classList.add('open');
+    return new Promise(resolve => {
+      pendingConfirmation = resolve;
+      el('tg-confirm-accept').focus();
+    });
+  }
+  window.tgConfirmAnswer = function(accepted) {
+    if (!pendingConfirmation) return;
+    const resolve = pendingConfirmation;
+    pendingConfirmation = null;
+    el('tg-confirm-modal').classList.remove('open');
+    resolve(Boolean(accepted));
+  };
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && pendingConfirmation) window.tgConfirmAnswer(false);
+  });
+  function uniqueRequestId() {
+    if (!window.crypto || typeof window.crypto.getRandomValues !== 'function') {
+      throw new Error('Для безопасной отправки откройте сайт по HTTPS.');
+    }
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  }
   const text = (tag, value, cls) => { const node=document.createElement(tag); if(cls)node.className=cls;node.textContent=value;return node; };
   async function api(url, method='GET', payload) {
     let response;
@@ -27,7 +55,7 @@
   window.tgLogout = function(){adminToken='';currentChat=null;el('tg-input').value='';el('tg-messages').replaceChildren();el('tg-conversations').replaceChildren();el('tg-chat-name').textContent='Выберите диалог';el('tg-alert-count').style.display='none';el('tg-handoff-status').textContent='Выберите чат';el('tg-handoff-reason').textContent='';el('tg-handoff-summary').textContent='';el('tg-take').style.display='none';el('tg-resume').style.display='none';updateButtons();if(poller){clearInterval(poller);poller=null;}showView('comms');};
   window.tgSetupWebhook = async function(){
     if(!adminToken)return openTelegramView();
-    if(!window.confirm('Подключить бота к этому серверу? У Telegram-бота может быть только один webhook: прежнее подключение будет заменено.'))return;
+    if(!await askConfirmation('Подключить бота к этому серверу? У Telegram-бота может быть только один webhook: прежнее подключение будет заменено.'))return;
     try{await api('/api/setup-webhook','POST',{});status('Webhook настроен. Напишите тестовое сообщение боту в личном чате Telegram.');toast('Бот подключён');}
     catch(e){status(e.message);toast(e.message);}
   };
@@ -59,20 +87,27 @@
     if(!currentChat)return;try{await api('/api/telegram/conversations/'+encodeURIComponent(currentChat)+'/take','POST',{});status('Диалог в работе сотрудника. ИИ поставлен на паузу.');await tgRefresh(true);}catch(e){status(e.message);toast(e.message);}
   };
   window.tgResume = async function(){
-    if(!currentChat || !window.confirm('Вернуть диалог ИИ? Он начнёт отвечать на следующие сообщения; уже полученные сообщения повторно обрабатываться не будут.'))return;
-    try{await api('/api/telegram/conversations/'+encodeURIComponent(currentChat)+'/resume','POST',{});status('Диалог передан ИИ.');await tgRefresh(true);}catch(e){status(e.message);toast(e.message);}
+    if(!currentChat){toast('Сначала выберите диалог');return;}const chat=currentChat;
+    if(!await askConfirmation('Вернуть диалог ИИ? Он начнёт отвечать на следующие сообщения; уже полученные сообщения повторно обрабатываться не будут.'))return;
+    if(chat!==currentChat){status('Чат изменился, повторите действие.');return;}
+    try{await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/resume','POST',{});status('Диалог передан ИИ.');await tgRefresh(true);}catch(e){status(e.message);toast(e.message);}
   };
   window.tgDraft = async function(){
     if(!currentChat||isDrafting)return;
-    if(!window.confirm('Последние сообщения этого тестового чата будут отправлены в Gemini для создания черновика. Продолжить?'))return;
-    const chat=currentChat;isDrafting=true;updateButtons();status('Gemini готовит черновик…');
+    const chat=currentChat;
+    if(!await askConfirmation('Последние сообщения этого тестового чата будут отправлены в Gemini для создания черновика. Продолжить?'))return;
+    if(chat!==currentChat){status('Чат изменился, повторите действие.');return;}
+    isDrafting=true;updateButtons();status('Gemini готовит черновик…');
     try{const data=await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/draft','POST',{});if(chat!==currentChat){status('Чат изменился: черновик не вставлен.');return;}el('tg-input').value=data.draft;status('Черновик готов. Проверьте текст: он ещё не отправлен.');}
     catch(e){status(e.message);toast(e.message);}finally{isDrafting=false;updateButtons();}
   };
   window.tgSend = async function(){
-    if(!currentChat||isSending)return;const message=el('tg-input').value.trim();if(!message){toast('Введите сообщение');return;}
-    if(!window.confirm('Отправить проверенный текст в Telegram этому собеседнику?'))return;
-    const chat=currentChat, requestId=crypto.randomUUID().replaceAll('-','');isSending=true;updateButtons();
+    if(!currentChat){toast('Сначала выберите диалог');return;}if(isSending)return;const message=el('tg-input').value.trim();if(!message){toast('Введите сообщение');return;}
+    const chat=currentChat;
+    if(!await askConfirmation('Отправить проверенный текст в Telegram этому собеседнику?'))return;
+    if(chat!==currentChat){status('Чат изменился, сообщение не отправлено.');return;}
+    let requestId;try{requestId=uniqueRequestId();}catch(e){status(e.message);toast(e.message);return;}
+    isSending=true;updateButtons();
     try{await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/send','POST',{text:message,requestId});if(chat===currentChat)el('tg-input').value='';status('Сообщение отправлено через Telegram.');await tgRefresh(true);}
     catch(e){status(e.message);toast(e.message);}finally{isSending=false;updateButtons();}
   };
