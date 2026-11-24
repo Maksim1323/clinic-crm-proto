@@ -1,6 +1,6 @@
 /* Telegram view uses the server serving this page. Credentials stay in tab memory. */
 (() => {
-  let adminToken = '', currentChat = null, poller = null, isSending = false, isDrafting = false, telegramItems = [], sessionVersion = 0, isLoggingIn = false;
+  let adminToken = '', currentChat = null, poller = null, isSending = false, isResuming = false, isDrafting = false, telegramItems = [], sessionVersion = 0, isLoggingIn = false;
   const el = id => document.getElementById(id);
   let pendingConfirmation = null;
   function askConfirmation(message) {
@@ -46,7 +46,7 @@
     } return data;
   }
   function status(message) { el('tg-status').textContent=message; }
-  function updateButtons() { el('tg-send-btn').disabled=!currentChat || isSending;el('tg-draft-btn').disabled=!currentChat || isDrafting; }
+  function updateButtons() { el('tg-send-btn').disabled=!currentChat || isSending || isResuming;el('tg-resume').disabled=!currentChat || isSending || isResuming;el('tg-draft-btn').disabled=!currentChat || isDrafting; }
   function showLogin() {el('crm-login-error').textContent='';el('tg-login-modal').classList.add('open');setTimeout(()=>el('tg-admin-token').focus(),30);}
   window.crmSessionAction = function() { if(adminToken) window.tgLogout(); else showLogin(); };
   window.openTelegramView = function() { showView('comms'); if(!adminToken)showLogin();else tgRefresh(); };
@@ -117,10 +117,11 @@
     if(!currentChat)return;try{await api('/api/telegram/conversations/'+encodeURIComponent(currentChat)+'/take','POST',{});status('Диалог в работе сотрудника. ИИ поставлен на паузу.');await tgRefresh(true);}catch(e){status(e.message);toast(e.message);}
   };
   window.tgResume = async function(){
-    if(!currentChat){toast('Сначала выберите диалог');return;}const chat=currentChat;
-    if(!await askConfirmation('Вернуть диалог ИИ? Он начнёт отвечать на следующие сообщения; уже полученные сообщения повторно обрабатываться не будут.'))return;
-    if(chat!==currentChat){status('Чат изменился, повторите действие.');return;}
-    try{await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/resume','POST',{});status('Диалог передан ИИ.');await tgRefresh(true);}catch(e){status(e.message);toast(e.message);}
+    if(!currentChat){toast('Сначала выберите диалог');return;}if(isResuming || isSending)return;
+    const chat=currentChat;isResuming=true;updateButtons();
+    try{await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/resume','POST',{});if(chat===currentChat)status('Диалог передан ИИ.');await tgRefresh(true);}
+    catch(e){if(e.message!=='session_changed'){if(chat===currentChat)status(e.message);toast(e.message);}}
+    finally{isResuming=false;updateButtons();}
   };
   window.tgDraft = async function(){
     if(!currentChat||isDrafting)return;
@@ -132,14 +133,17 @@
     catch(e){status(e.message);toast(e.message);}finally{isDrafting=false;updateButtons();}
   };
   window.tgSend = async function(){
-    if(!currentChat){toast('Сначала выберите диалог');return;}if(isSending)return;const message=el('tg-input').value.trim();if(!message){toast('Введите сообщение');return;}
+    if(!currentChat){toast('Сначала выберите диалог');return;}if(isSending || isResuming)return;
+    const input=el('tg-input'), original=input.value, message=original.trim();if(!message){toast('Введите сообщение');return;}
     const chat=currentChat;
-    if(!await askConfirmation('Отправить проверенный текст в Telegram этому собеседнику?'))return;
-    if(chat!==currentChat){status('Чат изменился, сообщение не отправлено.');return;}
     let requestId;try{requestId=uniqueRequestId();}catch(e){status(e.message);toast(e.message);return;}
     isSending=true;updateButtons();
-    try{await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/send','POST',{text:message,requestId});if(chat===currentChat)el('tg-input').value='';status('Сообщение отправлено через Telegram.');await tgRefresh(true);}
-    catch(e){status(e.message);toast(e.message);}finally{isSending=false;updateButtons();}
+    try{
+      await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/send','POST',{text:message,requestId});
+      if(chat===currentChat){if(input.value===original)input.value='';status('Сообщение отправлено через Telegram.');}
+      await tgRefresh(true);
+    } catch(e){if(e.message!=='session_changed'){if(chat===currentChat)status(e.message);toast(e.message);}}
+    finally{isSending=false;updateButtons();}
   };
   // One shared CRM entry point; Telegram does not need a separate login.
   showLogin();
