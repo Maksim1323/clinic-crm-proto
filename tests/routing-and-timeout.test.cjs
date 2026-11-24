@@ -23,9 +23,9 @@ test('Gemini 3.8 использует 60-секундный тайм-аут и �
 });
 
 test('Другие модели Gemini не получают параметр уровня размышления 3.8',async()=>{
-  let payload;const external=async(_url,body)=>{payload=body;return {candidates:[{content:{parts:[{text:'Тестовый ответ'}]}}]};};
+  let payload;const external=async(_url,body)=>{payload=body;return {candidates:[{content:{parts:[{text:JSON.stringify({action:'reply',reply:'Тестовый ответ',reason:'',summary:''})}]}}]};};
   const ai=createAI(readConfig({GEMINI_API_KEY:'test',GEMINI_MODEL:'gemini-2.5-flash',AI_TIMEOUT_MS:'90000'}),external,()=>{});
-  assert.equal(await ai.draft('Привет'),'Тестовый ответ');assert.equal(payload.generationConfig.thinkingConfig,undefined);
+  assert.equal((await ai.decide('Привет')).reply,'Тестовый ответ');assert.equal(payload.generationConfig.thinkingConfig,undefined);
   assert.equal(readConfig({AI_TIMEOUT_MS:'90000'}).aiTimeoutMs,90000);assert.equal(readConfig({AI_TIMEOUT_MS:'999999'}).aiTimeoutMs,60000);
 });
 

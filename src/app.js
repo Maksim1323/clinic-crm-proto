@@ -96,7 +96,7 @@ function createServer(options = {}) {
   if(recovered)persist();
   if(state.jobs.some(j=>j.stage==='queued'))schedule();
   function files(req,res,pathname) {
-    const allowed={'/':['index.html','text/html; charset=utf-8'],'/index.html':['index.html','text/html; charset=utf-8'], '/css/app.css':['css/app.css','text/css; charset=utf-8'], '/js/app.js':['js/app.js','text/javascript; charset=utf-8'], '/js/journey.js':['js/journey.js','text/javascript; charset=utf-8'], '/js/telegram.js':['js/telegram.js','text/javascript; charset=utf-8']};
+    const allowed={'/':['index.html','text/html; charset=utf-8'],'/index.html':['index.html','text/html; charset=utf-8'], '/css/app.css':['css/app.css','text/css; charset=utf-8'], '/js/app.js':['js/app.js','text/javascript; charset=utf-8'], '/js/telegram.js':['js/telegram.js','text/javascript; charset=utf-8']};
     if (!allowed[pathname]) return false;
     const [name,type]=allowed[pathname]; fs.readFile(path.join(__dirname,'..',name),(err,content)=>{if(err){fail(res,404,'Файл не найден');return;}res.writeHead(200,{'content-type':type,'cache-control':'no-cache','x-content-type-options':'nosniff'});res.end(content);});return true;
   }
@@ -142,10 +142,10 @@ function createServer(options = {}) {
         const items=Object.values(state.conversations).map(c=>({id:c.id,name:c.name,mode:initial(c).mode,reason:c.handoff?.reason||'',latest:c.messages.at(-1)?.at||null,preview:c.messages.at(-1)?.text||''})).sort((a,b)=>String(b.latest).localeCompare(String(a.latest)));
         return json(res,200,{items});
       }
-      const match=pathname.match(/^\/api\/telegram\/conversations\/(-?\d{1,20})(?:\/(draft|send|take|resume))?$/);
+      const match=pathname.match(/^\/api\/telegram\/conversations\/(-?\d{1,20})(?:\/(patient|send|take|resume))?$/);
       if(!match)return fail(res,404,'Не найдено');
       const c=state.conversations[match[1]];if(!c)return fail(res,404,'Чат не найден');
-      if(req.method==='GET' && !match[2])return json(res,200,{id:c.id,name:c.name,messages:c.messages,mode:initial(c).mode,handoff:c.handoff,autoEnabled});
+      if(req.method==='GET' && !match[2])return json(res,200,{id:c.id,name:c.name,messages:c.messages,mode:initial(c).mode,handoff:c.handoff,autoEnabled,patient:c.patient || null});
       if(req.method==='POST' && match[2]==='take') {
         if(state.jobs.some(j=>j.chatId===c.id && j.stage==='sending'))return fail(res,409,'Ответ ИИ уже отправляется. Подождите и обновите чат.');
         c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник взял диалог в работу',summary:shortContext(c),at:new Date().toISOString()};persist();return json(res,200,{ok:true});
@@ -156,13 +156,10 @@ function createServer(options = {}) {
         state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued').forEach(j=>j.stage='done');
         c.mode='ai';c.handoff=null;persist();return json(res,200,{ok:true});
       }
-      if(req.method==='POST' && match[2]==='draft') {
-        if(ai.configError)return fail(res,503,ai.configError);
-        const context=c.messages.slice(-12).map(m=>`${m.direction==='in'?'Пользователь Telegram':'Администратор'}: ${m.text}`).join('\n').slice(-12000);
-        if(!context)return fail(res,400,'В чате нет сообщений');
-        const text=await ai.draft(context);
-        if(!text)return fail(res,502,'ИИ не вернул текст. Проверьте модель и настройки API.');
-        return json(res,200,{draft:text.slice(0,4096)});
+      if(req.method==='POST' && match[2]==='patient') {
+        const data=await body(req), fields=['name','phone','admin','doctor'];
+        if(!data || typeof data!=='object' || Array.isArray(data) || fields.some(key=>typeof data[key]!=='string' || data[key].length>100)) return fail(res,400,'Проверьте поля карточки (до 100 символов).');
+        c.patient=Object.fromEntries(fields.map(key=>[key,data[key].trim()]));persist();return json(res,200,{patient:c.patient});
       }
       if(req.method==='POST' && match[2]==='send') {
         if(!tg)return fail(res,503,'TELEGRAM_BOT_TOKEN не настроен.');

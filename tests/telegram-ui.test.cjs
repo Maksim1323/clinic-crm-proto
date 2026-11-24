@@ -77,19 +77,26 @@ test('Кнопки Telegram работают без системных диал�
   assert.equal(d.querySelectorAll('#inbox-list [data-source="telegram"].active').length,0);
   await w.tgSelect('123');w.showView('tasks');w.showView('comms');assert.notEqual(d.getElementById('tg-patient-col').style.display,'none');
   assert.match(d.getElementById('tg-handoff-status').textContent,/Нужен человек/);
+  assert.equal(d.getElementById('tg-draft-btn'),null);assert.equal(d.getElementById('tg-patient-name').textContent,'Не указано');
+  d.getElementById('tg-patient-edit').click();assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),true);
+  d.getElementById('tg-pf-name').value='<Тест 123>';d.getElementById('tg-pf-phone').value='000-123';d.getElementById('tg-pf-admin').value='Сотрудник';
+  await w.tgSavePatient();assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');
+  const savedCard=await (await fetch(base+'/api/telegram/conversations/123',{headers})).json();assert.equal(savedCard.patient.phone,'000-123');
+  assert.equal((await fetch(base+'/api/telegram/conversations/123/patient',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,401);
+  await w.tgRefresh();assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');
   await w.tgTake();
   assert.equal(d.getElementById('tg-handoff-status').textContent,'В работе сотрудника');
   let resumeCalls=0;const realFetch=w.fetch;
   w.fetch=(url,options)=>{if(String(url).endsWith('/resume'))resumeCalls++;return realFetch(url,options);};
   const resume = w.tgResume(); const repeatedResume = w.tgResume();
-  assert.equal(d.getElementById('tg-confirm-modal').classList.contains('open'),false,'возврат без подтверждения');
+  assert.equal(Boolean(d.getElementById('tg-confirm-modal')),false,'возврат без подтверждения');
   assert.equal(d.getElementById('tg-resume').disabled,true,'повторное нажатие заблокировано');
   await Promise.all([resume,repeatedResume]);assert.equal(resumeCalls,1);w.fetch=realFetch;
   assert.equal(d.getElementById('tg-handoff-status').textContent,'ИИ ведёт диалог');
 
   d.getElementById('tg-input').value='Проверенный ответ оператора';
   const send = w.tgSend(); const repeatedSend = w.tgSend();
-  assert.equal(d.getElementById('tg-confirm-modal').classList.contains('open'),false,'отправка без подтверждения');
+  assert.equal(Boolean(d.getElementById('tg-confirm-modal')),false,'отправка без подтверждения');
   assert.equal(d.getElementById('tg-send-btn').disabled,true,'повторное нажатие заблокировано');
   await Promise.all([send,repeatedSend]);
   assert.equal(outgoing.length,2);
@@ -98,14 +105,12 @@ test('Кнопки Telegram работают без системных диал�
   assert.equal(chat.mode,'assigned');
   assert.equal(chat.messages.at(-1).text,'Проверенный ответ оператора');
 
-  const cancelDraft=w.tgDraft();assert.equal(d.getElementById('tg-confirm-modal').classList.contains('open'),true,'подтверждение передачи переписки в ИИ для черновика сохранено');
-  d.getElementById('tg-confirm-cancel').click();await cancelDraft;
   d.getElementById('tg-resume').click();
-  assert.equal(d.getElementById('tg-confirm-modal').classList.contains('open'),false,'кнопка «Вернуть ИИ» не открывает подтверждение');
+  assert.equal(Boolean(d.getElementById('tg-confirm-modal')),false,'кнопка «Вернуть ИИ» не открывает подтверждение');
   for(let i=0;i<100 && d.getElementById('tg-handoff-status').textContent!=='ИИ ведёт диалог';i++)await new Promise(r=>setTimeout(r,10));
   assert.equal(d.getElementById('tg-handoff-status').textContent,'ИИ ведёт диалог');
   d.getElementById('tg-input').value='Ответ по кнопке';d.getElementById('tg-send-btn').click();d.getElementById('tg-send-btn').click();
-  assert.equal(d.getElementById('tg-confirm-modal').classList.contains('open'),false,'кнопка отправки не открывает подтверждение');
+  assert.equal(Boolean(d.getElementById('tg-confirm-modal')),false,'кнопка отправки не открывает подтверждение');
   for(let i=0;i<100 && outgoing.length<3;i++)await new Promise(r=>setTimeout(r,10));
   assert.equal(outgoing.length,3,'двойное нажатие не дублирует отправку');assert.equal(outgoing[2].text,'Ответ по кнопке');
   for(let i=0;i<100 && d.getElementById('tg-send-btn').disabled;i++)await new Promise(r=>setTimeout(r,10));
@@ -115,6 +120,11 @@ test('Кнопки Telegram работают без системных диал�
   await fetch(base+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify(second)});
   w.testPoll();for(let i=0;i<100 && !d.getElementById('inbox-list').textContent.includes('Новый тест');i++)await new Promise(r=>setTimeout(r,10));
   assert.match(d.getElementById('inbox-list').textContent,/Новый тест/,'новый чат появился после фонового обновления');
+  await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-name').textContent,'Не указано','карточки разных чатов не смешиваются');
+  d.getElementById('tg-patient-edit').click();d.getElementById('tg-pf-name').value='Новая карточка';await w.tgSavePatient();
+  await w.tgSelect('123');assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');
+  d.getElementById('tg-patient-edit').click();await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),false,'форма закрыта при смене чата');assert.equal(d.getElementById('tg-patient-name').textContent,'Новая карточка');
+
   let release;const oldFetch=w.fetch;w.fetch=()=>new Promise(resolve=>{release=resolve;});
   const delayedRefresh=w.tgRefresh();w.tgLogout();release({ok:true,json:async()=>({items:[{id:'999',name:'stale private chat',preview:'secret',mode:'waiting'}]})});await delayedRefresh;w.fetch=oldFetch;
   assert.doesNotMatch(d.getElementById('inbox-list').textContent,/stale private chat/,'данные старой сессии не появляются после выхода');

@@ -495,12 +495,16 @@
     }
     .profile-actions-bar button:hover { filter: brightness(0.98); }
 
-    /* When showing profile panel instead of full history layout */
-    .patient-col.profile-mode .content-row { display: none; }
-    .patient-col.profile-mode .patient-header { display: none; }
-    .patient-col .profile-card { display: none; flex: 1; min-height: 0; }
-    .patient-col.profile-mode .profile-card { display: flex; }
-  
+    #demo-patient-col .profile-card { width:260px; flex:0 0 260px; overflow-y:auto; }
+    #demo-patient-col .profile-card-head { padding:16px 16px 0; }
+    #demo-patient-col .profile-hero { padding:12px 16px; }
+    #demo-patient-col .profile-fields, #demo-patient-col .process-box { margin-left:16px; margin-right:16px; }
+    .tg-patient-card { margin-bottom:16px; }
+    .tg-patient-card .profile-row { padding:6px 0; }
+    .tg-patient-card .value { overflow-wrap:anywhere; min-width:0; }
+    .tg-patient-card h2 { font-size:16px; font-weight:600; }
+    .tg-card-hint { color:#94a3b8; font-size:12px; margin:4px 0 12px; }
+    .tg-patient-card .btn-primary { width:100%; margin-top:12px; }
     .ai-panel {
       background: linear-gradient(180deg, #f0fdfa 0%, #fff 60%);
       border: 1px solid #99f6e4;

@@ -1,6 +1,6 @@
 'use strict';
 const crypto = require('node:crypto');
-const {createGemini, AUTO_PROMPT, DRAFT_PROMPT} = require('./gemini');
+const {createGemini, AUTO_PROMPT} = require('./gemini');
 
 // An unknown or incomplete provider must not silently fall back to another service.
 function createAI(config, external, callFetch) {
@@ -53,6 +53,6 @@ function createAI(config, external, callFetch) {
     if (!result || !['reply','handoff'].includes(result.action) || typeof result.reply !== 'string' || typeof result.reason !== 'string' || typeof result.summary !== 'string') throw new Error('invalid_response');
     return result;
   }
-  return {configError, decide, draft: history => generate(DRAFT_PROMPT, 'Составь черновик ответа на последнее сообщение. Ниже — переписка:\n'+history, 600)};
+  return {configError, decide};
 }
 module.exports = {createAI};

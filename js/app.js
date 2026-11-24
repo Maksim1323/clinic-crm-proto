@@ -287,23 +287,11 @@ const STAGES = [
     }
 
     function sendMessage() {
-      const input = document.getElementById('msg-input');
-      if (!input) return;
-      const text = (input.value || '').trim();
-      if (!text) return;
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      if (p.noSpam) {
-        // still allow 1:1 reply, only block marketing templates
-      }
-      addHistory('💬', 'Исходящее сообщение',
-        `<div class="text-slate-700" style="white-space:pre-wrap">${escapeHtml(text)}</div>
-         <div style="margin-top:8px;font-size:12px;color:#0d9488">Отправлено · ${nowLabel()}</div>`);
-      p.preview = 'Вы: ' + text.slice(0, 40);
-      p.unread = 0;
-      input.value = '';
-      saveDB();
-      toast('✓ Сообщение сохранено в истории');
+      const input=document.getElementById('msg-input'), p=DB.patients[currentPatientId];
+      if(!p || !input.value.trim())return;
+      const text=input.value.trim();input.value='';p.preview='Демо: '+text.slice(0,40);p.unread=0;
+      addHistory('💬','Сообщение · демо, не отправлено','<div style="white-space:pre-wrap">'+escapeHtml(text)+'</div>');
+      toast('Сохранено локально · сообщение не отправлено');
     }
 
     function escapeHtml(s) {
@@ -325,59 +313,15 @@ const STAGES = [
     }
 
     // ===== ACTIONS =====
-    function actionBookMIS() {
-      const p = DB.patients[currentPatientId];
-      addHistory('📝', 'Запись в МИС',
-        `<div class="text-slate-700">Администратор создал запись на приём в МИС.<br>
-        Пациент: <b>${p.name}</b><br>
-        Статус в МИС: <span class="text-teal-600 font-medium">ожидает подтверждения</span></div>
-        <div class="mt-2 text-[12px] text-slate-400">Синхронизация с IDENT / МИС выполнена (демо)</div>`);
-      if (p.stageNum === 1) {
-        p.stageNum = 1;
-        p.preview = 'Запись в МИС создана';
-      }
-      toast('✓ Запись создана в МИС');
-    }
-
+    function actionBookMIS() { toast('Запись в МИС недоступна в демо.'); }
     function actionTemplate(key) {
-      const t = TEMPLATES[key];
-      if (!t) return;
-      const p = DB.patients[currentPatientId];
-      if (p.noSpam && key === 'price') {
-        toast('⚠ У пациента отказ от рассылок — шаблон не отправлен');
-        addHistory('🚫', 'Блок рассылки',
-          `<div class="text-rose-600">Попытка отправить «${escapeHtml(String(t.title || ""))}» заблокирована: у пациента стоит отказ от рассылок.</div>`);
-        return;
-      }
-      addHistory('💬', t.title + ' · отправлено',
-        `<div class="text-slate-700 whitespace-pre-line">${t.text}</div>
-         <div class="mt-2 text-[12px] text-teal-600">Отправлено пациенту · ${nowLabel()}</div>`);
-      toast('✓ ' + t.title + ' отправлен');
+      const t=TEMPLATES[key]; if(!t)return;
+      const input=document.getElementById('msg-input'); input.value=t.text; input.focus();
+      toast('Шаблон добавлен в поле сообщения · не отправлен');
     }
-
-    function actionPlan() {
-      const p = DB.patients[currentPatientId];
-      if (p.plan) {
-        addHistory('📄', 'План лечения',
-          `<div class="text-slate-700"><b>Текущий план:</b><br>${p.plan}</div>
-           <div class="mt-2 text-[12px] text-slate-400">Открыт для просмотра / отправки пациенту</div>`);
-        toast('✓ План лечения: ' + p.plan.slice(0, 40) + '…');
-      } else {
-        addHistory('📄', 'План лечения',
-          `<div class="text-slate-500">План лечения ещё не назначен. После первичного приёма врач сформирует план в МИС — он появится здесь.</div>`);
-        toast('План лечения пока не назначен');
-      }
-    }
-
-    function actionReminder() {
-      const p = DB.patients[currentPatientId];
-      addHistory('🔔', 'Напоминание создано',
-        `<div class="text-slate-700">Задача: связаться с пациентом <b>${p.name}</b><br>
-        Срок: завтра, 11:00<br>
-        Ответственный: ${p.admin !== '—' ? p.admin : 'Анна Петрова'}</div>
-        <div class="mt-2 text-[12px] text-amber-600">Задача добавлена в список задач</div>`);
-      toast('✓ Напоминание создано на завтра 11:00');
-    }
+    function actionPlan() { toast('План лечения в демо недоступен; проверьте данные в МИС'); }
+    function actionReminder() { openTaskEditor(); }
+    function demoEscalation() { openTaskEditor(); toast('Создайте задачу для передачи сотруднику'); }
 
     function openStageModal() {
       const p = DB.patients[currentPatientId];
@@ -443,171 +387,6 @@ const STAGES = [
     }
 
 
-    const AI_RECS = {
-      1: {
-        title: 'Сценарий: запись на приём',
-        body: 'По регламенту первичного приёма: уточнить специализацию, предложить 2 реальных слота из МИС, не создавать запись без подтверждения администратора.',
-        actions: [
-          { label: '✓ Подтвердить предложение слотов', fn: 'aiConfirmSlots' },
-          { label: '✎ Править черновик сообщения', fn: 'aiEditDraft' },
-          { label: 'Передать человеку', fn: 'demoEscalation' }
-        ],
-        process: 2
-      },
-      2: {
-        title: 'Сценарий: сопровождение после консультации',
-        body: 'План лечения в МИС есть, оплата частичная, следующий визит не назначен. По регламенту курации: связаться в течение 48 часов, предложить поэтапную оплату, не закрывать в отказ без предложения рассрочки.',
-        actions: [
-          { label: '✓ Подтвердить задачу куратору', fn: 'aiConfirmCurator' },
-          { label: 'Открыть шпаргалку звонка', fn: 'aiShowBrief' },
-          { label: 'Передать куратору', fn: 'demoEscalation' }
-        ],
-        process: 2
-      },
-      3: {
-        title: 'Контроль лечения',
-        body: 'ИИ отслеживает явки и оплаты по плану. Отклонений по регламенту не обнаружено. Следующий шаг — напоминание о визите за 24 часа.',
-        actions: [
-          { label: '✓ Поставить напоминание', fn: 'actionReminder' },
-          { label: 'Без изменений', fn: 'aiDismiss' }
-        ],
-        process: 3
-      },
-      4: {
-        title: 'Профосмотр / recall',
-        body: 'По регламенту гарантии: через 6 месяцев после имплантации/коронок нужна профгигиена. ИИ подобрал окна у гигиениста.',
-        actions: [
-          { label: '✓ Отправить приглашение', fn: 'aiConfirmSlots' },
-          { label: 'Отложить', fn: 'aiDismiss' }
-        ],
-        process: 2
-      },
-      5: {
-        title: 'Потенциальный / прогрев',
-        body: 'Пациент в базе прогрева. Проверка D1: если есть отказ от рассылок — не звонить автоматически. Человек решает, допустим ли контакт.',
-        actions: [
-          { label: 'Разрешить один контакт', fn: 'aiConfirmCurator' },
-          { label: 'Оставить в покое', fn: 'aiDismiss' }
-        ],
-        process: 1
-      }
-    };
-
-    function renderAIRec(p) {
-      const rec = AI_RECS[p.stageNum] || AI_RECS[1];
-      const title = document.getElementById('ai-rec-title');
-      const body = document.getElementById('ai-rec-body');
-      const acts = document.getElementById('ai-rec-actions');
-      const strip = document.getElementById('ai-process-strip');
-      if (!title) return;
-      title.textContent = rec.title;
-      let extra = '';
-      if (p.noSpam) extra = ' ⚠ У пациента отказ от рассылок — маркетинг заблокирован.';
-      body.textContent = rec.body + extra;
-      acts.innerHTML = rec.actions.map(a => {
-        const cls = a.label.indexOf('✓') === 0 ? 'confirm' : '';
-        return `<button type="button" class="${cls}" onclick="${a.fn}()">${a.label}</button>`;
-      }).join('');
-      if (strip) {
-        const steps = strip.querySelectorAll('.step');
-        steps.forEach((s, i) => s.classList.toggle('active', i === (rec.process || 1)));
-      }
-      // auto show escalation visual if noSpam + stage 5 or conflict markers in history
-      const esc = document.getElementById('esc-banner');
-      if (esc && p._escalation) {
-        esc.classList.add('show');
-        document.getElementById('esc-title').textContent = p._escalation.title;
-        document.getElementById('esc-body').textContent = p._escalation.body;
-        document.getElementById('esc-sla').textContent = 'SLA: ' + p._escalation.sla;
-      } else if (esc) {
-        esc.classList.remove('show');
-      }
-    }
-
-    function aiConfirmSlots() {
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      addHistory('🤖', 'ИИ · подтверждены слоты',
-        '<div>Администратор подтвердил предложение ИИ: 2 окна из МИС. Запись <b>не создана автоматически</b> — требуется финальный клик «Записать в МИС».</div>');
-      p.preview = 'ИИ: слоты подтверждены';
-      toast('✓ Предложение принято · запись ждёт подтверждения в МИС');
-      setProcessStep(3);
-    }
-    function aiEditDraft() {
-      const input = document.getElementById('msg-input');
-      if (input) {
-        input.value = 'Добрый день! Могу предложить приём: завтра 14:00 или послезавтра 11:30 к стоматологу. Какой вариант удобнее?';
-        showPatientHistory();
-        input.focus();
-      }
-      toast('Черновик подставлен · отправьте вручную');
-    }
-    function aiConfirmCurator() {
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      addHistory('🤖', 'ИИ · задача куратору',
-        '<div>Сформирован Action Package: связаться в 48 ч, предложить поэтапную оплату, не закрывать в отказ без рассрочки.</div>');
-      toast('✓ Задача куратору поставлена (демо)');
-      setProcessStep(3);
-    }
-    function aiShowBrief() {
-      const p = DB.patients[currentPatientId];
-      const html = `
-        <div style="margin-bottom:12px"><b>Причина:</b> план лечения без следующего визита</div>
-        <div style="margin-bottom:12px"><b>Контекст МИС:</b> план · оплата частичная · врач ${p && p.doctor || '—'}</div>
-        <div style="margin-bottom:12px"><b>Суть:</b> пациент «подумает» · по регламенту нельзя закрывать без предложения рассрочки</div>
-        <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:10px">
-          <b>Рекомендуемое первое действие:</b><br>
-          Позвонить, напомнить про временную фиксацию (до 3 недель), предложить этап 1 и 2 окна на этой неделе.
-        </div>`;
-      document.getElementById('handoff-content').innerHTML = html;
-      document.getElementById('handoff-modal').classList.add('open');
-    }
-    function aiDismiss() {
-      toast('Рекомендация отложена');
-      setProcessStep(0);
-    }
-    function setProcessStep(n) {
-      const strip = document.getElementById('ai-process-strip');
-      if (!strip) return;
-      strip.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i === n));
-    }
-    function demoEscalation() {
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      p._escalation = {
-        title: '🚩 Регламент №2 · Конфликт / претензия (демо)',
-        body: 'Обнаружены маркеры негатива или запрос «верните деньги». Авто-рассылки заморожены. Нужен человек.',
-        sla: '≤ 15 мин · Директор / Главврач / Сервис'
-      };
-      const handoff = `
-        <div style="margin-bottom:10px;padding:8px 10px;background:#fff1f2;border-radius:8px;color:#be123c;font-weight:600">
-          Причина: Регламент №2 · Юридический и репутационный щит
-        </div>
-        <div style="margin-bottom:10px"><b>Клинический контекст (IDENT):</b> последний визит и план подтягиваются из МИС (в прототипе — демо).</div>
-        <div style="margin-bottom:10px"><b>Суть диалога:</b> ${(p.preview || '—')}</div>
-        <div style="margin-bottom:10px"><b>Пациент:</b> ${p.name} · ${p.phone || ''}</div>
-        <div style="background:#f8fafc;border-radius:10px;padding:10px">
-          <b>Рекомендуемое действие:</b> перехватить диалог живым сотрудником, не отправлять шаблоны, зафиксировать претензию.
-        </div>`;
-      document.getElementById('handoff-content').innerHTML = handoff;
-      document.getElementById('handoff-modal').classList.add('open');
-      renderAIRec(p);
-      addHistory('🚩', 'Эскалация · handoff',
-        '<div>ИИ передал карточку человеку. Авто-сценарии остановлены. SLA ≤ 15 мин.</div>');
-      toast('Эскалация: человек вызван');
-    }
-    function closeHandoff() {
-      document.getElementById('handoff-modal').classList.remove('open');
-    }
-    function acceptHandoff() {
-      addHistory('👤', 'Человек принял handoff',
-        '<div>Сотрудник подтвердил приём в работу. ИИ остаётся в режиме ассистента.</div>');
-      closeHandoff();
-      toast('✓ В работе у сотрудника');
-      setProcessStep(3);
-    }
-
     function renderPatient(id, showToast = true) {
       const p = DB.patients[id];
       if (!p) return;
@@ -654,8 +433,6 @@ const STAGES = [
 
       // Profile card (design)
       renderProfileCard(p);
-      renderAIRec(p);
-
       renderInbox();
       if (showToast) toast('Карточка: ' + p.name);
     }
@@ -676,7 +453,7 @@ const STAGES = [
       document.getElementById('pr-since').textContent = 'Пациент с ' + since;
 
       const tags = document.getElementById('pr-tags');
-      const ageTag = (p.age && /\d+/.test(p.age) && parseInt(p.age) < 18) ? 'Ребёнок' : 'Взрослый';
+      const ageTag = !p.age || !/\d+/.test(p.age) ? 'Возраст не указан' : (parseInt(p.age) < 18 ? 'Ребёнок' : 'Взрослый');
       let tagHtml = '<span class="tag muted">' + ageTag + '</span>';
       if (p.plan) {
         const short = p.plan.split('·')[0].trim().slice(0, 24);
@@ -711,13 +488,6 @@ const STAGES = [
       };
       document.getElementById('pr-process-status').textContent = statusMap[p.stageNum] || '—';
 
-      // show profile card mode
-      document.querySelector('.patient-col')?.classList.add('profile-mode');
-    }
-
-    function showPatientHistory() {
-      document.querySelector('.patient-col')?.classList.remove('profile-mode');
-      toast('Чат');
     }
 
     function selectPatient(id) { if (window.tgShowDemo) window.tgShowDemo(); renderPatient(id); }
@@ -869,8 +639,8 @@ const STAGES = [
 
       list.innerHTML = items.map(t => `
         <div class="task-card ${t.done ? 'done' : ''} ${t.overdue && !t.done ? 'overdue' : ''}">
-          <div class="task-check ${t.done ? 'on' : ''}" onclick="event.stopPropagation(); toggleTask('${t.id}')">${t.done ? '✓' : ''}</div>
-          <div class="task-body" onclick="openTaskPatient('${t.patientId}')">
+          <div class="task-check ${t.done ? 'on' : ''}" onclick="event.stopPropagation(); toggleTask(decodeURIComponent('${encodeURIComponent(String(t.id)).replace(/'/g,'%27')}'))">${t.done ? '✓' : ''}</div>
+          <div class="task-body" onclick="openTaskEditor(decodeURIComponent('${encodeURIComponent(String(t.id)).replace(/'/g,'%27')}'))">
             <div class="task-title">${escapeHtml(String(t.title || ""))}</div>
             <div class="task-meta">
               <span>👤 ${escapeHtml(String(t.patient || ""))}</span>
@@ -879,7 +649,7 @@ const STAGES = [
             </div>
           </div>
           <div class="task-right">
-            <div class="badge ${t.overdue && !t.done ? 'rose' : ''}">${escapeHtml(String(t.due || ""))}</div>
+            <div class="badge ${t.overdue && !t.done ? 'rose' : ''}">${escapeHtml(String(t.due || ""))}</div><button type="button" class="badge" onclick="openTaskEditor(decodeURIComponent('${encodeURIComponent(String(t.id)).replace(/'/g,'%27')}'))">Редактировать</button>
           </div>
         </div>
       `).join('') || '<div style="padding:24px;color:#94a3b8;text-align:center">Нет задач в этом фильтре</div>';
@@ -900,74 +670,42 @@ const STAGES = [
       selectPatient(pid);
     }
 
-    function addDemoTask() {
-      const id = 't' + Date.now();
-      TASKS.unshift({
-        id, title: 'Новая задача администратора',
-        patientId: currentPatientId, patient: (DB.patients[currentPatientId] || {}).name || '—',
-        assignee: 'Анна Петрова', due: 'сегодня 19:00', overdue: false, done: false, source: 'Вручную'
-      });
-      taskFilter = 'all';
-      filterTasks('all');
-      toast('✓ Задача создана');
+    let editingTaskId = null;
+    function addDemoTask() { openTaskEditor(); }
+    function openTaskEditor(id) {
+      const task=id ? TASKS.find(t=>t.id===id) : null; if(id && !task)return;
+      editingTaskId=task ? task.id : null;
+      document.getElementById('task-modal-title').textContent=task ? 'Редактирование задачи' : 'Новая задача';
+      document.getElementById('task-title').value=task?.title || '';
+      document.getElementById('task-assignee').value=task?.assignee || 'Анна Петрова';
+      document.getElementById('task-due').value=task?.dueAt || '';
+      const legacy=task && !task.dueAt && task.due && task.due!=='без срока' ? task.due : '';
+      document.getElementById('task-legacy-due').textContent=legacy ? 'Прежний срок: '+legacy+' (без точной даты)' : '';
+      document.getElementById('task-clear-legacy-wrap').style.display=legacy ? '' : 'none';document.getElementById('task-clear-legacy').checked=false;
+      document.getElementById('task-open-patient').style.display=task?.patientId && DB.patients[task.patientId] ? '' : 'none';
+      const select=document.getElementById('task-patient');select.replaceChildren(new Option('Без пациента',''));
+      Object.values(DB.patients).forEach(p=>select.add(new Option(p.name,p.id)));
+      select.value=task?.patientId || '';
+      document.getElementById('task-modal').classList.add('open');document.getElementById('task-title').focus();
     }
-
-
-    // Notification panel is retained independently of the removed demo pages.
-    let NOTIFS = [];
-
-    function renderNotifBadge() {
-      const b = document.getElementById('notif-badge');
-      if (!b) return;
-      const n = NOTIFS.filter(x => !x.read).length;
-      b.style.display = n ? 'flex' : 'none';
-      b.textContent = n > 9 ? '9+' : String(n);
+    function openTaskLinkedPatient() { const task=TASKS.find(t=>t.id===editingTaskId); if(!task || !DB.patients[task.patientId])return;const id=task.patientId;closeTaskModal();openTaskPatient(id); }
+    function closeTaskModal() { document.getElementById('task-modal').classList.remove('open');editingTaskId=null; }
+    function saveTask() {
+      const title=document.getElementById('task-title').value.trim(); if(!title){toast('Укажите задачу');return;}
+      const dueAt=document.getElementById('task-due').value, date=dueAt ? new Date(dueAt) : null;
+      if(date && Number.isNaN(date.getTime())){toast('Проверьте срок');return;}
+      const patientId=document.getElementById('task-patient').value, patient=DB.patients[patientId];
+      let task=editingTaskId && TASKS.find(t=>t.id===editingTaskId);
+      const keepLegacy=task && !task.dueAt && task.due && task.due!=='без срока' && !date && !document.getElementById('task-clear-legacy').checked;
+      const fields={title,assignee:document.getElementById('task-assignee').value.trim() || '—',patientId:patient ? patient.id : '',patient:patient ? patient.name : '—',dueAt:dueAt || null,due:date ? date.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : (keepLegacy ? task.due : 'без срока'),overdue:keepLegacy ? task.overdue : !!(date && date.getTime()<Date.now())};
+      if(task)Object.assign(task,fields);else TASKS.unshift({...fields,id:'t_'+Date.now()+'_'+Math.random().toString(36).slice(2),done:false,source:'Вручную'});
+      const saved=persistTasks();closeTaskModal();filterTasks('all');toast(saved ? '✓ Задача сохранена' : 'Задача не сохранена в браузере');
     }
-
-    function renderNotifList() {
-      const el = document.getElementById('notif-list');
-      if (!el) return;
-      if (!NOTIFS.length) {
-        el.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px">Пока нет уведомлений</div>';
-        return;
-      }
-      el.innerHTML = NOTIFS.map(n => `
-        <div class="notif-item" onclick="openNotif('${n.id}')">
-          <div class="n-title">${n.title}</div>
-          <div class="n-body">${n.body}</div>
-          <div class="n-time">${n.time}</div>
-        </div>`).join('');
-    }
-
-    function toggleNotifPanel(e) {
-      if (e) e.stopPropagation();
-      const p = document.getElementById('notif-panel');
-      if (!p) return;
-      p.classList.toggle('open');
-      if (p.classList.contains('open')) {
-        NOTIFS.forEach(n => n.read = true);
-        renderNotifBadge();
-      }
-    }
-
-    function clearNotifs() {
-      NOTIFS = [];
-      renderNotifBadge();
-      renderNotifList();
-    }
-
-    function openNotif(id) {
-      const n = NOTIFS.find(x => x.id === id);
-      if (n && n.patientId && DB.patients[n.patientId]) {
-        showView('comms');
-        selectPatient(n.patientId);
-      }
-      document.getElementById('notif-panel')?.classList.remove('open');
-    }
-
-    document.addEventListener('click', () => {
-      document.getElementById('notif-panel')?.classList.remove('open');
-    });
+    const taskKey='cliniccrm_journey_tasks_v1';
+    function persistTasks() { try { localStorage.setItem(taskKey,JSON.stringify(TASKS)); return true; } catch (_) { toast('Не удалось сохранить задачи в браузере'); return false; } }
+    try { const saved=JSON.parse(localStorage.getItem(taskKey));if(Array.isArray(saved))TASKS=saved; } catch (_) {}
+    const oldToggleTask=toggleTask; toggleTask=function(id){oldToggleTask(id);persistTasks();};
+    const oldRenderTasks=renderTasks; renderTasks=function(){TASKS.forEach(t=>{if(t.dueAt && !t.done)t.overdue=new Date(t.dueAt).getTime()<Date.now();});oldRenderTasks();};
 
     function onStageChanged(patientId, oldStage, newStage) {
       const p = DB.patients[patientId];
@@ -979,6 +717,7 @@ const STAGES = [
           assignee: p.admin || 'Анна Петрова',
           due: 'сегодня', overdue: false, done: false, source: 'Смена этапа · демо'
         });
+        persistTasks();
       }
     }
 
@@ -1002,6 +741,15 @@ const STAGES = [
       window._toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     }
 
+    renderInbox = function() {
+      const list=document.getElementById('inbox-list');list.innerHTML='';
+      if(window.renderTelegramInboxItems)window.renderTelegramInboxItems(list);
+      DB.inboxOrder.forEach(id=>{const p=DB.patients[id];if(!p)return;const node=document.createElement('div');
+        node.className='sidebar-item px-4 py-3.5'+(id===currentPatientId && !(window.tgHasSelectedChat && window.tgHasSelectedChat())?' active':'');node.onclick=()=>selectPatient(id);
+        const safe=v=>escapeHtml(String(v ?? ''));const title=p.channelIcon==='📞'?p.phone:p.name;
+        node.innerHTML=`<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">Демо · ${safe(p.preview)}</div></div></div>`;list.appendChild(node);
+      });updateInboxCount();
+    };
     loadDB();
     renderInbox();
     renderPatient(currentPatientId, false);

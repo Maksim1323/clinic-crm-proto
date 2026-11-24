@@ -8,11 +8,11 @@ const {aiFailureReason} = require('../src/workflow/triage');
 const decision = {action:'reply',reply:'Здравствуйте!',reason:'',summary:''};
 const ok = data => ({ok:true,status:200,json:async()=>data});
 
-test('OpenAI-совместимый API: адрес, авторизация, формат и черновик',async()=>{
+test('OpenAI-совместимый API: адрес, авторизация, формат',async()=>{
   const calls=[]; const fetch = async (url,opt) => {calls.push({url,opt,body:JSON.parse(opt.body)});return ok({choices:[{message:{content: calls.length === 1 ? JSON.stringify(decision) : 'Черновик'}}]});};
   const config=readConfig({AI_PROVIDER:'openai',OPENAI_API_KEY:'test-key',OPENAI_MODEL:'vendor/model-1',OPENAI_BASE_URL:'https://example.test/v1/'});
   const ai=createAI(config,createExternalClient(fetch),fetch);
-  assert.equal(ai.configError,''); assert.deepEqual(await ai.decide('Здравствуйте'),decision);assert.equal(await ai.draft('Привет'),'Черновик');
+  assert.equal(ai.configError,''); assert.deepEqual(await ai.decide('Здравствуйте'),decision);
   assert.equal(calls[0].url,'https://example.test/v1/chat/completions');assert.equal(calls[0].opt.headers.Authorization,'Bearer test-key');
   assert.equal(calls[0].body.model,'vendor/model-1');assert.equal(calls[0].body.messages[0].role,'system');
 });

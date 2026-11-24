@@ -39,7 +39,6 @@ docs/                       Архитектура, запуск и тестир
 
 - [Развёртывание на Render и настройка Telegram и ИИ](docs/render.md)
 - [Архитектура и ограничения](docs/architecture.md)
-- [Проверка пути администратора](docs/administrator-journey.md)
 
 ## Важно
 

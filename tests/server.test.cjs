@@ -20,14 +20,19 @@ test('Telegram, Gemini и ручное подтверждение: сервер�
   const incoming=()=>req('/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify(u)});
   assert.equal((await incoming()).status,200);await incoming();
   x=await req('/api/telegram/conversations/123',{headers:authorized});assert.equal(x.data.messages.length,1);
-  x=await req('/api/telegram/conversations/123/draft',{method:'POST',headers:jsonHeaders,body:'{}'});assert.equal(x.data.draft,'Тестовый черновик');assert.equal(calls.filter(c=>c.url.includes('sendMessage')).length,0,'ИИ не отправляет ответ автоматически');
+  assert.equal((await req('/api/telegram/conversations/123/draft',{method:'POST',headers:jsonHeaders,body:'{}'})).status,404);
+  const patient={name:'Тест',phone:'000',admin:'Администратор',doctor:'Врач'};
+  assert.equal((await req('/api/telegram/conversations/123/patient',{method:'POST',headers:jsonHeaders,body:JSON.stringify({...patient,name:'x'.repeat(101)})})).status,400);
+  assert.equal((await req('/api/telegram/conversations/123/patient',{method:'POST',headers:jsonHeaders,body:JSON.stringify(patient)})).status,200);
+  assert.deepEqual((await req('/api/telegram/conversations/123',{headers:authorized})).data.patient,patient);
+  assert.deepEqual(JSON.parse(fs.readFileSync(dataFile,'utf8')).conversations['123'].patient,patient);
   const msg={text:'Проверенный ответ',requestId:'aabbccddeeff11223344556677889900'};
   x=await req('/api/telegram/conversations/123/send',{method:'POST',headers:jsonHeaders,body:JSON.stringify(msg)});assert.equal(x.status,200);
   x=await req('/api/telegram/conversations/123/send',{method:'POST',headers:jsonHeaders,body:JSON.stringify(msg)});assert.equal(x.status,409);assert.equal(calls.filter(c=>c.url.includes('sendMessage')).length,1,'защита от повтора');
   x=await req('/api/telegram/conversations/123',{headers:authorized});assert.equal(x.data.messages.length,2);assert.equal(x.data.messages[1].text,'Проверенный ответ');
   assert.ok(fs.readFileSync(dataFile,'utf8').includes('Добрый день'),'история сохранена на диск');
   const page=await fetch(root+'/');assert.equal(page.status,200,'страница доступна');
-  for(const asset of ['/css/app.css','/js/app.js','/js/journey.js','/js/telegram.js']) assert.equal((await fetch(root+asset)).status,200,'доступен '+asset);
+  for(const asset of ['/css/app.css','/js/app.js','/js/telegram.js']) assert.equal((await fetch(root+asset)).status,200,'доступен '+asset);
   for(const hidden of ['/.env','/src/app.js','/tests/server.test.cjs','/package.json']) assert.equal((await fetch(root+hidden)).status,404,'сервер не раздаёт '+hidden);
 });
 
