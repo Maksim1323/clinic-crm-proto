@@ -21,7 +21,8 @@ test('Карточка пациента, редактирование задач
   assert.equal(d.getElementById('notif-panel'),null);assert.doesNotMatch(d.querySelector('header').textContent,/UIS · демо/);
   assert.doesNotMatch(d.body.textContent,/Путь обращения|Черновик ИИ|Рекомендация по регламенту/);
   d.querySelector('#profile-card .profile-actions-bar button').click();assert(d.getElementById('patient-modal').classList.contains('open'));
-  d.getElementById('pf-name').value='Тестовая карточка';w.savePatientCard();assert.equal(d.getElementById('pr-name').textContent,'Тестовая карточка');
+  d.getElementById('pf-name').value='Тестовая карточка';d.getElementById('pf-show-phone').checked=false;d.getElementById('pf-show-name').checked=false;d.getElementById('pf-show-note').checked=true;d.getElementById('pf-note').value='Тестовая заметка';w.savePatientCard();assert.equal(d.getElementById('pr-name').style.display,'none');assert.equal(d.getElementById('pr-avatar').textContent,'👤');assert.equal(d.getElementById('pr-phone').closest('.profile-row').style.display,'none');assert.equal(d.getElementById('pr-note').textContent,'Тестовая заметка');
+  w.openPatientModal('edit');assert.equal(d.getElementById('pf-phone').value,'000');assert.equal(d.getElementById('pf-show-phone').checked,false);d.getElementById('pf-show-phone').checked=true;w.closePatientModal();w.openPatientModal('edit');assert.equal(d.getElementById('pf-show-phone').checked,false,'отмена не меняет настройку');w.closePatientModal();
   w.showView('tasks');assert.equal(d.querySelectorAll('.task-card').length,0);
   const before=d.querySelectorAll('.task-card').length;w.addDemoTask();assert(d.getElementById('task-modal').classList.contains('open'));
   w.saveTask();assert(d.getElementById('task-modal').classList.contains('open'),'пустая задача не сохраняется');
@@ -32,7 +33,7 @@ test('Карточка пациента, редактирование задач
   w.addDemoTask();d.getElementById('task-title').value='Не сохранять';w.closeTaskModal();assert.doesNotMatch(d.getElementById('tasks-list').textContent,/Не сохранять/);
   w.showView('kanban');w.movePatientStage(patientId,3);w.showView('tasks');assert.match(d.getElementById('tasks-list').textContent,/Проверить этап/);
   const storage={};for(let i=0;i<w.localStorage.length;i++){const k=w.localStorage.key(i);storage[k]=w.localStorage.getItem(k)}
-  const dom2=await load(storage);t.after(()=>dom2.window.close());dom2.window.showView('tasks');assert.match(dom2.window.document.getElementById('tasks-list').textContent,/Изменённая задача/);assert.match(dom2.window.document.getElementById('tasks-list').textContent,/Проверить этап/);
+  const dom2=await load(storage);t.after(()=>dom2.window.close());dom2.window.closeTelegramLogin();dom2.window.selectPatient(patientId);assert.equal(dom2.window.document.getElementById('pr-phone').closest('.profile-row').style.display,'none');dom2.window.openPatientModal('edit');assert.equal(dom2.window.document.getElementById('pf-phone').value,'000');dom2.window.document.getElementById('pf-show-phone').checked=true;dom2.window.savePatientCard();assert.notEqual(dom2.window.document.getElementById('pr-phone').closest('.profile-row').style.display,'none');dom2.window.showView('tasks');assert.match(dom2.window.document.getElementById('tasks-list').textContent,/Изменённая задача/);assert.match(dom2.window.document.getElementById('tasks-list').textContent,/Проверить этап/);
   for(const id of ['nav-auto','view-auto','nav-analytics','view-analytics'])assert.equal(d.getElementById(id),null);
   assert.deepEqual(errors,[]);
 });

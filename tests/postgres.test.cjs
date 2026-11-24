@@ -18,10 +18,14 @@ test('PostgreSQL: сохранение после перезапуска и си
   let c=await chat(rootA);assert.equal(c.messages.length,31);assert.deepEqual(c,await chat(rootB));
   const payload={name:'Тест',phone:'000',admin:'Сотрудник',doctor:'',expectedVersion:0};
   const saves=await Promise.all([rootA,rootB].map(root=>fetch(root+'/api/telegram/conversations/123/patient',{method:'POST',headers,body:JSON.stringify(payload)})));assert.deepEqual(saves.map(r=>r.status).sort(),[200,409]);
+  const visibility={name:false,phone:true,admin:true,doctor:true};
+  const v=await fetch(rootA+'/api/telegram/conversations/123/patient',{method:'POST',headers,body:JSON.stringify({...payload,expectedVersion:1,visibility})});assert.equal(v.status,200);assert.equal((await v.json()).patientVersion,2);
+  const conflict=await fetch(rootB+'/api/telegram/conversations/123/patient',{method:'POST',headers,body:JSON.stringify({...payload,expectedVersion:1})});assert.equal(conflict.status,409);
+  const oldClient=await fetch(rootB+'/api/telegram/conversations/123/patient',{method:'POST',headers,body:JSON.stringify({...payload,expectedVersion:2})});assert.equal(oldClient.status,200);assert.equal((await oldClient.json()).patientVisibility.name,false);
   const id='1234567890abcdef1234567890abcdef';const sends=await Promise.all([rootA,rootB].map(root=>fetch(root+'/api/telegram/conversations/123/send',{method:'POST',headers,body:JSON.stringify({text:'Ответ',requestId:id})})));assert.deepEqual(sends.map(r=>r.status).sort(),[200,409]);assert.equal(sent.length,1);
   await new Promise(r=>a.close(r));await new Promise(r=>b.close(r));
   const restarted=createServer({env,fetch:mock});await restarted.ready;await new Promise(r=>restarted.listen(0,'127.0.0.1',r));t.after(()=>restarted.close());
-  const root='http://127.0.0.1:'+restarted.address().port;c=await chat(root);assert.equal(c.messages.length,32);assert.equal(c.messages.at(-1).text,'Ответ');assert.equal(c.patient.name,'Тест');assert.equal(c.mode,'assigned');
+  const root='http://127.0.0.1:'+restarted.address().port;c=await chat(root);assert.equal(c.messages.length,32);assert.equal(c.messages.at(-1).text,'Ответ');assert.equal(c.patient.name,'Тест');assert.equal(c.patientVisibility.name,false);assert.equal(c.mode,'assigned');
   const health=await (await fetch(root+'/health')).json();assert.equal(health.storage,'postgres');
 });
 test('PostgreSQL: отказ БД не подтверждает webhook и не отправляет сообщение', {skip:!url}, async t=>{

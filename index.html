@@ -146,6 +146,13 @@
               <span class="value" id="pr-bonuses">— ₽</span>
             </div>
           </div>
+          <div class="profile-fields" id="pr-extra-fields">
+            <div class="profile-row" data-profile-extra="gender"><span class="label">Пол</span><span class="value" id="pr-gender"></span></div>
+            <div class="profile-row" data-profile-extra="channel"><span class="label">Канал</span><span class="value" id="pr-channel"></span></div>
+            <div class="profile-row" data-profile-extra="nps"><span class="label">NPS</span><span class="value" id="pr-nps"></span></div>
+            <div class="profile-row" data-profile-extra="inclinic"><span class="label">В клинике</span><span class="value" id="pr-inclinic"></span></div>
+            <div class="profile-row" data-profile-extra="note"><span class="label">Заметка</span><span class="value" id="pr-note" style="white-space:pre-wrap;overflow-wrap:anywhere"></span></div>
+          </div>
           <div class="process-box">
             <div class="plabel">Текущий процесс</div>
             <div class="ptitle" id="pr-process">—</div>
@@ -231,14 +238,17 @@
         <div class="form-field full">
           <label>ФИО *</label>
           <input id="pf-name" type="text" placeholder="Имя пациента" />
+        <label class="field-visibility"><input type="checkbox" id="pf-show-name" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>Телефон *</label>
           <input id="pf-phone" type="text" placeholder="Телефон" />
+        <label class="field-visibility"><input type="checkbox" id="pf-show-phone" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>Возраст</label>
           <input id="pf-age" type="text" placeholder="Возраст" />
+        <label class="field-visibility"><input type="checkbox" id="pf-show-age" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>Пол</label>
@@ -247,6 +257,7 @@
             <option value="female">Женский</option>
             <option value="">Не указан</option>
           </select>
+        <label class="field-visibility"><input type="checkbox" id="pf-show-gender" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>Канал обращения</label>
@@ -257,14 +268,17 @@
             <option value="email">Сайт / Email</option>
             <option value="mis">МИС</option>
           </select>
+        <label class="field-visibility"><input type="checkbox" id="pf-show-channel" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>Ответственный</label>
           <input id="pf-admin" type="text" placeholder="Не назначен" />
+        <label class="field-visibility"><input type="checkbox" id="pf-show-admin" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>Лечащий врач</label>
           <input id="pf-doctor" type="text" placeholder="Не указан" />
+        <label class="field-visibility"><input type="checkbox" id="pf-show-doctor" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>Этап</label>
@@ -275,30 +289,37 @@
             <option value="4">4 · Профосмотр</option>
             <option value="5">5 · Потенциальный клиент</option>
           </select>
+        <label class="field-visibility"><input type="checkbox" id="pf-show-stage" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>Бонусы, ₽</label>
           <input id="pf-bonuses" type="number" min="0" step="100" value="0" />
+        <label class="field-visibility"><input type="checkbox" id="pf-show-bonuses" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>NPS (1–10)</label>
           <input id="pf-nps" type="number" min="1" max="10" placeholder="—" />
+        <label class="field-visibility"><input type="checkbox" id="pf-show-nps" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>&nbsp;</label>
           <label class="form-check"><input id="pf-nospam" type="checkbox" /> Отказ от рассылок</label>
+        <label class="field-visibility"><input type="checkbox" id="pf-show-nospam" /> Показывать в карточке</label>
         </div>
         <div class="form-field">
           <label>&nbsp;</label>
           <label class="form-check"><input id="pf-inclinic" type="checkbox" /> Сейчас в клинике</label>
+        <label class="field-visibility"><input type="checkbox" id="pf-show-inclinic" /> Показывать в карточке</label>
         </div>
         <div class="form-field full">
           <label>План лечения</label>
           <input id="pf-plan" type="text" placeholder="Не указан" />
+        <label class="field-visibility"><input type="checkbox" id="pf-show-plan" /> Показывать в карточке</label>
         </div>
         <div class="form-field full">
           <label>Комментарий / заметка</label>
           <textarea id="pf-note" placeholder="Важная информация о пациенте..."></textarea>
+        <label class="field-visibility"><input type="checkbox" id="pf-show-note" /> Показывать в карточке</label>
         </div>
       </div>
       <div class="modal-actions">
@@ -329,12 +350,12 @@
     </div>
   </div>
   <div class="modal-bg" id="tg-patient-modal" role="dialog" aria-modal="true" aria-labelledby="tg-patient-modal-title" onclick="if(event.target===this)tgClosePatient()">
-    <div class="modal wide"><h3 id="tg-patient-modal-title">Карточка пациента</h3><p style="font-size:13px;color:#64748b;margin-top:6px">Только тестовые данные. Карточка связана с выбранным Telegram-чатом, не с МИС.</p>
+    <div class="modal wide"><h3 id="tg-patient-modal-title">Карточка пациента</h3><p style="font-size:13px;color:#64748b;margin-top:6px">Только тестовые данные. Карточка связана с выбранным Telegram-чатом, не с МИС. Галочки управляют отображением, а не удаляют данные.</p>
       <div class="form-grid" style="margin-top:16px">
-        <div class="form-field"><label for="tg-pf-name">Имя</label><input id="tg-pf-name" maxlength="100" /></div>
-        <div class="form-field"><label for="tg-pf-phone">Телефон</label><input id="tg-pf-phone" maxlength="100" /></div>
-        <div class="form-field"><label for="tg-pf-admin">Ответственный</label><input id="tg-pf-admin" maxlength="100" /></div>
-        <div class="form-field"><label for="tg-pf-doctor">Врач</label><input id="tg-pf-doctor" maxlength="100" /></div>
+        <div class="form-field"><label for="tg-pf-name">Имя</label><input id="tg-pf-name" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-name" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-phone">Телефон</label><input id="tg-pf-phone" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-phone" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-admin">Ответственный</label><input id="tg-pf-admin" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-admin" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-doctor">Врач</label><input id="tg-pf-doctor" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-doctor" /> Показывать в карточке</label></div>
       </div><p id="tg-patient-error" role="alert" style="font-size:13px;color:#e11d48;margin-top:8px"></p>
       <div class="modal-actions"><button type="button" onclick="tgClosePatient()">Отмена</button><button type="button" class="ok" id="tg-patient-save" onclick="tgSavePatient()">Сохранить</button></div>
     </div>

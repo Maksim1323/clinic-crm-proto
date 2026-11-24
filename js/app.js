@@ -14,6 +14,11 @@ const STAGES = [
     function fingerprint(obj){let h=2166136261;const text=JSON.stringify(obj);for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(16);}
     let currentPatientId = null;
     let pendingStage = null;
+    const localVisibilityFields=['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'];
+    const localDefaultHidden=new Set(['gender','channel','nps','inclinic','note']);
+    function localFieldVisible(p,key){return typeof p?.visibility?.[key]==='boolean'?p.visibility[key]:!localDefaultHidden.has(key);}
+    function readLocalVisibility(){return Object.fromEntries(localVisibilityFields.map(key=>[key,document.getElementById('pf-show-'+key).checked]));}
+
 
     const STORAGE_KEY = 'cliniccrm_v13';
 
@@ -106,6 +111,8 @@ const STAGES = [
         document.getElementById('pf-plan').value = p.plan || '';
         document.getElementById('pf-note').value = p.note || '';
       }
+      const shownPatient=patientModalMode==='edit'?DB.patients[currentPatientId]:null;
+      localVisibilityFields.forEach(key=>{document.getElementById('pf-show-'+key).checked=localFieldVisible(shownPatient,key);});
       modal.classList.add('open');
       setTimeout(() => document.getElementById('pf-name').focus(), 50);
     }
@@ -131,7 +138,7 @@ const STAGES = [
       if (patientModalMode === 'create') {
         const id = 'p_' + Date.now();
         const patient = {
-          id, name, age: document.getElementById('pf-age').value.trim() || '—',
+          id, name, visibility:readLocalVisibility(), age: document.getElementById('pf-age').value.trim() || '—',
           emoji, gender: gender || null, phone,
           channelIcon: meta.icon, channelLabel: meta.label,
           timeLabel: 'сейчас', unread: 0, statusInClinic: document.getElementById('pf-inclinic').checked,
@@ -171,6 +178,7 @@ const STAGES = [
         const p = DB.patients[id];
         if (!p) { toast('Пациент не найден'); return; }
         const oldName = p.name;
+        p.visibility = readLocalVisibility();
         p.name = name;
         p.phone = phone;
         p.age = document.getElementById('pf-age').value.trim() || '—';
@@ -359,22 +367,24 @@ const STAGES = [
       av.textContent = initials(p.name);
       av.className = 'profile-avatar ' + (p.gender === 'male' ? 'male' : (p.gender === 'female' ? 'female' : ''));
       document.getElementById('pr-name').textContent = p.name;
+      document.getElementById('pr-name').style.display=localFieldVisible(p,'name')?'':'none';
+      av.textContent=localFieldVisible(p,'name')?initials(p.name):'👤';
       const since = p.createdAt || '';
       document.getElementById('pr-since').textContent = since ? 'Пациент с ' + since : 'Дата создания не указана';
 
       const tags = document.getElementById('pr-tags');
       const ageTag = !p.age || !/\d+/.test(p.age) ? 'Возраст не указан' : (parseInt(p.age) < 18 ? 'Ребёнок' : 'Взрослый');
-      let tagHtml = '<span class="tag muted">' + ageTag + '</span>';
-      if (p.plan) {
+      let tagHtml = localFieldVisible(p,'age') ? '<span class="tag muted">' + ageTag + '</span>' : '';
+      if (p.plan && localFieldVisible(p,'plan')) {
         const short = p.plan.split('·')[0].trim().slice(0, 24);
         tagHtml += '<span class="tag">' + escapeHtml(short) + '</span>';
-      } else if (p.stageNum === 1) {
+      } else if (p.stageNum === 1 && localFieldVisible(p,'stage')) {
         tagHtml += '<span class="tag">Первичный</span>';
       }
       tags.innerHTML = tagHtml;
 
       const spam = document.getElementById('pr-spam');
-      spam.style.display = p.noSpam ? 'flex' : 'none';
+      spam.style.display = p.noSpam && localFieldVisible(p,'nospam') ? 'flex' : 'none';
 
       document.getElementById('pr-phone').textContent = p.phone || '—';
       const adminName = p.admin && p.admin !== '—' ? p.admin : 'Не назначен';
@@ -397,6 +407,11 @@ const STAGES = [
         5: 'В базе прогрева'
       };
       document.getElementById('pr-process-status').textContent = statusMap[p.stageNum] || '—';
+      for(const key of ['phone','admin','doctor','bonuses'])document.getElementById('pr-'+key).closest('.profile-row').style.display=localFieldVisible(p,key)?'':'none';
+      document.querySelector('#profile-card .process-box').style.display=localFieldVisible(p,'stage')?'':'none';
+      const extras={gender:p.gender==='male'?'Мужской':p.gender==='female'?'Женский':'Не указан',channel:p.channelLabel||'Не указан',nps:p.nps==null?'Не указан':String(p.nps),inclinic:p.statusInClinic?'Да':'Нет',note:p.note||'Не указана'};
+      for(const [key,value] of Object.entries(extras)){document.getElementById('pr-'+key).textContent=value;document.querySelector('[data-profile-extra="'+key+'"]').style.display=localFieldVisible(p,key)?'':'none';}
+      document.getElementById('pr-extra-fields').style.display=Object.keys(extras).some(key=>localFieldVisible(p,key))?'':'none';
 
     }
 

@@ -117,8 +117,8 @@ test('Кнопки Telegram работают без системных диал�
   w.testPoll();for(let i=0;i<100 && !d.getElementById('inbox-list').textContent.includes('Новый тест');i++)await new Promise(r=>setTimeout(r,10));
   assert.match(d.getElementById('inbox-list').textContent,/Новый тест/,'новый чат появился после фонового обновления');
   await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-name').textContent,'Не указано','карточки разных чатов не смешиваются');
-  d.getElementById('tg-patient-edit').click();d.getElementById('tg-pf-name').value='Новая карточка';await w.tgSavePatient();
-  await w.tgSelect('123');assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');
+  d.getElementById('tg-patient-edit').click();d.getElementById('tg-pf-name').value='Новая карточка';d.getElementById('tg-pf-show-name').checked=false;await w.tgSavePatient();assert.equal(d.getElementById('tg-patient-name').closest('.profile-row').style.display,'none');
+  await w.tgSelect('123');assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');assert.notEqual(d.getElementById('tg-patient-name').closest('.profile-row').style.display,'none','видимость каждой карточки независима');
   d.getElementById('tg-patient-edit').click();await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),false,'форма закрыта при смене чата');assert.equal(d.getElementById('tg-patient-name').textContent,'Новая карточка');
 
   let release;const oldFetch=w.fetch;w.fetch=()=>new Promise(resolve=>{release=resolve;});

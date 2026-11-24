@@ -674,3 +674,6 @@
     .notif-item .n-body { color: #64748b; margin-top: 2px; }
     .notif-item .n-time { color: #94a3b8; font-size: 11px; margin-top: 4px; }
     .notif-wrap { position: relative; }
+
+    .form-field .field-visibility { display:flex; align-items:center; gap:6px; margin-top:6px; color:#64748b; font-size:12px; font-weight:400; cursor:pointer; }
+    .field-visibility input[type="checkbox"] { width:16px; height:16px; padding:0; margin:0; accent-color:#0d9488; }
