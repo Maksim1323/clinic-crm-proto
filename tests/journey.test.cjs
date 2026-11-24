@@ -24,5 +24,9 @@ w.journeyReminder();let tasks=JSON.parse(w.localStorage.getItem('cliniccrm_journ
 w.journeyVisit('visited');d.getElementById('journey-followup').value='<img src=x onerror=alert(1)>';w.journeyFollowup();w.showView('tasks');assert(!d.querySelector('#tasks-list img'),'экранирование пользовательской задачи');
 w.showView('comms');w.openJourney();w.journeyFinishVisited();w.journeyNew();assert(d.getElementById('journey-content').textContent.includes('Новое'),'отдельное новое обращение');let state=JSON.parse(w.localStorage.getItem('cliniccrm_v13'));assert(state.patients.ivanov.journeys.length===2,'два обращения в одном профиле');
 const saved={};for(let i=0;i<w.localStorage.length;i++){const k=w.localStorage.key(i);saved[k]=w.localStorage.getItem(k)}; const dom2=await load(saved); t.after(()=>dom2.window.close());dom2.window.openJourney();assert(dom2.window.document.getElementById('journey-content').textContent.includes('Новое'),'восстановление обращения после перезагрузки');dom2.window.showView('tasks');assert(dom2.window.document.getElementById('tasks-list').textContent.includes('<img'),'сохранена последующая задача');
-dom2.window.showView('auto');assert(dom2.window.document.getElementById('view-auto').classList.contains('active'),'навигация автоматизации');assert(!errors.length,'нет ошибок JS: '+errors.join('; '));
+const d2=dom2.window.document;
+for (const id of ['nav-auto','view-auto','nav-analytics','view-analytics']) assert(!d2.getElementById(id),'удалён '+id);
+for (const view of ['comms','kanban','tasks']) {dom2.window.showView(view);assert(d2.getElementById('view-'+view).classList.contains('active'),'доступен '+view);}
+dom2.window.showView('kanban');dom2.window.movePatientStage('ivanov',3);dom2.window.showView('tasks');assert(d2.getElementById('tasks-list').textContent.includes('Проверить этап'),'задача при смене этапа сохранена');
+assert(!errors.length,'нет ошибок JS: '+errors.join('; '));
 });

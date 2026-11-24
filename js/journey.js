@@ -211,11 +211,6 @@
     toast('Шаблон добавлен в черновик · не отправлен');
   };
   actionPlan = function() { toast('План лечения в демо недоступен; проверьте данные в МИС'); };
-  useTemplate = function(id) {
-    const t = MSG_TEMPLATES.find(x => x.id === id); if (!t) return;
-    showView('comms'); showPatientHistory();
-    const input = document.getElementById('msg-input'); input.value = t.body; input.focus(); toast('Черновик · сообщение не отправлено');
-  };
   // Unknown age is not automatically an adult.
   const oldProfile = renderProfileCard;
   renderProfileCard = function(p) {

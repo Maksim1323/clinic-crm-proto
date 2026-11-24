@@ -913,305 +913,8 @@ const STAGES = [
     }
 
 
-    const ANALYTICS_DATA = {
-      today: {
-        kpis: [
-          { label: 'Первичные обращения', value: '24', sub: '↑ 12% к вчера', up: true },
-          { label: 'Записались на приём', value: '18', sub: 'конверсия 75%', up: false },
-          { label: 'Среднее время ответа', value: '4:12', sub: '↓ лучше цели 5 мин', up: true },
-          { label: 'Просроченные задачи', value: '3', sub: 'требуют внимания', danger: true }
-        ],
-        bars: [
-          { lbl: 'Пн', v: 18 }, { lbl: 'Вт', v: 22 }, { lbl: 'Ср', v: 15 },
-          { lbl: 'Чт', v: 28 }, { lbl: 'Пт', v: 24 }, { lbl: 'Сб', v: 12 }, { lbl: 'Вс', v: 8 }
-        ],
-        funnel: [
-          { name: 'Обращения', n: 24, pct: 100, color: '#14b8a6' },
-          { name: 'Квалификация', n: 21, pct: 88, color: '#2dd4bf' },
-          { name: 'Запись', n: 18, pct: 75, color: '#38bdf8' },
-          { name: 'Визит', n: 14, pct: 58, color: '#818cf8' }
-        ],
-        channels: [
-          { name: 'Телефон / UIS', pct: 38, color: '#14b8a6' },
-          { name: 'Telegram', pct: 24, color: '#38bdf8' },
-          { name: 'ВКонтакте', pct: 20, color: '#a78bfa' },
-          { name: 'Сайт', pct: 18, color: '#fbbf24' }
-        ],
-        donut: 'conic-gradient(#14b8a6 0 38%, #38bdf8 38% 62%, #a78bfa 62% 82%, #fbbf24 82% 100%)',
-        admins: [
-          { name: 'Анна Петрова', av: 'АП', c: '12 / 14 · 86%', w: 86, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
-          { name: 'Мария Ковалёва', av: 'МК', c: '8 / 11 · 73%', w: 73, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
-          { name: 'Дмитрий Соколов', av: 'ДС', c: '5 / 9 · 56%', w: 56, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
-        ],
-        speed: [
-          { lbl: '9:00', v: 6.2 }, { lbl: '11:00', v: 4.1 }, { lbl: '13:00', v: 3.8 },
-          { lbl: '15:00', v: 5.5 }, { lbl: '17:00', v: 4.0 }, { lbl: '19:00', v: 3.2 }
-        ],
-        sub: 'Последние 7 дней · сегодня выделено'
-      },
-      week: {
-        kpis: [
-          { label: 'Первичные обращения', value: '142', sub: '↑ 8% к прошлой неделе', up: true },
-          { label: 'Записались на приём', value: '98', sub: 'конверсия 69%', up: false },
-          { label: 'Среднее время ответа', value: '5:04', sub: 'на уровне цели', up: false },
-          { label: 'Просроченные задачи', value: '7', sub: 'за неделю', danger: true }
-        ],
-        bars: [
-          { lbl: 'Пн', v: 22 }, { lbl: 'Вт', v: 19 }, { lbl: 'Ср', v: 25 },
-          { lbl: 'Чт', v: 18 }, { lbl: 'Пт', v: 28 }, { lbl: 'Сб', v: 16 }, { lbl: 'Вс', v: 14 }
-        ],
-        funnel: [
-          { name: 'Обращения', n: 142, pct: 100, color: '#14b8a6' },
-          { name: 'Квалификация', n: 118, pct: 83, color: '#2dd4bf' },
-          { name: 'Запись', n: 98, pct: 69, color: '#38bdf8' },
-          { name: 'Визит', n: 71, pct: 50, color: '#818cf8' }
-        ],
-        channels: [
-          { name: 'Телефон / UIS', pct: 42, color: '#14b8a6' },
-          { name: 'Telegram', pct: 22, color: '#38bdf8' },
-          { name: 'ВКонтакте', pct: 18, color: '#a78bfa' },
-          { name: 'Сайт', pct: 18, color: '#fbbf24' }
-        ],
-        donut: 'conic-gradient(#14b8a6 0 42%, #38bdf8 42% 64%, #a78bfa 64% 82%, #fbbf24 82% 100%)',
-        admins: [
-          { name: 'Анна Петрова', av: 'АП', c: '41 / 52 · 79%', w: 79, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
-          { name: 'Мария Ковалёва', av: 'МК', c: '33 / 48 · 69%', w: 69, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
-          { name: 'Дмитрий Соколов', av: 'ДС', c: '24 / 42 · 57%', w: 57, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
-        ],
-        speed: [
-          { lbl: 'Пн', v: 5.1 }, { lbl: 'Вт', v: 4.8 }, { lbl: 'Ср', v: 5.5 },
-          { lbl: 'Чт', v: 4.2 }, { lbl: 'Пт', v: 6.0 }, { lbl: 'Сб', v: 3.9 }
-        ],
-        sub: 'Текущая неделя'
-      },
-      month: {
-        kpis: [
-          { label: 'Первичные обращения', value: '586', sub: '↑ 15% к прошлому месяцу', up: true },
-          { label: 'Записались на приём', value: '401', sub: 'конверсия 68%', up: false },
-          { label: 'Среднее время ответа', value: '5:22', sub: 'чуть выше цели', up: false },
-          { label: 'Просроченные задачи', value: '19', sub: 'за месяц', danger: true }
-        ],
-        bars: [
-          { lbl: 'Нед1', v: 120 }, { lbl: 'Нед2', v: 135 }, { lbl: 'Нед3', v: 148 },
-          { lbl: 'Нед4', v: 183 }
-        ],
-        funnel: [
-          { name: 'Обращения', n: 586, pct: 100, color: '#14b8a6' },
-          { name: 'Квалификация', n: 492, pct: 84, color: '#2dd4bf' },
-          { name: 'Запись', n: 401, pct: 68, color: '#38bdf8' },
-          { name: 'Визит', n: 312, pct: 53, color: '#818cf8' }
-        ],
-        channels: [
-          { name: 'Телефон / UIS', pct: 40, color: '#14b8a6' },
-          { name: 'Telegram', pct: 25, color: '#38bdf8' },
-          { name: 'ВКонтакте', pct: 19, color: '#a78bfa' },
-          { name: 'Сайт', pct: 16, color: '#fbbf24' }
-        ],
-        donut: 'conic-gradient(#14b8a6 0 40%, #38bdf8 40% 65%, #a78bfa 65% 84%, #fbbf24 84% 100%)',
-        admins: [
-          { name: 'Анна Петрова', av: 'АП', c: '168 / 210 · 80%', w: 80, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
-          { name: 'Мария Ковалёва', av: 'МК', c: '132 / 190 · 69%', w: 69, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
-          { name: 'Дмитрий Соколов', av: 'ДС', c: '101 / 186 · 54%', w: 54, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
-        ],
-        speed: [
-          { lbl: 'Нед1', v: 5.4 }, { lbl: 'Нед2', v: 5.1 }, { lbl: 'Нед3', v: 4.9 }, { lbl: 'Нед4', v: 5.6 }
-        ],
-        sub: 'Текущий месяц по неделям'
-      }
-    };
-    let analyticsPeriod = 'today';
-
-    function setAnalyticsPeriod(p) {
-      analyticsPeriod = p;
-      document.querySelectorAll('.period-btn').forEach(b => {
-        b.classList.toggle('active', b.getAttribute('data-period') === p);
-      });
-      renderAnalytics();
-    }
-
-    function renderAnalytics() {
-      const d = ANALYTICS_DATA[analyticsPeriod] || ANALYTICS_DATA.today;
-      const kpi = document.getElementById('kpi-grid');
-      if (!kpi) return;
-      kpi.innerHTML = d.kpis.map(k => `
-        <div class="card kpi-card">
-          <div class="kpi-label">${k.label}</div>
-          <div class="kpi-value" ${k.danger ? 'style="color:#e11d48"' : ''}>${k.value}</div>
-          <div class="kpi-sub ${k.up ? 'up' : ''}">${k.sub}</div>
-        </div>`).join('');
-
-      const maxB = Math.max(...d.bars.map(b => b.v), 1);
-      const bars = document.getElementById('chart-bars');
-      if (bars) {
-        bars.innerHTML = d.bars.map((b, i) => {
-          const h = Math.round((b.v / maxB) * 100);
-          const active = analyticsPeriod === 'today' && i === d.bars.length - 3;
-          return `<div class="bar-col">
-            <div class="val">${b.v}</div>
-            <div class="bar ${active ? '' : ''}" style="height:${h}%"></div>
-            <div class="lbl">${b.lbl}</div>
-          </div>`;
-        }).join('');
-      }
-      const sub = document.getElementById('chart-leads-sub');
-      if (sub) sub.textContent = d.sub;
-
-      const funnel = document.getElementById('chart-funnel');
-      if (funnel) {
-        funnel.innerHTML = d.funnel.map(f => `
-          <div class="funnel-row">
-            <div class="fname">${f.name}</div>
-            <div class="funnel-track">
-              <div class="funnel-fill" style="width:${f.pct}%;background:${f.color}">${f.n} · ${f.pct}%</div>
-            </div>
-          </div>`).join('');
-      }
-
-      const donut = document.getElementById('chart-donut');
-      if (donut) donut.style.background = d.donut;
-      const ch = document.getElementById('chart-channels');
-      if (ch) {
-        ch.innerHTML = d.channels.map(c => `
-          <div class="channel-row">
-            <span class="channel-dot" style="background:${c.color}"></span>
-            <span style="flex:1">${c.name}</span>
-            <span style="font-weight:600;color:#334155">${c.pct}%</span>
-          </div>`).join('');
-      }
-
-      const adm = document.getElementById('chart-admins');
-      if (adm) {
-        adm.innerHTML = d.admins.map(a => `
-          <div class="admin-row">
-            <div class="admin-avatar" style="background:${a.bg};color:${a.fg}">${a.av}</div>
-            <div style="flex:1">
-              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-                <span style="font-weight:500">${a.name}</span><span style="color:#64748b">${a.c}</span>
-              </div>
-              <div class="bar-fill"><span style="width:${a.w}%;background:${a.bar}"></span></div>
-            </div>
-          </div>`).join('');
-      }
-
-      const maxS = Math.max(...d.speed.map(s => s.v), 1);
-      const speed = document.getElementById('chart-speed');
-      if (speed) {
-        speed.innerHTML = d.speed.map(s => {
-          const h = Math.round((s.v / maxS) * 100);
-          const over = s.v > 5;
-          return `<div class="bar-col">
-            <div class="val">${s.v.toFixed(1)}</div>
-            <div class="bar ${over ? 'muted' : ''}" style="height:${h}%;${over ? 'background:linear-gradient(180deg,#fda4af,#e11d48)' : ''}"></div>
-            <div class="lbl">${s.lbl}</div>
-          </div>`;
-        }).join('');
-      }
-    }
-
-
-
-    const MSG_TEMPLATES = [
-      { id: 'addr', name: 'Адрес клиники', body: 'Мы находимся по адресу: ул. Примерная, 10. Парковка во дворе. Ждём вас!' },
-      { id: 'price', name: 'Прайс проф. чистки', body: 'Профессиональная гигиена — от 4 500 ₽. Для первичных пациентов скидка 10% при записи на этой неделе.' },
-      { id: 'remind', name: 'Напоминание о визите', body: 'Добрый день! Напоминаем о записи завтра. Если нужно перенести — ответьте на это сообщение.' },
-      { id: 'after', name: 'После консультации', body: 'Спасибо, что были у нас! Если остались вопросы по плану лечения — напишите, подскажем по этапам и оплате.' },
-      { id: 'noshow', name: 'Неявка', body: 'Вы не смогли прийти на приём. Давайте подберём новое удобное время — напишите, когда вам комфортно.' }
-    ];
-
-    let TRIGGERS = [
-      { id: 'tr1', name: 'Смена этапа → задача', when: 'Пациент переведён на другой этап', action: 'Создать задачу ответственному', on: true },
-      { id: 'tr2', name: 'Новый лид без ответа 30 мин', when: 'Входящее без ответа', action: 'Уведомление администратору', on: true },
-      { id: 'tr3', name: 'Отказ от рассылок', when: 'Флаг noSpam', action: 'Блок маркетинг-шаблонов', on: true },
-      { id: 'tr4', name: 'После записи в МИС', when: 'Успешная запись', action: 'Шаблон «Напоминание о визите»', on: false },
-      { id: 'tr5', name: 'Просроченная задача', when: 'Срок задачи истёк', action: 'Push в колокольчик', on: true }
-    ];
-
+    // Notification panel is retained independently of the removed demo pages.
     let NOTIFS = [];
-    let AUTO_LOG = [];
-
-    function renderTemplates() {
-      const el = document.getElementById('templates-list');
-      if (!el) return;
-      el.innerHTML = MSG_TEMPLATES.map(t => `
-        <div class="tpl-item">
-          <div class="t-name">${t.name}</div>
-          <div class="t-body">${t.body}</div>
-          <div class="t-actions">
-            <button type="button" onclick="useTemplate('${t.id}')">Вставить в чат</button>
-            <button type="button" onclick="previewTemplate('${t.id}')">Просмотр</button>
-          </div>
-        </div>`).join('');
-    }
-
-    function renderTriggers() {
-      const el = document.getElementById('triggers-list');
-      if (!el) return;
-      el.innerHTML = TRIGGERS.map(t => `
-        <div class="trg-item">
-          <div class="trg-row">
-            <button type="button" class="toggle ${t.on ? 'on' : ''}" onclick="toggleTrigger('${t.id}')" title="Вкл/выкл"></button>
-            <div style="flex:1">
-              <div class="t-name">${t.name}</div>
-              <div class="t-body">Когда: ${t.when}<br>Действие: ${t.action}</div>
-            </div>
-          </div>
-        </div>`).join('');
-    }
-
-    function renderAutoLog() {
-      const el = document.getElementById('auto-log');
-      if (!el) return;
-      if (!AUTO_LOG.length) {
-        el.innerHTML = '<div style="color:#94a3b8;padding:8px 0">Пока пусто — сработавшие триггеры появятся здесь</div>';
-        return;
-      }
-      el.innerHTML = AUTO_LOG.slice(0, 20).map(l => `
-        <div class="log-item">
-          <span>${l.icon || '⚡'}</span>
-          <div style="flex:1"><b>${l.title}</b><div style="color:#64748b">${l.body}</div></div>
-          <span style="color:#94a3b8;white-space:nowrap">${l.time}</span>
-        </div>`).join('');
-    }
-
-    function renderAuto() {
-      renderTemplates();
-      renderTriggers();
-      renderAutoLog();
-    }
-
-    function useTemplate(id) {
-      const t = MSG_TEMPLATES.find(x => x.id === id);
-      if (!t) return;
-      showView('comms');
-      const input = document.getElementById('msg-input');
-      if (input) { input.value = t.body; input.focus(); }
-      toast('Шаблон «' + t.name + '» в поле ввода');
-    }
-
-    function previewTemplate(id) {
-      const t = MSG_TEMPLATES.find(x => x.id === id);
-      if (!t) return;
-      toast(t.name + ': ' + t.body.slice(0, 80) + '…');
-    }
-
-    function toggleTrigger(id) {
-      const t = TRIGGERS.find(x => x.id === id);
-      if (!t) return;
-      t.on = !t.on;
-      renderTriggers();
-      toast(t.on ? 'Триггер включён' : 'Триггер выключен');
-    }
-
-    function logAuto(icon, title, body) {
-      AUTO_LOG.unshift({ icon, title, body, time: nowLabel() });
-      renderAutoLog();
-    }
-
-    function pushNotif(title, body, patientId) {
-      NOTIFS.unshift({ id: 'n' + Date.now(), title, body, time: nowLabel(), patientId: patientId || null, read: false });
-      renderNotifBadge();
-      renderNotifList();
-    }
 
     function renderNotifBadge() {
       const b = document.getElementById('notif-badge');
@@ -1266,40 +969,21 @@ const STAGES = [
       document.getElementById('notif-panel')?.classList.remove('open');
     });
 
-    function fireTrigger(triggerId, ctx) {
-      const t = TRIGGERS.find(x => x.id === triggerId);
-      if (!t || !t.on) return false;
-      logAuto('⚡', t.name, (ctx && ctx.detail) || t.action);
-      pushNotif('Авто: ' + t.name, (ctx && ctx.detail) || t.action, ctx && ctx.patientId);
-      return true;
-    }
-
     function onStageChanged(patientId, oldStage, newStage) {
       const p = DB.patients[patientId];
-      fireTrigger('tr1', {
-        patientId,
-        detail: (p ? p.name : patientId) + ': этап ' + oldStage + ' → ' + newStage + '. Создана задача ответственному.'
-      });
       if (typeof TASKS !== 'undefined' && p) {
         TASKS.unshift({
           id: 't_auto_' + Date.now(),
           title: 'Проверить этап: ' + (STAGES.find(s => s.num === newStage) || {}).label,
           patientId, patient: p.name,
           assignee: p.admin || 'Анна Петрова',
-          due: 'сегодня', overdue: false, done: false, source: 'Автотриггер'
+          due: 'сегодня', overdue: false, done: false, source: 'Смена этапа · демо'
         });
       }
     }
 
-    function runDemoTrigger() {
-      fireTrigger('tr2', { detail: 'Демо: лид без ответа 30 мин · Мария Смирнова', patientId: 'smirnova' });
-      fireTrigger('tr5', { detail: 'Демо: просрочена задача «Перезвонить по цене»', patientId: 'alexey' });
-      toast('Триггеры прогнаны · смотрите колокольчик и журнал');
-      renderAuto();
-    }
-
-
     function showView(name) {
+      if (!document.getElementById('view-' + name)) return;
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       const view = document.getElementById('view-' + name);
@@ -1308,8 +992,6 @@ const STAGES = [
       if (nav) nav.classList.add('active');
       if (name === 'kanban') renderKanban();
       if (name === 'tasks') renderTasks();
-      if (name === 'analytics') renderAnalytics();
-      if (name === 'auto') renderAuto();
     }
 
     function toast(msg) {

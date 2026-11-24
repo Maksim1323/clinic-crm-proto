@@ -21,9 +21,7 @@
     <nav class="nav">
       <button onclick="showView('comms')" id="nav-comms" class="nav-btn active">Коммуникации <span class="badge rose" id="tg-alert-count" style="display:none"></span></button>
       <button onclick="showView('kanban')" id="nav-kanban" class="nav-btn">Бизнес-процессы</button>
-      <button onclick="showView('analytics')" id="nav-analytics" class="nav-btn">Аналитика</button>
       <button onclick="showView('tasks')" id="nav-tasks" class="nav-btn">Задачи</button>
-      <button onclick="showView('auto')" id="nav-auto" class="nav-btn">Автоматизация</button>
     </nav>
     <div class="header-right">
       <div class="notif-wrap">
@@ -233,51 +231,6 @@
       <div class="kanban-board" id="kanban-board" style="display:flex;flex-direction:row;flex-wrap:nowrap;gap:12px;overflow-x:auto;align-items:stretch;flex:1;min-height:0;width:100%"></div>
     </div>
 
-    <!-- VIEW: ANALYTICS -->
-    <div id="view-analytics" class="view analytics-view">
-      <div class="kanban-toolbar">
-        <h2 style="font-size:18px;font-weight:600">Аналитика · демоданные</h2>
-        <div style="display:flex;gap:8px" id="period-btns">
-          <button type="button" class="badge period-btn active" data-period="today" onclick="setAnalyticsPeriod('today')">Сегодня</button>
-          <button type="button" class="badge period-btn" data-period="week" onclick="setAnalyticsPeriod('week')">Неделя</button>
-          <button type="button" class="badge period-btn" data-period="month" onclick="setAnalyticsPeriod('month')">Месяц</button>
-        </div>
-      </div>
-      <div class="kpi-grid" id="kpi-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;width:100%"></div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <h3>Обращения по дням</h3>
-          <div class="chart-sub" id="chart-leads-sub">Динамика первичных обращений</div>
-          <div class="bars" id="chart-bars"></div>
-        </div>
-        <div class="chart-card">
-          <h3>Воронка записи</h3>
-          <div class="chart-sub">От обращения до визита</div>
-          <div class="funnel" id="chart-funnel"></div>
-        </div>
-      </div>
-      <div class="chart-grid-3">
-        <div class="chart-card">
-          <h3>Каналы</h3>
-          <div class="chart-sub">Откуда приходят пациенты</div>
-          <div class="donut-wrap">
-            <div class="donut" id="chart-donut"></div>
-            <div class="channel-list" id="chart-channels"></div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <h3>Конверсия администраторов</h3>
-          <div class="chart-sub">Запись / обращения</div>
-          <div id="chart-admins"></div>
-        </div>
-        <div class="chart-card">
-          <h3>Скорость ответа</h3>
-          <div class="chart-sub">Цель &lt; 5 мин</div>
-          <div class="bars" id="chart-speed" style="min-height:100px"></div>
-        </div>
-      </div>
-    </div>
-
     <!-- VIEW: TASKS -->
     <div id="view-tasks" class="view tasks-view">
       <div class="kanban-toolbar">
@@ -297,33 +250,6 @@
   </div>
 
   
-    <!-- VIEW: AUTOMATION -->
-    <div id="view-auto" class="view auto-view">
-      <div class="kanban-toolbar">
-        <h2 style="font-size:18px;font-weight:600">Автоматизация</h2>
-        <div style="display:flex;gap:8px">
-          <button type="button" class="badge" onclick="runDemoTrigger()">▶ Прогнать триггер</button>
-        </div>
-      </div>
-      <div class="auto-grid">
-        <div class="auto-card">
-          <h3>Шаблоны сообщений</h3>
-          <div class="sub">Демонстрационные шаблоны для черновика</div>
-          <div id="templates-list" style="overflow-y:auto;flex:1"></div>
-        </div>
-        <div class="auto-card">
-          <h3>Триггеры</h3>
-          <div class="sub">Демо-сценарии: реальные автоматизации не подключены</div>
-          <div id="triggers-list" style="overflow-y:auto;flex:1"></div>
-        </div>
-      </div>
-      <div class="auto-card" style="flex:0 0 auto;max-height:180px">
-        <h3>Журнал автоматизаций</h3>
-        <div class="sub">Демонстрация: реальные сообщения и действия не выполняются</div>
-        <div class="log-list" id="auto-log"></div>
-      </div>
-    </div>
-
   <div class="app-footer">
     <span>ClinicCRM · демо · данные только в браузере</span>
     <span id="status-hint">ИИ, каналы и МИС не подключены</span>
