@@ -412,6 +412,10 @@ const STAGES = [
     }
 
     // ===== RENDER =====
+    function updateInboxCount() {
+      const telegramCount = Number(document.getElementById('tg-count')?.textContent || 0);
+      document.getElementById('inbox-count').textContent = String(DB.inboxOrder.length + (Number.isFinite(telegramCount) ? telegramCount : 0));
+    }
     function renderInbox() {
       const list = document.getElementById('inbox-list');
       list.innerHTML = '';
@@ -434,7 +438,7 @@ const STAGES = [
           </div>`;
         list.appendChild(el);
       });
-      document.getElementById('inbox-count').textContent = DB.inboxOrder.length;
+      updateInboxCount();
     }
 
 
@@ -715,7 +719,7 @@ const STAGES = [
       toast('Чат');
     }
 
-    function selectPatient(id) { renderPatient(id); }
+    function selectPatient(id) { if (window.tgShowDemo) window.tgShowDemo(); renderPatient(id); }
 
     function renderKanban() {
       const byStage = { 1: [], 2: [], 3: [], 4: [], 5: [] };

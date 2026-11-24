@@ -60,7 +60,7 @@
       el.innerHTML = `<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">${safe(p.preview)}</div></div></div>`;
       list.appendChild(el);
     });
-    document.getElementById('inbox-count').textContent = DB.inboxOrder.length;
+    updateInboxCount();
   };
   function btn(label, fn, primary = false) { return `<button type="button" ${primary ? 'class="ok"' : ''} onclick="${fn}">${label}</button>`; }
   function actions(...items) { return `<div class="modal-actions" style="flex-wrap:wrap;margin-top:10px">${items.join('')}</div>`; }

@@ -42,17 +42,29 @@
   function status(message) { el('tg-status').textContent=message; }
   function updateButtons() { el('tg-send-btn').disabled=!currentChat || isSending;el('tg-draft-btn').disabled=!currentChat || isDrafting; }
   window.openTelegramView = function() {
-    showView('telegram');
+    showView('comms');
     if(!adminToken){el('tg-login-modal').classList.add('open');setTimeout(()=>el('tg-admin-token').focus(),30);return;}
     tgRefresh();if(!poller)poller=setInterval(()=>{if(adminToken)tgRefresh(true);},10000);
   };
   window.closeTelegramLogin = function(){el('tg-admin-token').value='';el('tg-login-modal').classList.remove('open');showView('comms');};
   window.tgLogin = async function(){
     adminToken=el('tg-admin-token').value;el('tg-admin-token').value='';
-    try {await api('/api/telegram/conversations');el('tg-login-modal').classList.remove('open');status('Подключено к тестовому серверу. Сообщения не объединяются с карточками пациентов.');openTelegramView();}
+    try {await api('/api/telegram/conversations');el('tg-login-modal').classList.remove('open');el('tg-login-button').style.display='none';el('tg-connected-controls').style.display='inline';status('Подключено к тестовому серверу. Сообщения не объединяются с карточками пациентов.');openTelegramView();}
     catch(e){adminToken='';status(e.message);toast(e.message);}
   };
-  window.tgLogout = function(){adminToken='';currentChat=null;el('tg-input').value='';el('tg-messages').replaceChildren();el('tg-conversations').replaceChildren();el('tg-chat-name').textContent='Выберите диалог';el('tg-alert-count').style.display='none';el('tg-handoff-status').textContent='Выберите чат';el('tg-handoff-reason').textContent='';el('tg-handoff-summary').textContent='';el('tg-take').style.display='none';el('tg-resume').style.display='none';updateButtons();if(poller){clearInterval(poller);poller=null;}showView('comms');};
+  window.tgShowDemo = function(){
+    currentChat=null;el('demo-patient-col').style.display='';el('tg-patient-col').style.display='none';
+    el('tg-conversations').querySelectorAll('.sidebar-item.active').forEach(item=>item.classList.remove('active'));
+    updateButtons();
+  };
+  window.tgLogout = function(){
+    adminToken='';window.tgShowDemo();el('tg-input').value='';el('tg-messages').replaceChildren();
+    el('tg-conversations').replaceChildren(text('div','Войдите для просмотра Telegram-чатов.','ch-preview'));
+    el('tg-count').textContent='0';el('tg-chat-name').textContent='Выберите диалог';el('tg-alert-count').style.display='none';
+    el('tg-handoff-status').textContent='Выберите чат';el('tg-handoff-reason').textContent='';el('tg-handoff-summary').textContent='';
+    el('tg-take').style.display='none';el('tg-resume').style.display='none';el('tg-login-button').style.display='';el('tg-connected-controls').style.display='none';
+    if(poller){clearInterval(poller);poller=null;}renderInbox();showView('comms');
+  };
   window.tgSetupWebhook = async function(){
     if(!adminToken)return openTelegramView();
     if(!await askConfirmation('Подключить бота к этому серверу? У Telegram-бота может быть только один webhook: прежнее подключение будет заменено.'))return;
@@ -62,7 +74,7 @@
   window.tgRefresh = async function(silent=false){
     if(!adminToken)return;
     try {
-      const data=await api('/api/telegram/conversations'); const list=el('tg-conversations');list.replaceChildren();el('tg-count').textContent=String(data.items.length); const waiting=data.items.filter(c=>c.mode==='waiting').length;el('tg-alert-count').textContent=String(waiting);el('tg-alert-count').style.display=waiting?'inline-flex':'none';data.items.sort((a,b)=>(a.mode==='waiting'?0:1)-(b.mode==='waiting'?0:1));
+      const data=await api('/api/telegram/conversations'); const list=el('tg-conversations');list.replaceChildren();el('tg-count').textContent=String(data.items.length);updateInboxCount(); const waiting=data.items.filter(c=>c.mode==='waiting').length;el('tg-alert-count').textContent=String(waiting);el('tg-alert-count').style.display=waiting?'inline-flex':'none';data.items.sort((a,b)=>(a.mode==='waiting'?0:1)-(b.mode==='waiting'?0:1));
       if(!data.items.length)list.append(text('div','Пока нет диалогов. Напишите боту в личном чате.','ch-preview'));
       data.items.forEach(c=>{
         const item=document.createElement('div');item.className='sidebar-item'+(c.id===currentChat?' active':'');
@@ -71,9 +83,9 @@
         item.onclick=()=>tgSelect(c.id); list.append(item);
       });
       if(currentChat)await tgLoadMessages();
-    }catch(e){if(!silent){status(e.message);toast(e.message);}}
+    }catch(e){if(!adminToken){window.tgLogout();toast('Сессия завершена. Войдите в Telegram снова.');return;}if(!silent){status(e.message);toast(e.message);}}
   };
-  window.tgSelect = async function(id){currentChat=id;el('tg-input').value='';updateButtons();await tgRefresh();};
+  window.tgSelect = async function(id){currentChat=id;el('demo-patient-col').style.display='none';el('tg-patient-col').style.display='';el('inbox-list').querySelectorAll('.sidebar-item.active').forEach(item=>item.classList.remove('active'));el('tg-input').value='';updateButtons();await tgRefresh();};
   async function tgLoadMessages(){
     if(!currentChat)return;const chatId=currentChat, data=await api('/api/telegram/conversations/'+encodeURIComponent(chatId));if(chatId!==currentChat)return;
     el('tg-chat-name').textContent=data.name;const labels={ai:'ИИ ведёт диалог',waiting:'🚩 Нужен человек',assigned:'В работе сотрудника'};el('tg-handoff-status').textContent=labels[data.mode] || 'Неизвестно';el('tg-handoff-reason').textContent=data.handoff?.reason || (data.autoEnabled ? 'Новые сообщения обрабатывает ИИ.' : 'Автоответ ИИ выключен.');el('tg-handoff-summary').textContent=data.handoff?.summary || '';el('tg-take').style.display=data.mode==='waiting'?'':'none';el('tg-resume').style.display=data.mode==='assigned'?'':'none';const feed=el('tg-messages'); const nearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight < 80;feed.replaceChildren();
