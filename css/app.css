@@ -114,6 +114,9 @@
     }
     .btn-primary:hover { filter: brightness(1.05); }
 
+    .comms-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#64748b; text-align:center; gap:8px; padding:24px; }
+    .comms-empty h2 { color:#334155; font-size:18px; font-weight:600; }
+
     /* Patient column */
     .patient-col {
       flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden;

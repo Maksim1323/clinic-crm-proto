@@ -6,97 +6,13 @@ const STAGES = [
       { num: 5, label: '5 · Потенциальный клиент' }
     ];
 
-    const TEMPLATES = {
-      address: {
-        title: 'Шаблон · Адрес клиники',
-        text: 'Наш адрес: ул. Примерная, 12, 3 этаж. Парковка во дворе. Работаем пн–сб 9:00–21:00.'
-      },
-      price: {
-        title: 'Шаблон · Прайс',
-        text: 'Проф. чистка — от 4 500 ₽\nПервичный осмотр — бесплатно\nКонсультация ортодонта — 2 000 ₽\nПолный прайс пришлём по запросу.'
-      }
-    };
-
-    const DB = {
-      patients: {
-        ivanov: {
-          id: 'ivanov', name: 'Иванов Иван Иванович', age: '35 лет', emoji: '👨', createdAt: '12.05.2024', gender: 'male',
-          phone: '+7 999 123-45-67', channelIcon: '📞', channelLabel: 'UIS · Первичный',
-          timeLabel: '00:15', unread: 0, statusInClinic: true,
-          admin: 'Анна Петрова', doctor: 'Смирнов А.А.',
-          stageNum: 2, stageTotal: 5, noSpam: true, bonuses: 1500, nps: 9,
-          preview: 'Идёт разговор...',
-          plan: 'Ортодонтия · брекет-система · ориентир 85 000 ₽',
-          history: [
-            { type:'visit', icon:'🩺', title:'Приём · Первичная консультация', date:'14.05.2024',
-              body:'Врач: Смирнов А.А. · NPS 9/10<br><span class="text-indigo-600 font-medium">Назначен план «Ортодонтия»</span>' },
-            { type:'msg', icon:'✈️', title:'Telegram', date:'13.05.2024',
-              body:'<div class="text-slate-400 italic">Пациент: «А как подготовиться?» <span class="text-[11px]">(удалено)</span></div><div class="text-slate-700 mt-1">Анна: «Специальной подготовки не требуется...»</div>' },
-            { type:'call', icon:'📞', title:'Звонок UIS · Первичный', date:'12.05.2024',
-              body:'<button onclick="toast(\'Воспроизведение записи...\')" class="text-[12px] text-teal-600 font-medium mb-2 hover:underline">▶ Прослушать</button><div class="bg-white rounded-lg border border-slate-100 p-3 text-[13px]"><div class="text-slate-500 mb-1 font-medium text-[12px]">🤖 ИИ-транскрибация</div><div class="text-slate-700">«Алло, здравствуйте, я хочу записаться на осмотр...»</div><div class="mt-2 flex items-start gap-2 bg-teal-50 rounded-lg px-3 py-2 border border-teal-100"><span>💡</span><span class="text-[12px] text-teal-800">Скрипт «Запись на первичный осмотр»</span></div></div>' }
-          ]
-        },
-        smirnova: {
-          id: 'smirnova', name: 'Мария Смирнова', age: '28 лет', emoji: '👩', createdAt: '06.11.2026', gender: 'female',
-          phone: '+7 916 444-55-66', channelIcon: '✈️', channelLabel: 'Telegram',
-          timeLabel: 'сейчас', unread: 1, statusInClinic: false,
-          admin: 'Анна Петрова', doctor: '—',
-          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 0, nps: null,
-          preview: 'Хочу записаться на чистку...',
-          plan: null,
-          history: [
-            { type:'msg', icon:'✈️', title:'Telegram', date:'сегодня 15:42',
-              body:'<div class="text-slate-700">Пациент: «Здравствуйте! Хочу записаться на профессиональную чистку. Есть окна на этой неделе?»</div>' },
-            { type:'msg', icon:'✈️', title:'Telegram', date:'сегодня 15:40',
-              body:'<div class="text-slate-400 italic">Пациент начал диалог</div>' }
-          ]
-        },
-        alexey: {
-          id: 'alexey', name: 'Алексей Воронов', age: '41 год', emoji: '👨', createdAt: '05.11.2026', gender: 'male',
-          phone: '+7 903 777-88-99', channelIcon: '🌐', channelLabel: 'ВКонтакте',
-          timeLabel: '12:40', unread: 0, statusInClinic: false,
-          admin: 'Мария Ковалёва', doctor: '—',
-          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 200, nps: null,
-          preview: 'Сколько стоит проф. чистка?',
-          plan: null,
-          history: [
-            { type:'msg', icon:'🌐', title:'ВКонтакте', date:'сегодня 12:40',
-              body:'<div class="text-slate-700">Пациент: «Добрый день. Сколько стоит профессиональная чистка? Есть скидки для первичных?»</div>' }
-          ]
-        },
-        site: {
-          id: 'site', name: 'Неизвестный (сайт)', age: '—', emoji: '📧', createdAt: '06.11.2026', gender: null,
-          phone: '+7 926 111-22-33', channelIcon: '📧', channelLabel: 'Сайт · Форма',
-          timeLabel: '11:05', unread: 0, statusInClinic: false,
-          admin: '—', doctor: '—',
-          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 0, nps: null,
-          preview: '«Перезвоните мне»',
-          plan: null,
-          history: [
-            { type:'email', icon:'📧', title:'Обращение с сайта', date:'сегодня 11:05',
-              body:'<div class="text-slate-700">Телефон: +7 926 111-22-33<br>Сообщение: «Перезвоните мне, хочу записаться к ортодонту»</div><div class="mt-2 text-[12px] text-slate-400">Источник: форма на сайте</div>' }
-          ]
-        },
-        mis: {
-          id: 'mis', name: 'Козлова Елена', age: '32 года', emoji: '👩', createdAt: '20.04.2024', gender: 'female',
-          phone: '+7 905 333-44-55', channelIcon: '✔️', channelLabel: 'МИС · Подтверждение',
-          timeLabel: 'авто', unread: 0, statusInClinic: false,
-          admin: 'Анна Петрова', doctor: 'Кузнецова О.В.',
-          stageNum: 3, stageTotal: 5, noSpam: false, bonuses: 800, nps: 8,
-          preview: 'Визит сегодня 14:30',
-          plan: 'Терапия · этап 2 из 4',
-          history: [
-            { type:'mis', icon:'✔️', title:'МИС · Авто-подтверждение', date:'сегодня 09:00',
-              body:'<div class="text-slate-700">Пациент подтвердил визит на <b>сегодня 14:30</b><br>Врач: Кузнецова О.В. · Терапия</div>' },
-            { type:'visit', icon:'🩺', title:'Приём · Терапия (этап 2)', date:'20.04.2024',
-              body:'Врач: Кузнецова О.В. · NPS 8/10<br><span class="text-indigo-600 font-medium">Следующий этап: 03.05.2024</span>' }
-          ]
-        }
-      },
-      inboxOrder: ['ivanov', 'smirnova', 'alexey', 'site', 'mis']
-    };
-
-    let currentPatientId = 'ivanov';
+    // Only user-created local cards are shown; old bundled examples stay hidden.
+    const DB = {patients:{}, inboxOrder:[]};
+    // Fingerprints only; edits to old examples are retained as user data.
+    const oldPatientHashes={ivanov:'678ce3fc',smirnova:'5a4abae3',alexey:'dfcc47b3',site:'7ba6aa2e',mis:'396d6011'};
+    const oldTaskHashes={t1:'4dcee95',t2:'6927ebd4',t3:'7fb0ffdb',t4:'fc7d9b50',t5:'512e16ff',t6:'40f30a8c'};
+    function fingerprint(obj){let h=2166136261;const text=JSON.stringify(obj);for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(16);}
+    let currentPatientId = null;
     let pendingStage = null;
 
     const STORAGE_KEY = 'cliniccrm_v13';
@@ -118,13 +34,10 @@ const STAGES = [
         if (!raw) return;
         const data = JSON.parse(raw);
         if (data.patients && typeof data.patients === 'object') {
-          // merge: keep defaults for missing, overwrite with saved
-          Object.keys(data.patients).forEach(id => {
-            DB.patients[id] = Object.assign({}, DB.patients[id] || {}, data.patients[id]);
-          });
+          Object.keys(data.patients).filter(id=>!oldPatientHashes[id]||fingerprint(data.patients[id])!==oldPatientHashes[id]).forEach(id=>{DB.patients[id]=data.patients[id];});
         }
         if (Array.isArray(data.inboxOrder) && data.inboxOrder.length) {
-          DB.inboxOrder = data.inboxOrder;
+          DB.inboxOrder = data.inboxOrder.filter(id=>DB.patients[id]);
         }
         if (data.currentPatientId && DB.patients[data.currentPatientId]) {
           currentPatientId = data.currentPatientId;
@@ -133,7 +46,7 @@ const STAGES = [
     }
 
     const CHANNEL_META = {
-      call:  { icon: '📞', label: 'UIS · Звонок' },
+      call:  { icon: '📞', label: 'Звонок' },
       tg:    { icon: '✈️', label: 'Telegram' },
       vk:    { icon: '🌐', label: 'ВКонтакте' },
       email: { icon: '📧', label: 'Сайт · Форма' },
@@ -157,7 +70,7 @@ const STAGES = [
         document.getElementById('pf-age').value = '';
         document.getElementById('pf-gender').value = 'male';
         document.getElementById('pf-channel').value = 'tg';
-        document.getElementById('pf-admin').value = 'Анна Петрова';
+        document.getElementById('pf-admin').value = '';
         document.getElementById('pf-doctor').value = '';
         document.getElementById('pf-stage').value = '1';
         document.getElementById('pf-bonuses').value = '0';
@@ -314,11 +227,6 @@ const STAGES = [
 
     // ===== ACTIONS =====
     function actionBookMIS() { toast('Запись в МИС недоступна в демо.'); }
-    function actionTemplate(key) {
-      const t=TEMPLATES[key]; if(!t)return;
-      const input=document.getElementById('msg-input'); input.value=t.text; input.focus();
-      toast('Шаблон добавлен в поле сообщения · не отправлен');
-    }
     function actionPlan() { toast('План лечения в демо недоступен; проверьте данные в МИС'); }
     function actionReminder() { openTaskEditor(); }
     function demoEscalation() { openTaskEditor(); toast('Создайте задачу для передачи сотруднику'); }
@@ -391,6 +299,8 @@ const STAGES = [
       const p = DB.patients[id];
       if (!p) return;
       currentPatientId = id;
+      document.getElementById('comms-empty').style.display='none';
+      document.getElementById('demo-patient-col').style.display='';
       const stage = STAGES.find(s => s.num === p.stageNum);
 
       document.getElementById('p-emoji').textContent = p.emoji;
@@ -449,8 +359,8 @@ const STAGES = [
       av.textContent = initials(p.name);
       av.className = 'profile-avatar ' + (p.gender === 'male' ? 'male' : (p.gender === 'female' ? 'female' : ''));
       document.getElementById('pr-name').textContent = p.name;
-      const since = p.createdAt || '06.11.2026';
-      document.getElementById('pr-since').textContent = 'Пациент с ' + since;
+      const since = p.createdAt || '';
+      document.getElementById('pr-since').textContent = since ? 'Пациент с ' + since : 'Дата создания не указана';
 
       const tags = document.getElementById('pr-tags');
       const ageTag = !p.age || !/\d+/.test(p.age) ? 'Возраст не указан' : (parseInt(p.age) < 18 ? 'Ребёнок' : 'Взрослый');
@@ -595,19 +505,12 @@ const STAGES = [
 
 
 
-    let TASKS = [
-      { id: 't1', title: 'Подтвердить запись на чистку', patientId: 'smirnova', patient: 'Мария Смирнова', assignee: 'Анна Петрова', due: 'сегодня 18:00', overdue: false, done: false, source: 'ИИ · запись' },
-      { id: 't2', title: 'Перезвонить по цене проф. чистки', patientId: 'alexey', patient: 'Алексей Воронов', assignee: 'Анна Петрова', due: 'сегодня 14:00', overdue: true, done: false, source: 'ВКонтакте' },
-      { id: 't3', title: 'Уточнить следующий шаг после консультации', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Мария Ковалёва', due: 'завтра 12:00', overdue: false, done: false, source: 'ИИ · курация' },
-      { id: 't4', title: 'Проверить визит и NPS', patientId: 'mis', patient: 'Козлова Елена', assignee: 'Анна Петрова', due: 'сегодня 16:30', overdue: false, done: false, source: 'МИС' },
-      { id: 't5', title: 'Связаться: форма с сайта', patientId: 'site', patient: 'Неизвестный (сайт)', assignee: 'Анна Петрова', due: 'вчера 17:00', overdue: true, done: false, source: 'Сайт' },
-      { id: 't6', title: 'Отправить памятку после удаления', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Дмитрий Соколов', due: '06.11', overdue: false, done: true, source: 'Регламент' }
-    ];
+    let TASKS = [];
     let taskFilter = 'all';
 
     function filterTasks(f) {
       taskFilter = f;
-      ['all','mine','overdue','done'].forEach(x => {
+      ['all','overdue','done'].forEach(x => {
         const el = document.getElementById('tf-' + x);
         if (el) el.className = 'badge' + (x === f ? ' teal' : '');
       });
@@ -618,22 +521,18 @@ const STAGES = [
       const list = document.getElementById('tasks-list');
       const stats = document.getElementById('tasks-stats');
       if (!list) return;
-      const mine = 'Анна Петрова';
       let items = TASKS.slice();
-      if (taskFilter === 'mine') items = items.filter(t => t.assignee === mine && !t.done);
-      else if (taskFilter === 'overdue') items = items.filter(t => t.overdue && !t.done);
+      if (taskFilter === 'overdue') items = items.filter(t => t.overdue && !t.done);
       else if (taskFilter === 'done') items = items.filter(t => t.done);
       else items = items.filter(t => !t.done).concat(items.filter(t => t.done));
 
       const open = TASKS.filter(t => !t.done).length;
       const od = TASKS.filter(t => t.overdue && !t.done).length;
-      const my = TASKS.filter(t => t.assignee === mine && !t.done).length;
       const done = TASKS.filter(t => t.done).length;
       if (stats) {
         stats.innerHTML = `
           <div class="tasks-stat"><div class="n">${open}</div><div class="l">Открытых</div></div>
           <div class="tasks-stat"><div class="n" style="color:#e11d48">${od}</div><div class="l">Просрочено</div></div>
-          <div class="tasks-stat"><div class="n">${my}</div><div class="l">Мои</div></div>
           <div class="tasks-stat"><div class="n" style="color:#0d9488">${done}</div><div class="l">Выполнено</div></div>`;
       }
 
@@ -677,7 +576,7 @@ const STAGES = [
       editingTaskId=task ? task.id : null;
       document.getElementById('task-modal-title').textContent=task ? 'Редактирование задачи' : 'Новая задача';
       document.getElementById('task-title').value=task?.title || '';
-      document.getElementById('task-assignee').value=task?.assignee || 'Анна Петрова';
+      document.getElementById('task-assignee').value=task?.assignee || '';
       document.getElementById('task-due').value=task?.dueAt || '';
       const legacy=task && !task.dueAt && task.due && task.due!=='без срока' ? task.due : '';
       document.getElementById('task-legacy-due').textContent=legacy ? 'Прежний срок: '+legacy+' (без точной даты)' : '';
@@ -703,7 +602,7 @@ const STAGES = [
     }
     const taskKey='cliniccrm_journey_tasks_v1';
     function persistTasks() { try { localStorage.setItem(taskKey,JSON.stringify(TASKS)); return true; } catch (_) { toast('Не удалось сохранить задачи в браузере'); return false; } }
-    try { const saved=JSON.parse(localStorage.getItem(taskKey));if(Array.isArray(saved))TASKS=saved; } catch (_) {}
+    try { const saved=JSON.parse(localStorage.getItem(taskKey));if(Array.isArray(saved))TASKS=saved.filter(t=>!oldTaskHashes[t.id]||fingerprint(t)!==oldTaskHashes[t.id]);  } catch (_) {}
     const oldToggleTask=toggleTask; toggleTask=function(id){oldToggleTask(id);persistTasks();};
     const oldRenderTasks=renderTasks; renderTasks=function(){TASKS.forEach(t=>{if(t.dueAt && !t.done)t.overdue=new Date(t.dueAt).getTime()<Date.now();});oldRenderTasks();};
 
@@ -714,7 +613,7 @@ const STAGES = [
           id: 't_auto_' + Date.now(),
           title: 'Проверить этап: ' + (STAGES.find(s => s.num === newStage) || {}).label,
           patientId, patient: p.name,
-          assignee: p.admin || 'Анна Петрова',
+          assignee: p.admin && p.admin!=='—' ? p.admin : '—',
           due: 'сегодня', overdue: false, done: false, source: 'Смена этапа · демо'
         });
         persistTasks();
@@ -747,7 +646,7 @@ const STAGES = [
       DB.inboxOrder.forEach(id=>{const p=DB.patients[id];if(!p)return;const node=document.createElement('div');
         node.className='sidebar-item px-4 py-3.5'+(id===currentPatientId && !(window.tgHasSelectedChat && window.tgHasSelectedChat())?' active':'');node.onclick=()=>selectPatient(id);
         const safe=v=>escapeHtml(String(v ?? ''));const title=p.channelIcon==='📞'?p.phone:p.name;
-        node.innerHTML=`<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">Демо · ${safe(p.preview)}</div></div></div>`;list.appendChild(node);
+        node.innerHTML=`<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">Локально · ${safe(p.preview)}</div></div></div>`;list.appendChild(node);
       });updateInboxCount();
     };
     loadDB();

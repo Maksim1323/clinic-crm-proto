@@ -4,6 +4,8 @@
 function readConfig(env, dataFile) {
   return {
     file: dataFile || env.DATA_FILE || '/tmp/clinic-crm-demo.json',
+    databaseUrl: env.DATABASE_URL || '',
+    requireDatabase: !!env.RENDER,
     admin: env.ADMIN_TOKEN || '',
     tg: env.TELEGRAM_BOT_TOKEN || '',
     hookSecret: env.TELEGRAM_WEBHOOK_SECRET || '',

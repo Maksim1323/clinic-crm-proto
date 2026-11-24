@@ -26,10 +26,10 @@
     <div class="header-right">
       <button type="button" class="badge" id="crm-session-btn" onclick="crmSessionAction()">Войти</button>
       <div class="user">
-        <div class="avatar">АП</div>
+        <div class="avatar">А</div>
         <div>
-          <div class="user-name">Анна Петрова</div>
-          <div class="user-role">Администратор</div>
+          <div class="user-name">Администратор</div>
+          <div class="user-role">CRM</div>
         </div>
       </div>
     </div>
@@ -42,12 +42,10 @@
       <aside class="sidebar">
         <div class="sidebar-head">
           <h2>Входящие</h2>
-          <span class="badge" id="inbox-count">5</span>
+          <span class="badge" id="inbox-count">0</span>
         </div>
         <div class="filters">
           <button class="badge teal">Все</button>
-          <button class="badge" onclick="toast('Фильтр: Первичные')">Первичные</button>
-          <button class="badge" onclick="toast('Фильтр: Непрочитанные')">Непрочит.</button>
         </div>
         <div class="inbox-list" id="inbox-list"></div>
         <div class="sidebar-foot">
@@ -55,7 +53,8 @@
         </div>
       </aside>
 
-      <div class="patient-col" id="demo-patient-col">
+      <div class="card comms-empty" id="comms-empty"><h2>Выберите диалог</h2><p>Новые сообщения появятся здесь после подключения Telegram.</p></div>
+      <div class="patient-col" id="demo-patient-col" style="display:none">
         <div class="card patient-header" id="patient-header">
           <div class="patient-top">
             <div class="patient-left">
@@ -96,8 +95,6 @@
             <div class="history-feed" id="history-feed"></div>
             <div class="action-bar">
               <button type="button" onclick="actionBookMIS()">📝 Согласовать запись</button>
-              <button type="button" onclick="actionTemplate('address')">📍 Адрес</button>
-              <button type="button" onclick="actionTemplate('price')">💰 Прайс</button>
               <button type="button" onclick="actionPlan()">📄 План лечения</button>
               <button type="button" onclick="actionReminder()">🔔 Напоминание</button>
               <button type="button" onclick="openStageModal()">🔄 Статус</button>
@@ -193,7 +190,6 @@
         <h2 style="font-size:18px;font-weight:600">Задачи администратора</h2>
         <div class="tasks-filters">
           <button type="button" class="badge teal" id="tf-all" onclick="filterTasks('all')">Все</button>
-          <button type="button" class="badge" id="tf-mine" onclick="filterTasks('mine')">Мои</button>
           <button type="button" class="badge" id="tf-overdue" onclick="filterTasks('overdue')">Просроченные</button>
           <button type="button" class="badge" id="tf-done" onclick="filterTasks('done')">Выполненные</button>
           <button type="button" class="badge" onclick="addDemoTask()">+ Задача</button>
@@ -207,8 +203,8 @@
 
   
   <div class="app-footer">
-    <span>ClinicCRM · демо · данные только в браузере</span>
-    <span id="status-hint">ИИ, каналы и МИС не подключены</span>
+    <span>ClinicCRM · тестовый прототип</span>
+    <span id="status-hint">Telegram-чаты — на сервере; локальные задачи и карточки — в браузере</span>
   </div>
 
   <!-- Stage modal -->
@@ -234,15 +230,15 @@
       <div class="form-grid">
         <div class="form-field full">
           <label>ФИО *</label>
-          <input id="pf-name" type="text" placeholder="Иванов Иван Иванович" />
+          <input id="pf-name" type="text" placeholder="Имя пациента" />
         </div>
         <div class="form-field">
           <label>Телефон *</label>
-          <input id="pf-phone" type="text" placeholder="+7 999 123-45-67" />
+          <input id="pf-phone" type="text" placeholder="Телефон" />
         </div>
         <div class="form-field">
           <label>Возраст</label>
-          <input id="pf-age" type="text" placeholder="35 лет" />
+          <input id="pf-age" type="text" placeholder="Возраст" />
         </div>
         <div class="form-field">
           <label>Пол</label>
@@ -264,11 +260,11 @@
         </div>
         <div class="form-field">
           <label>Ответственный</label>
-          <input id="pf-admin" type="text" placeholder="Анна Петрова" />
+          <input id="pf-admin" type="text" placeholder="Не назначен" />
         </div>
         <div class="form-field">
           <label>Лечащий врач</label>
-          <input id="pf-doctor" type="text" placeholder="Смирнов А.А." />
+          <input id="pf-doctor" type="text" placeholder="Не указан" />
         </div>
         <div class="form-field">
           <label>Этап</label>
@@ -298,7 +294,7 @@
         </div>
         <div class="form-field full">
           <label>План лечения</label>
-          <input id="pf-plan" type="text" placeholder="Например: Ортодонтия · 85 000 ₽" />
+          <input id="pf-plan" type="text" placeholder="Не указан" />
         </div>
         <div class="form-field full">
           <label>Комментарий / заметка</label>

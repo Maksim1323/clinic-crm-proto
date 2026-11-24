@@ -64,17 +64,13 @@ test('Кнопки Telegram работают без системных диал�
   assert.equal(d.getElementById('crm-session-btn').textContent,'Выйти');
   assert.equal((await fetch(base+'/api/telegram/conversations')).status,401,'чаты закрыты на сервере без ключа');
   assert.ok(!Object.values(w.localStorage).some(value=>String(value).includes(token)),'ключ не записывается в localStorage');
-  assert.equal(d.querySelectorAll('#inbox-list .sidebar-item').length,6,'все чаты в одном списке');
-  assert.equal(d.getElementById('inbox-count').textContent,'6');assert.match(d.getElementById('tg-alert-count').textContent,/1/);
+  assert.equal(d.querySelectorAll('#inbox-list .sidebar-item').length,1,'все чаты в одном списке');
+  assert.equal(d.getElementById('inbox-count').textContent,'1');assert.match(d.getElementById('tg-alert-count').textContent,/1/);
   assert.match(d.querySelector('#inbox-list [data-source="telegram"]').textContent,/Тест/);
-  assert.match(d.querySelector('#inbox-list .sidebar-item:not([data-source])').textContent,/Демо/);
   d.querySelector('#inbox-list [data-source="telegram"]').click();
   for(let i=0;i<100 && !d.getElementById('tg-handoff-status').textContent.includes('Нужен человек');i++) await new Promise(r=>setTimeout(r,10));
   assert.equal(d.getElementById('demo-patient-col').style.display,'none');assert.notEqual(d.getElementById('tg-patient-col').style.display,'none');
   assert.equal(d.querySelectorAll('#inbox-list .sidebar-item.active').length,1);
-  d.querySelector('#inbox-list .sidebar-item:not([data-source])').click();
-  assert.equal(d.getElementById('tg-patient-col').style.display,'none');assert.notEqual(d.getElementById('demo-patient-col').style.display,'none');
-  assert.equal(d.querySelectorAll('#inbox-list [data-source="telegram"].active').length,0);
   await w.tgSelect('123');w.showView('tasks');w.showView('comms');assert.notEqual(d.getElementById('tg-patient-col').style.display,'none');
   assert.match(d.getElementById('tg-handoff-status').textContent,/Нужен человек.*ИИ может отвечать/);
   assert.equal(d.getElementById('tg-draft-btn'),null);assert.equal(d.getElementById('tg-patient-name').textContent,'Не указано');
@@ -128,6 +124,6 @@ test('Кнопки Telegram работают без системных диал�
   let release;const oldFetch=w.fetch;w.fetch=()=>new Promise(resolve=>{release=resolve;});
   const delayedRefresh=w.tgRefresh();w.tgLogout();release({ok:true,json:async()=>({items:[{id:'999',name:'stale private chat',preview:'secret',mode:'waiting'}]})});await delayedRefresh;w.fetch=oldFetch;
   assert.doesNotMatch(d.getElementById('inbox-list').textContent,/stale private chat/,'данные старой сессии не появляются после выхода');
-  assert.equal(d.getElementById('tg-patient-col').style.display,'none');assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true);assert.equal(d.querySelector('#inbox-list [data-source=telegram]'),null);assert.equal(d.getElementById('inbox-count').textContent,'5');
+  assert.equal(d.getElementById('tg-patient-col').style.display,'none');assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true);assert.equal(d.querySelector('#inbox-list [data-source=telegram]'),null);assert.equal(d.getElementById('inbox-count').textContent,'0');
   w.closeTelegramLogin();assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),false);d.getElementById('crm-session-btn').click();assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true);
 });

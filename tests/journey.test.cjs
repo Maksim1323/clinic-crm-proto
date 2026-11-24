@@ -14,20 +14,23 @@ test('Карточка пациента, редактирование задач
   const dom=await load();t.after(()=>dom.window.close());const w=dom.window,d=w.document;
   w.closeTelegramLogin();
   assert.equal(d.querySelector('#demo-patient-col .content-row #profile-card')!==null,true,'карточка в правой колонке рядом с историей');
-  assert.equal(d.getElementById('history-feed').children.length>0,true);
+  assert.equal(d.getElementById('inbox-count').textContent,'0');
+  assert.notEqual(d.getElementById('comms-empty').style.display,'none');
+  w.openPatientModal('create');d.getElementById('pf-name').value='Локальный тест';d.getElementById('pf-phone').value='000';w.savePatientCard();
+  const patientId=JSON.parse(w.localStorage.getItem('cliniccrm_v13')).inboxOrder[0];
   assert.equal(d.getElementById('notif-panel'),null);assert.doesNotMatch(d.querySelector('header').textContent,/UIS · демо/);
   assert.doesNotMatch(d.body.textContent,/Путь обращения|Черновик ИИ|Рекомендация по регламенту/);
   d.querySelector('#profile-card .profile-actions-bar button').click();assert(d.getElementById('patient-modal').classList.contains('open'));
   d.getElementById('pf-name').value='Тестовая карточка';w.savePatientCard();assert.equal(d.getElementById('pr-name').textContent,'Тестовая карточка');
-  w.showView('tasks');d.querySelector('.task-card .task-right button').click();assert.match(d.getElementById('task-legacy-due').textContent,/сегодня 18:00/);w.saveTask();assert.match(d.querySelector('.task-card .task-right').textContent,/сегодня 18:00/,'старый срок сохраняется при редактировании');
+  w.showView('tasks');assert.equal(d.querySelectorAll('.task-card').length,0);
   const before=d.querySelectorAll('.task-card').length;w.addDemoTask();assert(d.getElementById('task-modal').classList.contains('open'));
   w.saveTask();assert(d.getElementById('task-modal').classList.contains('open'),'пустая задача не сохраняется');
-  d.getElementById('task-title').value='<img src=x onerror=alert(1)>';d.getElementById('task-assignee').value='Тестовый сотрудник';d.getElementById('task-due').value='2030-05-06T12:30';d.getElementById('task-patient').value='ivanov';w.saveTask();
+  d.getElementById('task-title').value='<img src=x onerror=alert(1)>';d.getElementById('task-assignee').value='Тестовый сотрудник';d.getElementById('task-due').value='2030-05-06T12:30';d.getElementById('task-patient').value=patientId;w.saveTask();
   assert.equal(d.querySelectorAll('.task-card').length,before+1);assert.equal(d.querySelector('#tasks-list img'),null);assert.match(d.getElementById('tasks-list').textContent,/<img/);
   d.querySelector('.task-card .task-right button').click();assert.equal(d.getElementById('task-title').value,'<img src=x onerror=alert(1)>');d.getElementById('task-title').value='Изменённая задача';w.saveTask();
   assert.match(d.getElementById('tasks-list').textContent,/Изменённая задача/);
   w.addDemoTask();d.getElementById('task-title').value='Не сохранять';w.closeTaskModal();assert.doesNotMatch(d.getElementById('tasks-list').textContent,/Не сохранять/);
-  w.showView('kanban');w.movePatientStage('ivanov',3);w.showView('tasks');assert.match(d.getElementById('tasks-list').textContent,/Проверить этап/);
+  w.showView('kanban');w.movePatientStage(patientId,3);w.showView('tasks');assert.match(d.getElementById('tasks-list').textContent,/Проверить этап/);
   const storage={};for(let i=0;i<w.localStorage.length;i++){const k=w.localStorage.key(i);storage[k]=w.localStorage.getItem(k)}
   const dom2=await load(storage);t.after(()=>dom2.window.close());dom2.window.showView('tasks');assert.match(dom2.window.document.getElementById('tasks-list').textContent,/Изменённая задача/);assert.match(dom2.window.document.getElementById('tasks-list').textContent,/Проверить этап/);
   for(const id of ['nav-auto','view-auto','nav-analytics','view-analytics'])assert.equal(d.getElementById(id),null);
