@@ -42,6 +42,7 @@ test('Кнопки Telegram работают без системных диал�
       w.confirm = () => {throw new Error('Системное подтверждение заблокировано');};
       Object.defineProperty(w.crypto,'randomUUID',{value:undefined,configurable:true});
       w.fetch = (url,options) => fetch(new URL(url,base),options);
+      const interval=w.setInterval.bind(w); w.setInterval=(fn,ms)=>{if(ms===10000)w.testPoll=fn;return interval(fn,ms);};
     }
   });
   t.after(()=>dom.window.close());
@@ -49,6 +50,8 @@ test('Кнопки Telegram работают без системных диал�
   const w=dom.window, d=w.document;
   assert.equal(d.getElementById('nav-telegram'),null,'нет отдельной вкладки Telegram');
   assert.equal(d.getElementById('tg-login-button'),null,'нет отдельной кнопки входа в Telegram');
+  assert.equal(d.getElementById('crm-integration-controls'),null,'кнопки обновления и подключения удалены');
+  assert.equal([...d.querySelectorAll('button')].some(b=>['Обновить','Подключить бота'].includes(b.textContent.trim())),false);
   assert.ok(d.getElementById('view-comms').contains(d.getElementById('inbox-list')),'единый список входящих');
   assert.ok(d.getElementById('view-comms').contains(d.getElementById('tg-patient-col')),'панель Telegram внутри коммуникаций');
   assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true,'единый вход открыт при загрузке');
@@ -95,6 +98,11 @@ test('Кнопки Telegram работают без системных диал�
   const afterCancel = await (await fetch(base+'/api/telegram/conversations/123',{headers})).json();
   assert.equal(afterCancel.mode,'assigned','отмена не меняет состояние');
   assert.deepEqual(errors,[]);
+  assert.equal(typeof w.testPoll,'function','проверка чатов работает без кнопки обновления');
+  const second={update_id:12346,message:{message_id:2,chat:{id:124,type:'private'},from:{first_name:'Новый тест'},text:'Нужен администратор'}};
+  await fetch(base+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify(second)});
+  w.testPoll();for(let i=0;i<100 && !d.getElementById('inbox-list').textContent.includes('Новый тест');i++)await new Promise(r=>setTimeout(r,10));
+  assert.match(d.getElementById('inbox-list').textContent,/Новый тест/,'новый чат появился после фонового обновления');
   let release;const oldFetch=w.fetch;w.fetch=()=>new Promise(resolve=>{release=resolve;});
   const delayedRefresh=w.tgRefresh();w.tgLogout();release({ok:true,json:async()=>({items:[{id:'999',name:'stale private chat',preview:'secret',mode:'waiting'}]})});await delayedRefresh;w.fetch=oldFetch;
   assert.doesNotMatch(d.getElementById('inbox-list').textContent,/stale private chat/,'данные старой сессии не появляются после выхода');

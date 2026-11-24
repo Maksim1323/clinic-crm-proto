@@ -79,7 +79,7 @@
     try {
       const data=await api('/api/telegram/conversations');
       if(version!==sessionVersion)return;
-      el('tg-login-modal').classList.remove('open');el('crm-session-btn').textContent='Выйти';el('crm-integration-controls').style.display='flex';
+      el('tg-login-modal').classList.remove('open');el('crm-session-btn').textContent='Выйти';
       status('Подключено к тестовому серверу. Сообщения не объединяются с карточками пациентов.');showInbox(data.items);
       if(!poller)poller=setInterval(()=>{if(adminToken)tgRefresh(true);},10000);
     } catch(e) {
@@ -93,16 +93,8 @@
     ++sessionVersion;adminToken='';if(pendingConfirmation)window.tgConfirmAnswer(false);window.tgShowDemo();el('tg-input').value='';el('tg-messages').replaceChildren();
     telegramItems=[];el('tg-chat-name').textContent='Выберите диалог';el('tg-alert-count').style.display='none';
     el('tg-handoff-status').textContent='Выберите чат';el('tg-handoff-reason').textContent='';el('tg-handoff-summary').textContent='';
-    el('tg-take').style.display='none';el('tg-resume').style.display='none';el('crm-session-btn').textContent='Войти';el('crm-integration-controls').style.display='none';
+    el('tg-take').style.display='none';el('tg-resume').style.display='none';el('crm-session-btn').textContent='Войти';
     if(poller){clearInterval(poller);poller=null;}renderInbox();showView('comms');showLogin();
-  };
-  window.tgSetupWebhook = async function(){
-    if(!adminToken)return showLogin();
-    const version=sessionVersion;
-    if(!await askConfirmation('Подключить бота к этому серверу? У Telegram-бота может быть только один webhook: прежнее подключение будет заменено.'))return;
-    if(version!==sessionVersion || !adminToken)return;
-    try{await api('/api/setup-webhook','POST',{});status('Webhook настроен. Напишите тестовое сообщение боту в личном чате Telegram.');toast('Бот подключён');}
-    catch(e){if(e.message!=='session_changed'){status(e.message);toast(e.message);}}
   };
   window.tgRefresh = async function(silent=false){
     if(!adminToken)return;
