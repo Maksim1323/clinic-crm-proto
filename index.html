@@ -38,6 +38,7 @@
           </div>
         </div>
       </div>
+      <button type="button" class="badge" id="crm-session-btn" onclick="crmSessionAction()">Войти</button>
       <div class="online"><span class="dot"></span>UIS · демо</div>
       <div class="user">
         <div class="avatar">АП</div>
@@ -63,20 +64,11 @@
           <button class="badge" onclick="toast('Фильтр: Первичные')">Первичные</button>
           <button class="badge" onclick="toast('Фильтр: Непрочитанные')">Непрочит.</button>
         </div>
-        <div class="inbox-list">
-          <div class="sidebar-head"><h2>Telegram · тест</h2><span class="badge" id="tg-count">0</span></div>
-          <div id="tg-conversations"><div class="ch-preview" style="padding:12px 16px">Войдите для просмотра Telegram-чатов.</div></div>
-          <div class="sidebar-head"><h2>Демо-обращения</h2></div>
-          <div id="inbox-list"></div>
-        </div>
+        <div class="inbox-list" id="inbox-list"></div>
         <div class="sidebar-foot">
-          <div class="filters" style="padding:0 0 10px">
-            <button type="button" class="badge teal" id="tg-login-button" onclick="openTelegramView()">Войти в Telegram</button>
-            <span id="tg-connected-controls" style="display:none">
-              <button type="button" class="badge teal" onclick="tgRefresh()">Обновить</button>
-              <button type="button" class="badge" onclick="tgSetupWebhook()">Подключить бота</button>
-              <button type="button" class="badge" onclick="tgLogout()">Выйти</button>
-            </span>
+          <div class="filters" id="crm-integration-controls" style="display:none;padding:0 0 10px">
+            <button type="button" class="badge teal" onclick="tgRefresh()">Обновить</button>
+            <button type="button" class="badge" onclick="tgSetupWebhook()">Подключить бота</button>
           </div>
           <button onclick="openPatientModal('create')" class="btn-primary">+ Новый пациент</button>
         </div>
@@ -461,10 +453,11 @@
   </div>
 
   <div class="modal-bg" id="tg-login-modal" role="dialog" aria-modal="true" aria-labelledby="tg-login-title">
-    <div class="modal wide"><h3 id="tg-login-title" style="font-size:18px;font-weight:600;margin-bottom:4px">Доступ к тестовому Telegram</h3>
-      <p style="font-size:13px;color:#64748b;margin-bottom:16px">Введите ADMIN_TOKEN из настроек Render. Он хранится только в памяти этой вкладки.</p>
-      <div class="form-field"><label for="tg-admin-token">Ключ администратора</label><input id="tg-admin-token" type="password" autocomplete="off" /></div>
-      <div class="modal-actions"><button type="button" onclick="closeTelegramLogin()">Отмена</button><button type="button" class="ok" onclick="tgLogin()">Войти</button></div>
+    <div class="modal wide"><h3 id="tg-login-title" style="font-size:18px;font-weight:600;margin-bottom:4px">Вход в CRM</h3>
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px">Введите ADMIN_TOKEN из настроек Render. Ключ хранится только в памяти вкладки до выхода или перезагрузки.</p>
+      <div class="form-field"><label for="tg-admin-token">Ключ администратора</label><input id="tg-admin-token" type="password" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();tgLogin()}" /></div>
+      <p id="crm-login-error" role="alert" style="font-size:13px;color:#e11d48;margin-top:8px"></p>
+      <div class="modal-actions"><button type="button" onclick="closeTelegramLogin()">Только демо</button><button type="button" class="ok" id="crm-login-submit" onclick="tgLogin()">Войти</button></div>
     </div>
   </div>
   <div class="modal-bg" id="tg-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="tg-confirm-title">

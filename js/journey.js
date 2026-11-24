@@ -51,13 +51,14 @@
   renderInbox = function() {
     const list = document.getElementById('inbox-list');
     list.innerHTML = '';
+    if (window.renderTelegramInboxItems) window.renderTelegramInboxItems(list);
     DB.inboxOrder.forEach(id => {
       const p = DB.patients[id]; if (!p) return;
       const el = document.createElement('div');
-      el.className = 'sidebar-item px-4 py-3.5' + (id === currentPatientId ? ' active' : '');
+      el.className = 'sidebar-item px-4 py-3.5' + (id === currentPatientId && !(window.tgHasSelectedChat && window.tgHasSelectedChat()) ? ' active' : '');
       el.onclick = () => selectPatient(id);
       const title = p.channelIcon === '📞' ? p.phone : p.name;
-      el.innerHTML = `<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">${safe(p.preview)}</div></div></div>`;
+      el.innerHTML = `<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">Демо · ${safe(p.preview)}</div></div></div>`;
       list.appendChild(el);
     });
     updateInboxCount();

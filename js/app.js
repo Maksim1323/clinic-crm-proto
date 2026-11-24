@@ -413,16 +413,17 @@ const STAGES = [
 
     // ===== RENDER =====
     function updateInboxCount() {
-      const telegramCount = Number(document.getElementById('tg-count')?.textContent || 0);
+      const telegramCount = window.getTelegramInboxCount ? window.getTelegramInboxCount() : 0;
       document.getElementById('inbox-count').textContent = String(DB.inboxOrder.length + (Number.isFinite(telegramCount) ? telegramCount : 0));
     }
     function renderInbox() {
       const list = document.getElementById('inbox-list');
       list.innerHTML = '';
+      if (window.renderTelegramInboxItems) window.renderTelegramInboxItems(list);
       DB.inboxOrder.forEach(id => {
         const p = DB.patients[id];
         const el = document.createElement('div');
-        el.className = 'sidebar-item px-4 py-3.5' + (id === currentPatientId ? ' active' : '');
+        el.className = 'sidebar-item px-4 py-3.5' + (id === currentPatientId && !(window.tgHasSelectedChat && window.tgHasSelectedChat()) ? ' active' : '');
         el.onclick = () => selectPatient(id);
         const title = p.channelIcon === '📞' ? p.phone : p.name;
         el.innerHTML = `
@@ -433,7 +434,7 @@ const STAGES = [
                 <span class="ch-name">${title}</span>
                 ${p.unread ? `<span class="unread">${p.unread}</span>` : `<span class="ch-time">${p.timeLabel}</span>`}
               </div>
-              <div class="ch-preview">${p.preview}</div>
+              <div class="ch-preview">Демо · ${p.preview}</div>
             </div>
           </div>`;
         list.appendChild(el);
