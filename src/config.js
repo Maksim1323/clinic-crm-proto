@@ -8,6 +8,7 @@ function readConfig(env, dataFile) {
     tg: env.TELEGRAM_BOT_TOKEN || '',
     hookSecret: env.TELEGRAM_WEBHOOK_SECRET || '',
     aiProvider: (env.AI_PROVIDER || 'gemini').toLowerCase().trim(),
+    aiTimeoutMs: /^(?:[1-9][0-9]*)$/.test(env.AI_TIMEOUT_MS || '') && Number(env.AI_TIMEOUT_MS) >= 10000 && Number(env.AI_TIMEOUT_MS) <= 120000 ? Number(env.AI_TIMEOUT_MS) : 60000,
     gemini: env.GEMINI_API_KEY || '',
     geminiModel: env.GEMINI_MODEL || 'gemini-2.5-flash',
     gigachatKey: env.GIGACHAT_AUTH_KEY || '',

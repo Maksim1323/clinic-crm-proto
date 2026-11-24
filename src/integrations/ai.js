@@ -5,6 +5,8 @@ const {createGemini, AUTO_PROMPT, DRAFT_PROMPT} = require('./gemini');
 // An unknown or incomplete provider must not silently fall back to another service.
 function createAI(config, external, callFetch) {
   const provider = config.aiProvider;
+  // Longer model requests must not extend the Telegram send timeout.
+  const aiExternal = (url, body, headers) => external(url, body, headers, config.aiTimeoutMs);
   const validModel = value => typeof value === 'string' && value.length > 0 && value.length <= 160 && /^[A-Za-z0-9._:/-]+$/.test(value);
   let configError = '';
   if (!['gemini', 'gigachat', 'openai'].includes(provider)) configError = 'Неизвестный AI_PROVIDER: выберите gemini, gigachat или openai.';
@@ -15,7 +17,7 @@ function createAI(config, external, callFetch) {
     try { const u = new URL(config.openaiBaseUrl); validUrl = u.protocol === 'https:' && !u.username && !u.password && !u.search && !u.hash; } catch (_) {}
     if (!config.openaiKey || !validModel(config.openaiModel) || !validUrl) configError = 'Проверьте OPENAI_API_KEY, OPENAI_MODEL и HTTPS OPENAI_BASE_URL.';
   }
-  if (provider === 'gemini') return {...createGemini(external, config.geminiModel, config.gemini), configError};
+  if (provider === 'gemini') return {...createGemini(aiExternal, config.geminiModel, config.gemini), configError};
   let token = '', expiry = 0, tokenPromise;
   async function accessToken() {
     if (token && expiry > Date.now() + 60000) return token;
@@ -40,7 +42,7 @@ function createAI(config, external, callFetch) {
     const authorization = isGiga ? await accessToken() : config.openaiKey;
     const body = {model:isGiga ? config.gigachatModel : config.openaiModel, messages:[{role:'system', content:prompt},{role:'user', content:text}], max_tokens:maxTokens, stream:false};
     let result;
-    try { result = await external(base + '/chat/completions', body, {Authorization:'Bearer '+authorization}); }
+    try { result = await aiExternal(base + '/chat/completions', body, {Authorization:'Bearer '+authorization}); }
     catch (error) { if (isGiga && error.status === 401) {token = ''; expiry = 0;} throw error; }
     const content = result.choices?.[0]?.message?.content;
     if (typeof content !== 'string') throw new Error('invalid_response');

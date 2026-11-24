@@ -11,14 +11,16 @@ function createGemini(external, model, apiKey) {
     const request = {
       systemInstruction: {parts: [{text: prompt}]},
       contents: [{role: 'user', parts: [{text}]}],
-      generationConfig
+      generationConfig: {...generationConfig, ...(model === 'gemini-3.8-flash' ? {thinkingConfig: {thinkingLevel: 'low'}} : {})}
     };
     const response = await external(url, request, {'x-goog-api-key': apiKey});
-    return response.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('').trim() || '';
+    const candidate = response.candidates?.[0];
+    if (candidate?.finishReason && candidate.finishReason !== 'STOP') throw new Error('invalid_response');
+    return candidate?.content?.parts?.filter(part => !part.thought).map(part => part.text || '').join('').trim() || '';
   }
   async function decide(history) {
     const raw = await generate(AUTO_PROMPT, 'История тестового диалога:\n' + history, {
-      responseMimeType: 'application/json', maxOutputTokens: 1200
+      responseMimeType: 'application/json', maxOutputTokens: 2048
     });
     const decision = JSON.parse(raw);
     if (!decision || !['reply', 'handoff'].includes(decision.action) ||
@@ -28,7 +30,7 @@ function createGemini(external, model, apiKey) {
   }
   function draft(history) {
     return generate(DRAFT_PROMPT, 'Составь черновик ответа на последнее сообщение. Ниже — переписка:\n' + history, {
-      maxOutputTokens: 600
+      maxOutputTokens: 2048
     });
   }
   return {decide, draft};

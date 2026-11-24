@@ -1,11 +1,13 @@
 'use strict';
 
 function createExternalClient(callFetch) {
-  async function external(url, payload, extraHeaders={}) {
-    const resp = await callFetch(url,{method:'POST',headers:{'content-type':'application/json',...extraHeaders},body:JSON.stringify(payload),signal:AbortSignal.timeout(20000)});
-    let result={}; try {result=await resp.json();}catch(_){}
+  async function external(url, payload, extraHeaders={}, timeoutMs=20000) {
+    const resp = await callFetch(url,{method:'POST',headers:{'content-type':'application/json',...extraHeaders},body:JSON.stringify(payload),signal:AbortSignal.timeout(timeoutMs)});
     if(!resp.ok) throw Object.assign(new Error('upstream_error'),{status:resp.status});
-    return result;
+    try { return await resp.json(); } catch(error) {
+      if(error?.name === 'TimeoutError' || error?.name === 'AbortError') throw error;
+      throw new Error('invalid_response');
+    }
   }
   return external;
 }
