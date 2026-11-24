@@ -95,9 +95,9 @@
   window.tgDraft = async function(){
     if(!currentChat||isDrafting)return;
     const chat=currentChat;
-    if(!await askConfirmation('Последние сообщения этого тестового чата будут отправлены в Gemini для создания черновика. Продолжить?'))return;
+    if(!await askConfirmation('Последние сообщения этого тестового чата будут отправлены выбранному сервису ИИ для создания черновика. Продолжить?'))return;
     if(chat!==currentChat){status('Чат изменился, повторите действие.');return;}
-    isDrafting=true;updateButtons();status('Gemini готовит черновик…');
+    isDrafting=true;updateButtons();status('ИИ готовит черновик…');
     try{const data=await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/draft','POST',{});if(chat!==currentChat){status('Чат изменился: черновик не вставлен.');return;}el('tg-input').value=data.draft;status('Черновик готов. Проверьте текст: он ещё не отправлен.');}
     catch(e){status(e.message);toast(e.message);}finally{isDrafting=false;updateButtons();}
   };

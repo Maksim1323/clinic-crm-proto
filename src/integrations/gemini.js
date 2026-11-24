@@ -33,4 +33,4 @@ function createGemini(external, model, apiKey) {
   }
   return {decide, draft};
 }
-module.exports = {createGemini};
+module.exports = {createGemini, AUTO_PROMPT, DRAFT_PROMPT};

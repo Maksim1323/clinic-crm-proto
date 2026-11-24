@@ -77,3 +77,25 @@ test('Передача человеку во время генерации от�
   assert.equal(sent.length,1);assert.match(sent[0],/сотруднику/);assert.ok(!sent.includes('Это ответ ИИ'));
   const chat=await (await fetch(root+'/api/telegram/conversations/123',{headers:{Authorization:'Bearer '+admin}})).json();assert.equal(chat.mode,'waiting');
 });
+
+test('Автоответ Telegram использует выбранный OpenAI-совместимый API',async t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crm-provider-')),admin='test-admin-token-with-more-than-24-chars',secret='test_webhook_secret_1234567890',calls=[];
+  const env={ADMIN_TOKEN:admin,TELEGRAM_BOT_TOKEN:'test-token',TELEGRAM_WEBHOOK_SECRET:secret,AI_AUTO_REPLY:'true',AI_PROVIDER:'openai',OPENAI_API_KEY:'fake',OPENAI_MODEL:'vendor/test',OPENAI_BASE_URL:'https://example.test/v1'};
+  const mock=async(url,opt)=>{calls.push(url);if(url.includes('chat/completions'))return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({action:'reply',reply:'Здравствуйте!',reason:'',summary:''})}}]})};return {ok:true,json:async()=>({ok:true,result:{message_id:12}})};};
+  const server=createServer({env,fetch:mock,dataFile:path.join(dir,'data.json')});await new Promise(r=>server.listen(0,'127.0.0.1',r));const root='http://127.0.0.1:'+server.address().port;
+  t.after(()=>{server.close();fs.rmSync(dir,{recursive:true,force:true});});
+  await fetch(root+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:1,message:{message_id:1,chat:{id:123,type:'private'},text:'Здравствуйте'}})});
+  const deadline=Date.now()+2000;let chat;do {await new Promise(r=>setTimeout(r,10));chat=await (await fetch(root+'/api/telegram/conversations/123',{headers:{Authorization:'Bearer '+admin}})).json();} while(chat.messages.length<2 && Date.now()<deadline);
+  assert.equal(chat.messages.at(-1).author,'ai');assert.equal(chat.messages.at(-1).text,'Здравствуйте!');assert.ok(calls.some(x=>x==='https://example.test/v1/chat/completions'));assert.ok(!calls.some(x=>x.includes('googleapis')));
+});
+
+test('Автоответ Telegram использует GigaChat с OAuth',async t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crm-giga-')),admin='test-admin-token-with-more-than-24-chars',secret='test_webhook_secret_1234567890',calls=[];
+  const env={ADMIN_TOKEN:admin,TELEGRAM_BOT_TOKEN:'fake',TELEGRAM_WEBHOOK_SECRET:secret,AI_AUTO_REPLY:'true',AI_PROVIDER:'gigachat',GIGACHAT_AUTH_KEY:'fake'};
+  const mock=async(url,opt)=>{calls.push(url);if(url.includes('/oauth'))return {ok:true,json:async()=>({access_token:'fake-token',expires_at:Date.now()+1800000})};if(url.includes('chat/completions'))return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({action:'reply',reply:'Здравствуйте!',reason:'',summary:''})}}]})};return {ok:true,json:async()=>({ok:true,result:{message_id:12}})};};
+  const server=createServer({env,fetch:mock,dataFile:path.join(dir,'data.json')});await new Promise(r=>server.listen(0,'127.0.0.1',r));const root='http://127.0.0.1:'+server.address().port;
+  t.after(()=>{server.close();fs.rmSync(dir,{recursive:true,force:true});});
+  await fetch(root+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:1,message:{message_id:1,chat:{id:123,type:'private'},text:'Привет'}})});
+  let chat;const deadline=Date.now()+2000;do {await new Promise(r=>setTimeout(r,10));chat=await (await fetch(root+'/api/telegram/conversations/123',{headers:{Authorization:'Bearer '+admin}})).json();} while(chat.messages.length<2 && Date.now()<deadline);
+  assert.equal(chat.messages.at(-1).author,'ai');assert.ok(calls.some(x=>x.includes('/oauth')));assert.ok(calls.some(x=>x==='https://api.giga.chat/v1/chat/completions'));
+});

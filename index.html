@@ -295,7 +295,7 @@
           <div class="card history-card">
             <div class="history-head"><h3 style="font-size:14px;font-weight:600">Сообщения Telegram</h3><span class="badge">Тестовый контур</span></div>
             <div class="history-feed" id="tg-messages"><div class="ch-preview">Чтобы начать, подключите бота и отправьте ему тестовое сообщение.</div></div>
-            <div class="action-bar"><button type="button" class="primary" id="tg-draft-btn" onclick="tgDraft()" disabled>✨ Черновик Gemini</button></div>
+            <div class="action-bar"><button type="button" class="primary" id="tg-draft-btn" onclick="tgDraft()" disabled>✨ Черновик ИИ</button></div>
             <div class="composer"><textarea id="tg-input" rows="2" placeholder="Проверьте и отредактируйте ответ перед отправкой..."></textarea><button type="button" class="composer-send" id="tg-send-btn" onclick="tgSend()" disabled>Отправить</button></div>
           </div>
           <div class="card actions-card" style="width:260px"><div class="ai-panel"><div class="ai-panel-head"><span class="ai-badge">ИИ</span><span>Статус диалога</span></div><div class="ai-title" id="tg-handoff-status">Выберите чат</div><div class="ai-body" id="tg-handoff-reason">Причина и контекст передачи появятся здесь.</div><div class="ai-body" id="tg-handoff-summary" style="margin-top:8px;white-space:pre-wrap"></div><div class="ai-actions"><button type="button" class="confirm" id="tg-take" onclick="tgTake()" style="display:none">Взять в работу</button><button type="button" id="tg-resume" onclick="tgResume()" style="display:none">Вернуть ИИ</button></div></div><div class="actions-hint">Тестовые данные. МИС не подключена. Сводка ИИ может содержать ошибки; проверяйте историю.</div></div>

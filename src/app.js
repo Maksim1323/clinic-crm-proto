@@ -1,5 +1,5 @@
 'use strict';
-// Test-only Telegram + Gemini service. No patient data; no clinical use.
+// Test-only Telegram + configurable AI service. No patient data; no clinical use.
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -7,18 +7,19 @@ const crypto = require('node:crypto');
 const {readConfig} = require('./config');
 const {openStore} = require('./storage/json-store');
 const {createExternalClient} = require('./integrations/http-client');
-const {createGemini} = require('./integrations/gemini');
+const {createAI} = require('./integrations/ai');
 const {createTelegram} = require('./integrations/telegram');
 const {initial, context, shortContext, trigger, riskyOutput, aiFailureReason} = require('./workflow/triage');
 
 function createServer(options = {}) {
   const env = options.env || process.env;
   const callFetch = options.fetch || global.fetch;
-  const {file, admin, tg, hookSecret, gemini, model, baseUrl, autoEnabled} = readConfig(env, options.dataFile);
+  const config = readConfig(env, options.dataFile);
+  const {file, admin, tg, hookSecret, baseUrl, autoEnabled} = config;
   const {state, persist} = openStore(file);
   const external = createExternalClient(callFetch);
   const telegram = createTelegram(external, tg);
-  const ai = createGemini(external, model, gemini);
+  const ai = createAI(config, external, callFetch);
   function equal(a,b) { const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||'')); return x.length === y.length && crypto.timingSafeEqual(x,y); }
   function json(res,status,data) { const body=JSON.stringify(data); res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}); res.end(body); }
   function fail(res,status,message) { json(res,status,{error:message}); }
@@ -59,15 +60,15 @@ function createServer(options = {}) {
           job.stage='done';persist();continue;
         }
         if(!c || initial(c).mode!=='ai') {job.stage='done';persist();continue;}
-        if(!autoEnabled || !gemini || !tg || !/^[A-Za-z0-9._-]{1,80}$/.test(model)) {
-          transfer(c,'ИИ выключен или не настроен'); job.stage='done'; persist(); continue;
+        if(!autoEnabled || !tg || ai.configError) {
+          transfer(c,ai.configError || 'ИИ выключен или не настроен'); job.stage='done'; persist(); continue;
         }
         job.stage='generating';persist();
         let decision;
         try {
           decision=await ai.decide(context(c));
-        } catch (error) { if(c.mode==='ai')transfer(c,aiFailureReason(error));job.stage='done';persist();continue; }
-        // The administrator or another incoming message may have paused the bot while Gemini was running.
+        } catch (error) { if(c.mode==='ai')transfer(c,aiFailureReason(error, config.aiProvider));job.stage='done';persist();continue; }
+        // The administrator or another incoming message may have paused the bot while the AI was running.
         if(c.mode!=='ai') {job.stage='done';persist();continue;}
         // Merge queued messages received while generating; avoid replying twice to the same context.
         if(state.jobs.some(next=>next.chatId===c.id && next.stage==='queued')) {job.stage='done';persist();continue;}
@@ -146,18 +147,17 @@ function createServer(options = {}) {
         c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник взял диалог в работу',summary:shortContext(c),at:new Date().toISOString()};persist();return json(res,200,{ok:true});
       }
       if(req.method==='POST' && match[2]==='resume') {
-        if(!autoEnabled || !tg || !gemini)return fail(res,503,'Автоответ ИИ не включён или ключи не настроены.');
+        if(!autoEnabled || !tg || ai.configError)return fail(res,503,ai.configError || 'Автоответ ИИ не включён или Telegram не настроен.');
         if(state.jobs.some(j=>j.chatId===c.id && ['sending','generating'].includes(j.stage)))return fail(res,409,'Завершается предыдущее действие; обновите чат через несколько секунд.');
         state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued').forEach(j=>j.stage='done');
         c.mode='ai';c.handoff=null;persist();return json(res,200,{ok:true});
       }
       if(req.method==='POST' && match[2]==='draft') {
-        if(!gemini)return fail(res,503,'GEMINI_API_KEY не настроен.');
-        if(!/^[A-Za-z0-9._-]{1,80}$/.test(model))return fail(res,503,'Некорректная модель GEMINI_MODEL.');
+        if(ai.configError)return fail(res,503,ai.configError);
         const context=c.messages.slice(-12).map(m=>`${m.direction==='in'?'Пользователь Telegram':'Администратор'}: ${m.text}`).join('\n').slice(-12000);
         if(!context)return fail(res,400,'В чате нет сообщений');
         const text=await ai.draft(context);
-        if(!text)return fail(res,502,'Gemini не вернул текст. Проверьте модель и настройки API.');
+        if(!text)return fail(res,502,'ИИ не вернул текст. Проверьте модель и настройки API.');
         return json(res,200,{draft:text.slice(0,4096)});
       }
       if(req.method==='POST' && match[2]==='send') {

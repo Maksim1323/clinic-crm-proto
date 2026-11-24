@@ -27,18 +27,19 @@
   }
 
 // Do not include provider response bodies or request headers: they can contain secrets or personal data.
-function aiFailureReason(error) {
+function aiFailureReason(error, provider = 'gemini') {
+  const name = {gemini:'Gemini', gigachat:'GigaChat', openai:'OpenAI-совместимого API'}[provider] || 'ИИ';
   const descriptions = {
     400: 'неверный запрос или настройки модели',
-    401: 'ключ Gemini отклонён',
-    403: 'доступ к Gemini запрещён; проверьте ключ, проект и регион',
-    404: 'модель Gemini недоступна для этого ключа',
-    429: 'исчерпан лимит или квота Gemini'
+    401: `ключ ${name} отклонён`,
+    403: `доступ к ${name} запрещён; проверьте ключ, проект и регион`,
+    404: `модель ${name} недоступна для этого ключа`,
+    429: `исчерпан лимит или квота ${name}`
   };
   if (descriptions[error?.status]) return 'ИИ не ответил: ' + descriptions[error.status] + ' (HTTP ' + error.status + ').';
-  if (error?.status >= 500 && error?.status <= 599) return 'ИИ не ответил: ошибка сервиса Gemini (HTTP ' + error.status + ').';
-  if (error instanceof SyntaxError || error?.message === 'invalid_response') return 'ИИ не ответил: Gemini вернул пустой или некорректный формат.';
-  if (error?.name === 'TimeoutError' || error?.name === 'AbortError') return 'ИИ не ответил: истекло время ожидания Gemini.';
-  return 'ИИ не ответил: ошибка сети, настроек или сервиса Gemini.';
+  if (error?.status >= 500 && error?.status <= 599) return `ИИ не ответил: ошибка сервиса ${name} (HTTP ${error.status}).`;
+  if (error instanceof SyntaxError || error?.message === 'invalid_response') return `ИИ не ответил: ${name} вернул пустой или некорректный формат.`;
+  if (error?.name === 'TimeoutError' || error?.name === 'AbortError') return `ИИ не ответил: истекло время ожидания ${name}.`;
+  return `ИИ не ответил: ошибка сети, настроек или сервиса ${name}.`;
 }
 module.exports = {initial, context, shortContext, trigger, riskyOutput, aiFailureReason};
