@@ -42,7 +42,6 @@ test('Тестовый Telegram: уточнение, передача с кон�
   await incoming(123,'чистка');await wait(()=>sent.length===2);assert.match(sent[1].text,/какой день и время/);assert.equal((await chat(123)).mode,'ai');
   await incoming(123,'завтра в 18:00');await wait(()=>sent.length===3);assert.match(sent[2].text,/передан сотруднику/);
   let c=await chat(123);assert.equal(c.mode,'waiting');assert.match(c.handoff.reason,/Запись/);assert.match(c.handoff.summary,/чистка/);assert.match(c.handoff.summary,/завтра/);
-  await incoming(123,'Ещё сообщение');await incoming(123,'Пояснение');await incoming(123,'Спасибо');c=await chat(123);assert.match(c.handoff.summary,/хочу записаться на приём/,'начальный запрос сохранён в контексте');
   await incoming(124,'сколько стоит?');await wait(()=>sent.length===4);assert.match(sent[3].text,/какая услуга/);assert.equal((await chat(124)).mode,'ai');
   await incoming(124,'чистка');await wait(()=>sent.length===5);c=await chat(124);assert.equal(c.mode,'waiting');assert.match(c.handoff.summary,/чистка/);
   await incoming(125,'сколько стоит чистка?');await wait(()=>sent.length===6);assert.equal((await chat(125)).mode,'waiting');

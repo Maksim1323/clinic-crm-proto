@@ -2,7 +2,7 @@
 // Preliminary routing rules; not a clinical safety mechanism.
   function initial(c) { if (!c.mode) c.mode='ai'; if(!c.handoff)c.handoff=null; return c; }
   function context(c) {
-    return c.messages.slice(-12).map(m=>`${m.direction==='in'?'Собеседник':m.author==='ai'?'ИИ':'Администратор'}: ${m.text}`).join('\n').slice(-12000);
+    return c.messages.slice(-12).map(m=>`${m.direction==='in'?'Собеседник':m.author==='ai'?'ИИ':m.author==='system'?'Система':'Администратор'}: ${m.text}`).join('\n').slice(-12000);
   }
   function shortContext(c) {
     const incoming=c.messages.filter(m=>m.direction==='in').slice(-3).map(m=>m.text.slice(0,400));
@@ -23,7 +23,7 @@
   }
   // Guards are conservative and do not replace clinical validation.
   function riskyOutput(text) {
-    return /(диагноз|принимайте|вам необходимо лечить|принимат[ья] препарат|антибиотик|дозировк|у вас (кариес|воспаление)|вы записан|мы записали|ваш прием подтвержден|гарантир|стоимость составит)/i.test(text);
+    return /(диагноз|принимайте|вам необходимо лечить|принимат[ья] препарат|антибиотик|дозировк|у вас (кариес|воспаление)|вы записан|мы записали|ваш прием подтвержден|гарантир|стоимость составит|\d[\d\s.,]*\s*(?:руб(?:л|лей|ля)?|₽)|назнач(?:аю|аем|ить) (?:вам|препарат)|запись (?:подтверждена|создана))/i.test(text);
   }
 
 // Do not include provider response bodies or request headers: they can contain secrets or personal data.

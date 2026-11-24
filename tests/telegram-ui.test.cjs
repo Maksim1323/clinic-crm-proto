@@ -76,7 +76,7 @@ test('Кнопки Telegram работают без системных диал�
   assert.equal(d.getElementById('tg-patient-col').style.display,'none');assert.notEqual(d.getElementById('demo-patient-col').style.display,'none');
   assert.equal(d.querySelectorAll('#inbox-list [data-source="telegram"].active').length,0);
   await w.tgSelect('123');w.showView('tasks');w.showView('comms');assert.notEqual(d.getElementById('tg-patient-col').style.display,'none');
-  assert.match(d.getElementById('tg-handoff-status').textContent,/Нужен человек/);
+  assert.match(d.getElementById('tg-handoff-status').textContent,/Нужен человек.*ИИ может отвечать/);
   assert.equal(d.getElementById('tg-draft-btn'),null);assert.equal(d.getElementById('tg-patient-name').textContent,'Не указано');
   d.getElementById('tg-patient-edit').click();assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),true);
   d.getElementById('tg-pf-name').value='<Тест 123>';d.getElementById('tg-pf-phone').value='000-123';d.getElementById('tg-pf-admin').value='Сотрудник';

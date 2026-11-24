@@ -59,10 +59,10 @@ test('Автоответ, триггеры, передача и возврат �
   async function wait(predicate){const deadline=Date.now()+2000;while(Date.now()<deadline){if(await predicate())return;await new Promise(r=>setTimeout(r,10));}assert.fail('состояние не появилось');}
   await incoming(123,'Добрый день');await wait(async()=>sent.length===1);assert.match(sent[0].text,/Здравствуйте/);let c=await chat(123);assert.equal(c.mode,'ai');assert.equal(c.messages.at(-1).author,'ai');
   await incoming(123,'Хочу поговорить с администратором');c=await chat(123);assert.equal(c.mode,'waiting');assert.match(c.handoff.reason,/сотрудника/);assert.match(c.handoff.summary,/администратором/);
-  await wait(async()=>sent.length===2);assert.match(sent[1].text,/сотруднику/);await incoming(123,'Когда сможете ответить?');await new Promise(r=>setTimeout(r,40));assert.equal(sent.length,2,'нет сообщений ИИ после передачи');
+  await wait(async()=>sent.length===2);assert.match(sent[1].text,/сотруднику/);await incoming(123,'Когда сможете ответить?');await wait(async()=>sent.length===3);assert.equal((await chat(123)).mode,'waiting','передача остаётся активной');
   await req('/api/telegram/conversations/123/take',{method:'POST',headers,body:'{}'});assert.equal((await chat(123)).mode,'assigned');
-  await req('/api/telegram/conversations/123/resume',{method:'POST',headers,body:'{}'});assert.equal((await chat(123)).mode,'ai');await new Promise(r=>setTimeout(r,30));assert.equal(sent.length,2,'старые сообщения не переотправляются');
-  await incoming(123,'Спасибо!');await wait(async()=>sent.length===3);
+  await req('/api/telegram/conversations/123/resume',{method:'POST',headers,body:'{}'});assert.equal((await chat(123)).mode,'ai');await new Promise(r=>setTimeout(r,30));assert.equal(sent.length,3,'старые сообщения не переотправляются');
+  await incoming(123,'Спасибо!');await wait(async()=>sent.length===4);
   await incoming(124,'Мне 16 лет');assert.equal((await chat(124)).mode,'waiting','несовершеннолетний: передача');
   await incoming(125,'У меня болят зубы');assert.match((await chat(125)).handoff.reason,/Медицинский/);
   aiMode='handoff';await incoming(126,'Это необычный случай');await wait(async()=>(await chat(126)).mode==='waiting');assert.match((await chat(126)).handoff.summary,/Сводка ИИ/);
