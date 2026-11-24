@@ -12,3 +12,14 @@ test('Диагностика Gemini показывает статус без и�
   assert.match(aiFailureReason(new SyntaxError('private')), /формат/);
   assert.match(aiFailureReason({status:403}), /доступ/i);
 });
+
+test('Ошибки TLS, сети и тайм-ауты классифицируются без раскрытия причин', () => {
+  for (const code of ['SELF_SIGNED_CERT_IN_CHAIN','UNABLE_TO_GET_ISSUER_CERT_LOCALLY','CERT_HAS_EXPIRED']) {
+    const reason = aiFailureReason({cause:{code,message:'authorization key and dialogue'}},'gigachat');
+    assert.match(reason,/TLS-сертификата GigaChat/);assert.doesNotMatch(reason,/authorization key|dialogue/);
+  }
+  assert.match(aiFailureReason({cause:{code:'ENOTFOUND'}},'gigachat'),/DNS/);
+  assert.match(aiFailureReason({cause:{code:'ECONNREFUSED'}},'gigachat'),/соединение/i);
+  assert.match(aiFailureReason({cause:{code:'UND_ERR_CONNECT_TIMEOUT'}},'gigachat'),/время ожидания/);
+  assert.doesNotMatch(aiFailureReason({cause:{code:'TOKEN_SECRET'}},'gigachat'),/TOKEN_SECRET/);
+});

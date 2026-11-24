@@ -29,6 +29,20 @@
 // Do not include provider response bodies or request headers: they can contain secrets or personal data.
 function aiFailureReason(error, provider = 'gemini') {
   const name = {gemini:'Gemini', gigachat:'GigaChat', openai:'OpenAI-совместимого API'}[provider] || 'ИИ';
+  // Node fetch wraps TLS/network errors in TypeError.cause. Only classify a fixed allowlist;
+  // never expose arbitrary upstream messages, URLs, headers or response bodies.
+  const codes = new Set();
+  for (let cause=error, depth=0; cause && depth<4; cause=cause.cause, depth++) {
+    if (typeof cause.code === 'string') codes.add(cause.code);
+  }
+  if (['SELF_SIGNED_CERT_IN_CHAIN','DEPTH_ZERO_SELF_SIGNED_CERT','UNABLE_TO_GET_ISSUER_CERT_LOCALLY','UNABLE_TO_VERIFY_LEAF_SIGNATURE','CERT_HAS_EXPIRED','ERR_TLS_CERT_ALTNAME_INVALID'].some(code=>codes.has(code))) {
+    return provider === 'gigachat'
+      ? 'ИИ не ответил: ошибка проверки TLS-сертификата GigaChat. Проверьте сертификат НУЦ Минцифры на сервере.'
+      : `ИИ не ответил: ошибка проверки TLS-сертификата ${name}.`;
+  }
+  if (['ENOTFOUND','EAI_AGAIN'].some(code=>codes.has(code))) return `ИИ не ответил: сервер не смог определить адрес ${name} (DNS).`;
+  if (['ECONNREFUSED','ECONNRESET','ENETUNREACH','EHOSTUNREACH'].some(code=>codes.has(code))) return `ИИ не ответил: соединение с ${name} недоступно или прервано.`;
+  if (['ETIMEDOUT','UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT'].some(code=>codes.has(code))) return `ИИ не ответил: истекло время ожидания ${name}.`;
   const descriptions = {
     400: 'неверный запрос или настройки модели',
     401: `ключ ${name} отклонён`,
