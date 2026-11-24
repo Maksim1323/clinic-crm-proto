@@ -501,6 +501,7 @@
     #demo-patient-col .profile-fields, #demo-patient-col .process-box { margin-left:16px; margin-right:16px; }
     .tg-patient-card { margin-bottom:16px; }
     .tg-patient-card .profile-row { padding:6px 0; }
+    .tg-card-source { font-size:11px; color:#64748b; text-align:right; padding-bottom:4px; }
     .tg-patient-card .value { overflow-wrap:anywhere; min-width:0; }
     .tg-patient-card h2 { font-size:16px; font-weight:600; }
     .tg-card-hint { color:#94a3b8; font-size:12px; margin:4px 0 12px; }

@@ -21,9 +21,9 @@ test('Telegram, Gemini и ручное подтверждение: сервер�
   assert.equal((await incoming()).status,200);await incoming();
   x=await req('/api/telegram/conversations/123',{headers:authorized});assert.equal(x.data.messages.length,1);
   assert.equal((await req('/api/telegram/conversations/123/draft',{method:'POST',headers:jsonHeaders,body:'{}'})).status,404);
-  const patient={name:'Тест',phone:'000',admin:'Администратор',doctor:'Врач'};
-  assert.equal((await req('/api/telegram/conversations/123/patient',{method:'POST',headers:jsonHeaders,body:JSON.stringify({...patient,name:'x'.repeat(101)})})).status,400);
-  assert.equal((await req('/api/telegram/conversations/123/patient',{method:'POST',headers:jsonHeaders,body:JSON.stringify(patient)})).status,200);
+  const patient={name:'Тест',phone:'000',admin:'Администратор',doctor:'Врач'};const patientInput={...patient,expectedVersion:0};
+  assert.equal((await req('/api/telegram/conversations/123/patient',{method:'POST',headers:jsonHeaders,body:JSON.stringify({...patientInput,name:'x'.repeat(101)})})).status,400);
+  assert.equal((await req('/api/telegram/conversations/123/patient',{method:'POST',headers:jsonHeaders,body:JSON.stringify(patientInput)})).status,200);
   assert.deepEqual((await req('/api/telegram/conversations/123',{headers:authorized})).data.patient,patient);
   assert.deepEqual(JSON.parse(fs.readFileSync(dataFile,'utf8')).conversations['123'].patient,patient);
   const msg={text:'Проверенный ответ',requestId:'aabbccddeeff11223344556677889900'};

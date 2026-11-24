@@ -86,7 +86,7 @@
   window.tgSelect = async function(id){window.tgClosePatient();currentChat=id;patientLoaded=false;++patientRevision;renderTgPatient(null);el('tg-chat-name').textContent='Загрузка диалога…';el('tg-messages').replaceChildren();el('tg-handoff-status').textContent='Загрузка…';el('tg-handoff-reason').textContent='';el('tg-handoff-summary').textContent='';el('tg-take').style.display='none';el('tg-resume').style.display='none';el('demo-patient-col').style.display='none';el('tg-patient-col').style.display='';el('tg-input').value='';updateButtons();renderInbox();await tgRefresh();};
   async function tgLoadMessages(){
     if(!currentChat)return;const chatId=currentChat, revision=patientRevision, data=await api('/api/telegram/conversations/'+encodeURIComponent(chatId));if(chatId!==currentChat || revision!==patientRevision)return;
-    renderTgPatient(data.patient || null);patientLoaded=true;updateButtons();el('tg-chat-name').textContent=data.name;const labels={ai:'ИИ ведёт диалог',waiting:data.waitingAiActive?'🚩 Нужен человек · ИИ может отвечать':'🚩 Нужен человек',assigned:'В работе сотрудника'};el('tg-handoff-status').textContent=labels[data.mode] || 'Неизвестно';el('tg-handoff-reason').textContent=data.handoff?.reason || (data.autoEnabled ? 'Новые сообщения обрабатывает ИИ.' : 'Автоответ ИИ выключен.');el('tg-handoff-summary').textContent=data.handoff?.summary || '';el('tg-take').style.display=data.mode==='waiting'?'':'none';el('tg-resume').style.display=data.mode==='assigned'?'':'none';const feed=el('tg-messages'); const nearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight < 80;feed.replaceChildren();
+    renderTgPatient(data.patient || null,data.patientSources || {},data.patientVersion || 0);patientLoaded=true;updateButtons();el('tg-chat-name').textContent=data.name;const labels={ai:'ИИ ведёт диалог',waiting:data.waitingAiActive?'🚩 Нужен человек · ИИ может отвечать':'🚩 Нужен человек',assigned:'В работе сотрудника'};el('tg-handoff-status').textContent=labels[data.mode] || 'Неизвестно';el('tg-handoff-reason').textContent=data.handoff?.reason || (data.autoEnabled ? 'Новые сообщения обрабатывает ИИ.' : 'Автоответ ИИ выключен.');el('tg-handoff-summary').textContent=data.handoff?.summary || '';el('tg-take').style.display=data.mode==='waiting'?'':'none';el('tg-resume').style.display=data.mode==='assigned'?'':'none';const feed=el('tg-messages'); const nearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight < 80;feed.replaceChildren();
     data.messages.forEach(m=>{
       const item=document.createElement('div');item.className='hist-item'; const top=document.createElement('div');top.className='hist-top';
       top.append(text('span',m.direction==='in'?'✈️':'👤','hist-icon'),text('span',m.direction==='in'?'Входящее · Telegram':m.author==='ai'?'ИИ · Telegram':m.author==='system'?'Система · Telegram':'Администратор · Telegram','hist-title'),text('span',new Date(m.at).toLocaleString('ru-RU'),'hist-date'));
@@ -103,26 +103,30 @@
     catch(e){if(e.message!=='session_changed'){if(chat===currentChat)status(e.message);toast(e.message);}}
     finally{isResuming=false;updateButtons();}
   };
-  let selectedPatient=null, patientEditChat=null, isSavingPatient=false;
-  function renderTgPatient(patient) {
-    selectedPatient=patient;
+  let selectedPatient=null, selectedSources={}, selectedPatientVersion=0, patientEditChat=null, patientEditVersion=0, isSavingPatient=false;
+  function renderTgPatient(patient,sources={},version=0) {
+    selectedPatient=patient;selectedSources=sources;selectedPatientVersion=version;
     for(const [key,empty] of [['name','Не указано'],['phone','Не указан'],['admin','Не указан'],['doctor','Не указан']])el('tg-patient-'+key).textContent=patient?.[key] || empty;
+    for(const key of ['name','phone']) {
+      const source=selectedSources[key]?.source;
+      el('tg-patient-'+key+'-source').textContent=!patient?.[key] ? '' : source==='telegram' ? 'Из Telegram · не проверено' : source==='staff' ? 'Указано сотрудником' : 'Источник не указан';
+    }
   }
   window.tgEditPatient=function(){
     if(!currentChat || el('tg-patient-edit').disabled || isSavingPatient)return;
-    patientEditChat=currentChat;
+    patientEditChat=currentChat;patientEditVersion=selectedPatientVersion;
     for(const key of ['name','phone','admin','doctor'])el('tg-pf-'+key).value=selectedPatient?.[key] || '';
     el('tg-patient-error').textContent='';el('tg-patient-modal').classList.add('open');el('tg-pf-name').focus();
   };
   window.tgClosePatient=function(){patientEditChat=null;el('tg-patient-modal').classList.remove('open');};
   window.tgSavePatient=async function(){
     if(!patientEditChat || patientEditChat!==currentChat || isSavingPatient)return;
-    const chat=patientEditChat, payload={};for(const key of ['name','phone','admin','doctor'])payload[key]=el('tg-pf-'+key).value.trim();
+    const chat=patientEditChat, payload={expectedVersion:patientEditVersion};for(const key of ['name','phone','admin','doctor'])payload[key]=el('tg-pf-'+key).value.trim();
     isSavingPatient=true;el('tg-patient-save').disabled=true;el('tg-patient-error').textContent='';
     try{
       const result=await api('/api/telegram/conversations/'+encodeURIComponent(chat)+'/patient','POST',payload);
-      if(chat===currentChat && patientEditChat===chat){++patientRevision;renderTgPatient(result.patient);window.tgClosePatient();toast('Карточка сохранена');}
-    }catch(e){if(e.message!=='session_changed' && chat===currentChat && patientEditChat===chat)el('tg-patient-error').textContent=e.message;}
+      if(chat===currentChat && patientEditChat===chat){++patientRevision;renderTgPatient(result.patient,result.patientSources,result.patientVersion);window.tgClosePatient();toast('Карточка сохранена');}
+    }catch(e){if(e.message!=='session_changed' && chat===currentChat && patientEditChat===chat){el('tg-patient-error').textContent=e.message;if(e.message.startsWith('Карточка изменилась'))await tgRefresh(true);}}
     finally{isSavingPatient=false;el('tg-patient-save').disabled=false;}
   };
   window.tgSend = async function(){

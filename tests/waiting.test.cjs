@@ -89,3 +89,8 @@ test('При сбое провайдера режим ожидания не сб
   await h.incoming('Позовите администратора');await h.wait(()=>h.sent.length===1);await h.incoming('Дополнительный вопрос');await h.wait(()=>h.sent.length===2);
   assert.match(h.sent[1].text,/время ответа мне неизвестно/);const c=await h.chat();assert.equal(c.mode,'waiting');assert.match(c.handoff.reason,/ИИ не ответил/);
 });
+
+test('Если собеседник отказался от вопросов, бот не запрашивает контакт',async t=>{
+  const h=await harness(t);await h.incoming('Позовите администратора, не спрашивайте телефон');await h.wait(()=>h.sent.length===1);
+  assert.doesNotMatch(h.sent[0].text,/Как к вам обращаться|указать телефон/);
+});

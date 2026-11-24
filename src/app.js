@@ -13,6 +13,7 @@ const {createTelegram} = require('./integrations/telegram');
 const {initial, context, shortContext, trigger, riskyOutput, aiFailureReason} = require('./workflow/triage');
 const {routeIntake} = require('./workflow/intake');
 const {WAITING_FALLBACK, EMERGENCY_RESPONSE, emergency, safetyReply} = require('./workflow/waiting');
+const {extractPatientInfo, applyPatientInfo, contactQuestion} = require('./workflow/patient-autofill');
 
 function createServer(options = {}) {
   const env = options.env || process.env;
@@ -64,11 +65,19 @@ function createServer(options = {}) {
         const c=state.conversations[job.chatId];
         if(job.kind==='notice') {
           if(!c || initial(c).mode!=='waiting' || !tg || !autoEnabled || c.waitingPaused){job.stage='done';persist();continue;}
-          const notice=job.urgent ? EMERGENCY_RESPONSE : 'Ваш вопрос передан сотруднику. Он ответит, как только сможет.';
+          const lastIncoming=c.messages.filter(m=>m.direction==='in').at(-1)?.text || '';
+          const refusesQuestions=/(не\s+(?:хочу|буду|могу)\s+(?:указывать|оставлять|давать|сообщать|говорить|отвечать)|не спрашивайте|без вопросов|не нужен телефон|не звоните)/i.test(lastIncoming);
+          const sensitive=job.urgent || refusesQuestions || /Медицинский|Несовершеннолетний|Жалоба|Срочное/i.test(c.handoff?.reason || '');
+          const askName=!sensitive && !c.patient?.name, askPhone=!sensitive && !c.patient?.phone;
+          const notice=job.urgent ? EMERGENCY_RESPONSE : sensitive
+            ? 'Ваш вопрос передан сотруднику. Если хотите, можете добавить организационные детали — они будут видны в диалоге.'
+            : askName ? 'Ваш вопрос передан сотруднику. Как к вам обращаться? Например: «Меня зовут Анна».'+(askPhone ? ' Если хотите, можете также указать телефон для связи.' : '')
+            : 'Ваш вопрос передан сотруднику. Есть ли ещё организационные детали, которые вы хотели бы сообщить?'+(askPhone ? ' Если хотите, можете также указать телефон для связи.' : '');
+          const beforeNotice=c.messages.filter(m=>m.direction==='in').at(-1)?.id;
           job.stage='sending';state.sends[job.id]={chatId:c.id,status:'pending',at:new Date().toISOString()};persist();
           try {
             const sent=await telegram.send(c.id, notice);
-            if(sent.ok) {state.sends[job.id].status='sent';c.messages.push({id:String(sent.result?.message_id||job.id),direction:'out',author:'system',text:notice,at:new Date().toISOString()});}
+            if(sent.ok) {state.sends[job.id].status='sent';if((askName || askPhone) && c.messages.filter(m=>m.direction==='in').at(-1)?.id===beforeNotice)c.awaitingContactReply={name:askName,phone:askPhone,left:2};c.messages.push({id:String(sent.result?.message_id||job.id),direction:'out',author:'system',text:notice,at:new Date().toISOString()});}
             else {state.sends[job.id].status='failed';pauseWaiting(c,'Telegram не подтвердил уведомление');}
           } catch (_) {state.sends[job.id].status='unknown';pauseWaiting(c,'Результат отправки неизвестен — проверьте Telegram');}
           job.stage='done';persist();continue;
@@ -106,12 +115,16 @@ function createServer(options = {}) {
           if(waiting)pauseWaiting(c,'Результат прежней отправки не подтверждён');else transfer(c,'Результат прежней отправки не подтверждён');
           job.stage='done';persist();continue;
         }
+        const beforeReply=c.messages.filter(m=>m.direction==='in').at(-1)?.id;
         job.stage='sending';state.sends[key]={chatId:c.id,status:'pending',at:new Date().toISOString()};persist();
         let result;
         try {result=await telegram.send(c.id, decision.reply.trim());}
         catch (_) {state.sends[key].status='unknown';if(waiting)pauseWaiting(c,'Результат отправки неизвестен — проверьте Telegram');else transfer(c,'Ошибка отправки ИИ: результат неизвестен, проверьте Telegram');job.stage='done';persist();continue;}
         if(!result.ok) {state.sends[key].status='failed';if(waiting)pauseWaiting(c,'Telegram не подтвердил отправку ответа');else transfer(c,'Telegram не подтвердил отправку ответа ИИ');job.stage='done';persist();continue;}
-        state.sends[key].status='sent';c.messages.push({id:String(result.result?.message_id||key),direction:'out',author:'ai',text:decision.reply.trim(),at:new Date().toISOString()});job.stage='done';persist();
+        state.sends[key].status='sent';
+        const asked=contactQuestion(decision.reply);
+        if(asked && c.messages.filter(m=>m.direction==='in').at(-1)?.id===beforeReply)c.awaitingContactReply=asked;
+        c.messages.push({id:String(result.result?.message_id||key),direction:'out',author:'ai',text:decision.reply.trim(),at:new Date().toISOString()});job.stage='done';persist();
       }
     } finally { processing=false; }
   }
@@ -141,7 +154,17 @@ function createServer(options = {}) {
           let c=state.conversations[id]; if(!c)c=state.conversations[id]={id,name:'Telegram · '+id,messages:[]};
           c.name=[m.from?.first_name,m.from?.last_name].filter(x=>typeof x==='string').join(' ').slice(0,100)||('Telegram · '+id);
           const text=typeof m.text==='string' ? m.text.slice(0,4096) : '[Вложение: откройте Telegram для просмотра]';
-          initial(c); c.messages.push({id:String(m.message_id||u.update_id),direction:'in',text,at:new Date().toISOString()});
+          initial(c); const incoming={id:String(m.message_id||u.update_id),direction:'in',text,at:new Date().toISOString()};c.messages.push(incoming);
+          if(autoEnabled && tg && c.mode!=='assigned' && !c.waitingPaused && typeof m.text==='string') {
+            const pending=c.awaitingContactReply;
+            const extracted=extractPatientInfo(text,pending && typeof pending==='object' ? pending : false);
+            applyPatientInfo(c,extracted,incoming);
+            if(pending && typeof pending==='object') {
+              if(extracted.name)pending.name=false;if(extracted.phone)pending.phone=false;
+              pending.left=(pending.left || 1)-1;
+              if(pending.left<=0 || (!pending.name && !pending.phone))delete c.awaitingContactReply;
+            } else delete c.awaitingContactReply;
+          }
           const reason=typeof m.text==='string' ? (emergency(text) ? 'Срочное сообщение — возможна угроза жизни' : trigger(text)) : 'Вложение не обрабатывается — проверьте Telegram';
           if(c.mode==='waiting' && c.handoff) c.handoff.summary=(c.handoff.initialContext ? 'Начальный запрос: '+c.handoff.initialContext+' | ' : '') .concat(shortContext(c)).slice(0,1200);
           if(c.mode==='waiting' && reason)waitingIssue(c,reason);
@@ -185,21 +208,28 @@ function createServer(options = {}) {
       const match=pathname.match(/^\/api\/telegram\/conversations\/(-?\d{1,20})(?:\/(patient|send|take|resume))?$/);
       if(!match)return fail(res,404,'Не найдено');
       const c=state.conversations[match[1]];if(!c)return fail(res,404,'Чат не найден');
-      if(req.method==='GET' && !match[2])return json(res,200,{id:c.id,name:c.name,messages:c.messages,mode:initial(c).mode,handoff:c.handoff,autoEnabled,waitingAiActive:!!(autoEnabled && tg && c.mode==='waiting' && !c.waitingPaused),patient:c.patient || null});
+      if(req.method==='GET' && !match[2])return json(res,200,{id:c.id,name:c.name,messages:c.messages,mode:initial(c).mode,handoff:c.handoff,autoEnabled,waitingAiActive:!!(autoEnabled && tg && c.mode==='waiting' && !c.waitingPaused),patient:c.patient || null,patientVersion:Number.isSafeInteger(c.patientVersion)?c.patientVersion:0,patientSources:c.patientSources || {}});
       if(req.method==='POST' && match[2]==='take') {
         if(state.jobs.some(j=>j.chatId===c.id && j.stage==='sending'))return fail(res,409,'Ответ ИИ уже отправляется. Подождите и обновите чат.');
-        delete c.intake;delete c.waitingPaused;c.modeVersion=(c.modeVersion || 0)+1;state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued').forEach(j=>j.stage='done');c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник взял диалог в работу',summary:shortContext(c),at:new Date().toISOString()};persist();return json(res,200,{ok:true});
+        delete c.intake;delete c.awaitingContactReply;delete c.waitingPaused;c.modeVersion=(c.modeVersion || 0)+1;state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued').forEach(j=>j.stage='done');c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник взял диалог в работу',summary:shortContext(c),at:new Date().toISOString()};persist();return json(res,200,{ok:true});
       }
       if(req.method==='POST' && match[2]==='resume') {
         if(!autoEnabled || !tg || ai.configError)return fail(res,503,ai.configError || 'Автоответ ИИ не включён или Telegram не настроен.');
         if(state.jobs.some(j=>j.chatId===c.id && ['sending','generating'].includes(j.stage)))return fail(res,409,'Завершается предыдущее действие; обновите чат через несколько секунд.');
         state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued').forEach(j=>j.stage='done');
-        delete c.intake;delete c.waitingPaused;c.modeVersion=(c.modeVersion || 0)+1;c.mode='ai';c.handoff=null;persist();return json(res,200,{ok:true});
+        delete c.intake;delete c.awaitingContactReply;delete c.waitingPaused;c.modeVersion=(c.modeVersion || 0)+1;c.mode='ai';c.handoff=null;persist();return json(res,200,{ok:true});
       }
       if(req.method==='POST' && match[2]==='patient') {
         const data=await body(req), fields=['name','phone','admin','doctor'];
-        if(!data || typeof data!=='object' || Array.isArray(data) || fields.some(key=>typeof data[key]!=='string' || data[key].length>100)) return fail(res,400,'Проверьте поля карточки (до 100 символов).');
-        c.patient=Object.fromEntries(fields.map(key=>[key,data[key].trim()]));persist();return json(res,200,{patient:c.patient});
+        if(!data || typeof data!=='object' || Array.isArray(data) || fields.some(key=>typeof data[key]!=='string' || data[key].length>100) || !Number.isSafeInteger(data.expectedVersion) || data.expectedVersion<0) return fail(res,400,'Проверьте поля и версию карточки.');
+        const currentVersion=Number.isSafeInteger(c.patientVersion)?c.patientVersion:0;
+        if(data.expectedVersion!==currentVersion)return fail(res,409,'Карточка изменилась. Закройте окно и откройте заново, чтобы не потерять новые данные.');
+        const next=Object.fromEntries(fields.map(key=>[key,data[key].trim()]));
+        const changed=fields.filter(key=>(c.patient?.[key] || '')!==next[key]);
+        c.patient=next;c.patientSources ||= {};
+        changed.forEach(key=>{c.patientSources[key]={source:'staff',at:new Date().toISOString()};});
+        if(changed.length)c.patientVersion=currentVersion+1;
+        persist();return json(res,200,{patient:c.patient,patientSources:c.patientSources,patientVersion:Number.isSafeInteger(c.patientVersion)?c.patientVersion:0});
       }
       if(req.method==='POST' && match[2]==='send') {
         if(!tg)return fail(res,503,'TELEGRAM_BOT_TOKEN не настроен.');
@@ -207,13 +237,14 @@ function createServer(options = {}) {
         if(!text || text.length>4096 || !/^[a-zA-Z0-9_-]{16,100}$/.test(key))return fail(res,400,'Проверьте текст сообщения и идентификатор запроса.');
         if(state.sends[key])return fail(res,409,'Этот запрос уже обрабатывался. Проверьте историю перед повторной отправкой.');
         if(state.jobs.some(j=>j.chatId===c.id && j.stage==='sending'))return fail(res,409,'ИИ уже отправляет ответ. Дождитесь результата и обновите чат.');
-        delete c.intake;delete c.waitingPaused;c.modeVersion=(c.modeVersion || 0)+1;state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued').forEach(j=>j.stage='done');c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник отвечает вручную',summary:shortContext(c),at:new Date().toISOString()};
+        delete c.intake;delete c.awaitingContactReply;delete c.waitingPaused;c.modeVersion=(c.modeVersion || 0)+1;state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued').forEach(j=>j.stage='done');c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник отвечает вручную',summary:shortContext(c),at:new Date().toISOString()};
         state.sends[key]={chatId:c.id,status:'pending',at:new Date().toISOString()};persist();
         let result;
         try{result=await telegram.send(c.id, text);}
         catch(e){state.sends[key].status='unknown';persist();return fail(res,502,'Результат отправки неизвестен. Проверьте Telegram перед повтором.');}
         if(!result.ok){state.sends[key].status='failed';persist();return fail(res,502,'Telegram не подтвердил отправку.');}
-        state.sends[key].status='sent';c.messages.push({id:String(result.result?.message_id||key),direction:'out',author:'admin',text,at:new Date().toISOString()});persist();
+        state.sends[key].status='sent';
+        c.messages.push({id:String(result.result?.message_id||key),direction:'out',author:'admin',text,at:new Date().toISOString()});persist();
         return json(res,200,{ok:true});
       }
       return fail(res,405,'Метод не поддерживается');
