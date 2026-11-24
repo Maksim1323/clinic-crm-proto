@@ -28,6 +28,7 @@ src/server.js               Запуск Node.js
 src/app.js                  Маршруты, webhook и тестовая очередь
 src/config.js               Настройки из окружения
 src/integrations/           Telegram, ИИ-провайдеры и HTTP-клиент
+certs/                      Публичный корневой сертификат для GigaChat
 src/workflow/               Триггеры передачи человеку
 src/storage/                Временное JSON-хранилище
 server.js                   Совместимость со старой командой запуска

@@ -14,5 +14,8 @@
   },
   "devDependencies": {
     "jsdom": "26.1.0"
+  },
+  "dependencies": {
+    "undici": "^6.29.1"
   }
 }

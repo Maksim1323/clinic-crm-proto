@@ -8,6 +8,7 @@ const {readConfig} = require('./config');
 const {openStore} = require('./storage/json-store');
 const {createExternalClient} = require('./integrations/http-client');
 const {createAI} = require('./integrations/ai');
+const {createGigachatFetch} = require('./integrations/gigachat-transport');
 const {createTelegram} = require('./integrations/telegram');
 const {initial, context, shortContext, trigger, riskyOutput, aiFailureReason} = require('./workflow/triage');
 
@@ -19,7 +20,10 @@ function createServer(options = {}) {
   const {state, persist} = openStore(file);
   const external = createExternalClient(callFetch);
   const telegram = createTelegram(external, tg);
-  const ai = createAI(config, external, callFetch);
+  // Injection keeps tests offline; in production apply the CA only to GigaChat requests.
+  const aiFetch = config.aiProvider === 'gigachat' && !options.fetch ? createGigachatFetch(callFetch) : callFetch;
+  const aiExternal = aiFetch === callFetch ? external : createExternalClient(aiFetch);
+  const ai = createAI(config, aiExternal, aiFetch);
   function equal(a,b) { const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||'')); return x.length === y.length && crypto.timingSafeEqual(x,y); }
   function json(res,status,data) { const body=JSON.stringify(data); res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}); res.end(body); }
   function fail(res,status,message) { json(res,status,{error:message}); }
