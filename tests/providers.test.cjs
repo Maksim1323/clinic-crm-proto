@@ -14,7 +14,7 @@ test('OpenAI-совместимый API: адрес, авторизация, ф�
   const ai=createAI(config,createExternalClient(fetch),fetch);
   assert.equal(ai.configError,''); assert.deepEqual(await ai.decide('Здравствуйте'),decision);
   assert.equal(calls[0].url,'https://example.test/v1/chat/completions');assert.equal(calls[0].opt.headers.Authorization,'Bearer test-key');
-  assert.equal(calls[0].body.model,'vendor/model-1');assert.equal(calls[0].body.messages[0].role,'system');
+  assert.equal(calls[0].body.model,'vendor/model-1');assert.equal(calls[0].body.messages[0].role,'system');assert.match(calls[0].body.messages[0].content,/нет проверенного прайса/);
 });
 
 test('GigaChat: OAuth, повторное использование и обновление токена после 401',async()=>{
@@ -30,7 +30,7 @@ test('GigaChat: OAuth, повторное использование и обно
   assert.equal(ai.configError,'');assert.deepEqual(await ai.decide('Привет'),decision);await ai.decide('Здравствуйте');assert.equal(oauth,1);
   assert.equal(calls[0].url,'https://ngw.devices.sberbank.ru:9443/api/v2/oauth');assert.equal(calls[0].opt.headers.Authorization,'Basic test-auth');
   assert.equal(calls[0].opt.body,'scope=GIGACHAT_API_B2B');assert.match(calls[0].opt.headers.RqUID,/^[0-9a-f-]{36}$/);
-  assert.equal(calls[1].url,'https://api.giga.chat/v1/chat/completions');assert.equal(calls[1].opt.headers.Authorization,'Bearer token1');
+  assert.equal(calls[1].url,'https://api.giga.chat/v1/chat/completions');assert.equal(calls[1].opt.headers.Authorization,'Bearer token1');assert.match(JSON.parse(calls[1].opt.body).messages[0].content,/нет проверенного прайса/);
   failNext=true;await assert.rejects(ai.decide('Привет'),{status:401});await ai.decide('Привет');assert.equal(oauth,2);
 });
 

@@ -11,6 +11,7 @@ const {createAI} = require('./integrations/ai');
 const {createGigachatFetch} = require('./integrations/gigachat-transport');
 const {createTelegram} = require('./integrations/telegram');
 const {initial, context, shortContext, trigger, riskyOutput, aiFailureReason} = require('./workflow/triage');
+const {routeIntake} = require('./workflow/intake');
 
 function createServer(options = {}) {
   const env = options.env || process.env;
@@ -41,7 +42,10 @@ function createServer(options = {}) {
   }
   function transfer(c,reason,summary) {
     initial(c); if(c.mode==='assigned')return;
-    const wasAi=c.mode==='ai'; c.mode='waiting'; c.handoff={reason:String(reason||'Нужна проверка сотрудника').slice(0,300),summary:String(summary||shortContext(c)).slice(0,1200),at:new Date().toISOString()};
+    const wasAi=c.mode==='ai';
+    const initialContext=c.intake?.initialText || '';
+    const intakeContext=initialContext ? 'Начальный запрос: '+initialContext+' | '+shortContext(c) : shortContext(c);
+    delete c.intake; c.mode='waiting'; c.handoff={reason:String(reason||'Нужна проверка сотрудника').slice(0,300),summary:String(summary||intakeContext).slice(0,1200),initialContext,at:new Date().toISOString()};
     if(wasAi && tg && autoEnabled) state.jobs.push({id:'notice_'+crypto.randomUUID().replaceAll('-',''),chatId:c.id,kind:'notice',stage:'queued'});
   }
   let processing = false;
@@ -70,7 +74,7 @@ function createServer(options = {}) {
         job.stage='generating';persist();
         let decision;
         try {
-          decision=await ai.decide(context(c));
+          decision=job.kind==='intake' ? {action:'reply',reply:job.reply,reason:'',summary:''} : await ai.decide(context(c));
         } catch (error) { if(c.mode==='ai')transfer(c,aiFailureReason(error, config.aiProvider));job.stage='done';persist();continue; }
         // The administrator or another incoming message may have paused the bot while the AI was running.
         if(c.mode!=='ai') {job.stage='done';persist();continue;}
@@ -118,11 +122,19 @@ function createServer(options = {}) {
           const text=typeof m.text==='string' ? m.text.slice(0,4096) : '[Вложение: откройте Telegram для просмотра]';
           initial(c); c.messages.push({id:String(m.message_id||u.update_id),direction:'in',text,at:new Date().toISOString()});
           const reason=typeof m.text==='string' ? trigger(text) : 'Вложение не обрабатывается — проверьте Telegram';
-          if(c.mode==='waiting' && c.handoff) c.handoff.summary=shortContext(c);
+          if(c.mode==='waiting' && c.handoff) c.handoff.summary=(c.handoff.initialContext ? 'Начальный запрос: '+c.handoff.initialContext+' | ' : '') .concat(shortContext(c)).slice(0,1200);
           if(c.mode==='ai') {
             if(reason) transfer(c,reason);
             else if(!autoEnabled) transfer(c,'Автоответ ИИ выключен: нужен сотрудник');
-            else state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,stage:'queued'});
+            else {
+              const intake=routeIntake(c,text);
+              if(intake) {
+                // Newer input replaces unsent intake questions and pending generations.
+                state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued' && j.kind!=='notice').forEach(j=>j.stage='done');
+                if(intake.handoff)transfer(c,intake.handoff);
+                else state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,kind:'intake',reply:intake.reply,stage:'queued'});
+              } else state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,stage:'queued'});
+            }
           }
         }
         state.updates.push(u.update_id);state.updates=state.updates.slice(-3000); persist(); schedule(); return json(res,200,{ok:true});
@@ -148,13 +160,13 @@ function createServer(options = {}) {
       if(req.method==='GET' && !match[2])return json(res,200,{id:c.id,name:c.name,messages:c.messages,mode:initial(c).mode,handoff:c.handoff,autoEnabled,patient:c.patient || null});
       if(req.method==='POST' && match[2]==='take') {
         if(state.jobs.some(j=>j.chatId===c.id && j.stage==='sending'))return fail(res,409,'Ответ ИИ уже отправляется. Подождите и обновите чат.');
-        c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник взял диалог в работу',summary:shortContext(c),at:new Date().toISOString()};persist();return json(res,200,{ok:true});
+        delete c.intake;c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник взял диалог в работу',summary:shortContext(c),at:new Date().toISOString()};persist();return json(res,200,{ok:true});
       }
       if(req.method==='POST' && match[2]==='resume') {
         if(!autoEnabled || !tg || ai.configError)return fail(res,503,ai.configError || 'Автоответ ИИ не включён или Telegram не настроен.');
         if(state.jobs.some(j=>j.chatId===c.id && ['sending','generating'].includes(j.stage)))return fail(res,409,'Завершается предыдущее действие; обновите чат через несколько секунд.');
         state.jobs.filter(j=>j.chatId===c.id && j.stage==='queued').forEach(j=>j.stage='done');
-        c.mode='ai';c.handoff=null;persist();return json(res,200,{ok:true});
+        delete c.intake;c.mode='ai';c.handoff=null;persist();return json(res,200,{ok:true});
       }
       if(req.method==='POST' && match[2]==='patient') {
         const data=await body(req), fields=['name','phone','admin','doctor'];
@@ -167,7 +179,7 @@ function createServer(options = {}) {
         if(!text || text.length>4096 || !/^[a-zA-Z0-9_-]{16,100}$/.test(key))return fail(res,400,'Проверьте текст сообщения и идентификатор запроса.');
         if(state.sends[key])return fail(res,409,'Этот запрос уже обрабатывался. Проверьте историю перед повторной отправкой.');
         if(state.jobs.some(j=>j.chatId===c.id && j.stage==='sending'))return fail(res,409,'ИИ уже отправляет ответ. Дождитесь результата и обновите чат.');
-        c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник отвечает вручную',summary:shortContext(c),at:new Date().toISOString()};
+        delete c.intake;c.mode='assigned'; if(!c.handoff)c.handoff={reason:'Сотрудник отвечает вручную',summary:shortContext(c),at:new Date().toISOString()};
         state.sends[key]={chatId:c.id,status:'pending',at:new Date().toISOString()};persist();
         let result;
         try{result=await telegram.send(c.id, text);}
