@@ -1,3 +1,4 @@
+const sessionFixture=require('./session-fixture.cjs');
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),{Pool}=require('pg');const {createServer}=require('../src/app');
 const url=process.env.TEST_MANUAL_DATABASE_URL;
@@ -31,6 +32,6 @@ test('PostgreSQL: ручные карточки и задачи выдержив
   const verify=new Pool({connectionString:url});const db=await verify.query('SELECT payload FROM clinic_state WHERE id=1');assert.equal(db.rows[0].payload.manualPatients[importedId].legacyRecord.legacyExtra,'сохранить');await verify.end();
 });
 test('PostgreSQL: отказ записи не выдаётся за успешное сохранение',{skip:!url},async t=>{
-  const pool=new Pool({connectionString:url});await pool.query('DROP TABLE IF EXISTS clinic_state');const app=createServer({env:{DATABASE_URL:url,ADMIN_TOKEN:token}});await app.ready;await new Promise(r=>app.listen(0,'127.0.0.1',r));t.after(()=>{app.close();pool.end()});await pool.query('DROP TABLE clinic_state');
+  const pool=new Pool({connectionString:url});await pool.query('DROP TABLE IF EXISTS clinic_state');const app=createServer({env:{DATABASE_URL:url,ADMIN_TOKEN:token}});await app.ready;await new Promise(r=>app.listen(0,'127.0.0.1',r));t.after(()=>{app.close();pool.end()});await sessionFixture.session('http://127.0.0.1:'+app.address().port,token);await pool.query('DROP TABLE clinic_state');
   const res=await fetch('http://127.0.0.1:'+app.address().port+'/api/manual/patients/p_11111111111111111111111111111111',{method:'PUT',headers,body:JSON.stringify({record:patient,expectedVersion:null})});assert.equal(res.status,502);
 });

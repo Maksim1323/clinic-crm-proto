@@ -12,6 +12,7 @@ const {routeIntake}=require('./workflow/intake');
 const {WAITING_FALLBACK,EMERGENCY_RESPONSE,emergency,safetyReply}=require('./workflow/waiting');
 const {extractPatientInfo,applyPatientInfo,contactQuestion}=require('./workflow/patient-autofill');
 const manual=require('./workflow/manual-records');
+const identity=require('./workflow/identity');
 
 function createServer(options={}) {
   const env=options.env||process.env, callFetch=options.fetch||global.fetch;
@@ -24,14 +25,8 @@ function createServer(options={}) {
   function json(res,status,data){const body=JSON.stringify(data);res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(body);}
   function fail(res,status,message){json(res,status,{error:message});}
   const authFailures=new Map();
-  function auth(req,res){
-    const ip=req.socket.remoteAddress||'unknown',now=Date.now(),recent=(authFailures.get(ip)||[]).filter(t=>now-t<60000);
-    if(recent.length>=15){authFailures.set(ip,recent);fail(res,429,'Слишком много попыток. Подождите минуту.');return false;}
-    if(admin.length<24){fail(res,503,'На сервере не настроен ADMIN_TOKEN (минимум 24 символа).');return false;}
-    const value=(req.headers.authorization||'').replace(/^Bearer /,'');
-    if(!equal(value,admin)){recent.push(now);authFailures.set(ip,recent);fail(res,401,'Неверный ключ администратора.');return false;}
-    authFailures.delete(ip);return true;
-  }
+  function limitBootstrap(req){const key=req.socket.remoteAddress||'unknown',now=Date.now(),r=(authFailures.get(key)||[]).filter(t=>now-t<60000);if(r.length>=10)return false;r.push(now);authFailures.set(key,r);return true;}
+  const deny=(status,message)=>Object.assign(new Error(message),{httpStatus:status});
   async function body(req){let size=0,chunks=[];for await(const part of req){size+=part.length;if(size>64*1024)throw Error('too_large');chunks.push(part);}if(!size)return {};try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch(_){throw Error('bad_json');}}
   const response=(status,data)=>({status,data});
   const error=(status,message)=>response(status,{error:message});
@@ -157,45 +152,82 @@ function createServer(options={}) {
         });schedule();return json(res,result.status,result.data);
       }
       if(!pathname.startsWith('/api/'))return fail(res,404,'Страница не найдена');
-      if(!auth(req,res))return;
-      if(req.method==='GET'&&pathname==='/api/manual')return json(res,200,await store.transact(manual.list));
-      if(req.method==='POST'&&pathname==='/api/manual/import'){const data=await body(req),result=await store.transact(state=>manual.importOne(state,data));return json(res,result.status,result.data);}
+      if(req.method==='GET'&&pathname==='/api/auth/status'){const configured=await store.transact(s=>{identity.ensure(s);return Object.keys(s.staffUsers).length>0;});return json(res,200,{configured});}
+      if(req.method==='POST'&&pathname==='/api/auth/bootstrap'){
+        if(!limitBootstrap(req))return fail(res,429,'Слишком много попыток.');const d=await body(req),problem=identity.credentials(d.login,d.name,d.password);if(problem)return fail(res,400,problem);
+        if(admin.length<24||!equal(d.setupToken,admin))return fail(res,403,'Неверный ключ первоначальной настройки.');
+        const secret=await identity.passwordHash(d.password),r=await store.transact(s=>identity.bootstrap(s,d,secret));return r.error?fail(res,r.status,r.error):json(res,200,{user:r.user,token:r.token});
+      }
+      if(req.method==='POST'&&pathname==='/api/auth/login'){
+        const d=await body(req);if(typeof d.login!=='string'||!/^[a-zA-Z0-9_.-]{3,40}$/.test(d.login)||typeof d.password!=='string'||Buffer.byteLength(d.password)>512)return fail(res,400,'Проверьте логин и пароль.');
+        const snapshot=await store.transact(s=>{identity.ensure(s);return {count:identity.currentFailures(s,d.login).length,user:Object.values(s.staffUsers).find(u=>u.login.toLowerCase()===d.login.toLowerCase())||null};});
+        if(snapshot.count>=10)return fail(res,429,'Слишком много попыток. Подождите минуту.');
+        const verified=await identity.passwordMatches(d.password,snapshot.user?.password||{salt:'00000000000000000000000000000000',hash:'0'.repeat(64)});
+        const r=await store.transact(s=>{identity.ensure(s);const u=snapshot.user&&s.staffUsers[snapshot.user.id];if(!verified||!u?.active||u.password.hash!==snapshot.user.password.hash){identity.failure(s,d.login);return null;}delete s.staffLoginFailures[identity.hash(d.login.toLowerCase())];return {user:identity.publicUser(u),token:identity.issue(s,u)};});
+        return r?json(res,200,r):fail(res,401,'Неверный логин или пароль.');
+      }
+      const token=(req.headers.authorization||'').replace(/^Bearer /,'');let actor;
+      const tx=fn=>store.transact(s=>{const u=identity.resolve(s,token);if(!u)throw deny(401,'Сессия закончилась. Войдите снова.');actor=u;return fn(s,u);});
+      await tx(()=>null);
+      if(req.method==='GET'&&pathname==='/api/auth/me')return json(res,200,await tx((s,u)=>identity.publicUser(u)));
+      if(req.method==='POST'&&pathname==='/api/auth/logout'){await tx(s=>{delete s.staffSessions[identity.hash(token)];});return json(res,200,{ok:true});}
+      if(req.method==='POST'&&pathname==='/api/auth/password'){
+        const d=await body(req);if(typeof d.currentPassword!=='string'||Buffer.byteLength(d.currentPassword)>512||typeof d.newPassword!=='string'||d.newPassword.length<12||Buffer.byteLength(d.newPassword)>512)return fail(res,400,'Новый пароль: не менее 12 символов.');
+        const previous=actor.password,valid=await identity.passwordMatches(d.currentPassword,previous);if(!valid)return fail(res,403,'Неверный текущий пароль.');const secret=await identity.passwordHash(d.newPassword);
+        const result=await tx((s,u)=>{if(u.password.hash!==previous.hash)throw deny(409,'Пароль уже изменён. Войдите снова.');u.password=secret;identity.revoke(s,u.id);identity.audit(s,u,'password_changed','staff',u.id);return {ok:true};});return json(res,200,result);
+      }
+      if(req.method==='GET'&&pathname==='/api/staff')return json(res,200,await tx(s=>Object.values(s.staffUsers).map(u=>({id:u.id,name:u.name,role:u.role,active:u.active}))));
+      if(req.method==='GET'&&pathname==='/api/manage/staff'){const r=await tx((s,u)=>u.role==='manager'?{users:Object.values(s.staffUsers).map(identity.publicUser)}:null);return r?json(res,200,r):fail(res,403,'Только управляющий.');}
+      if(req.method==='POST'&&pathname==='/api/manage/staff'){
+        const d=await body(req),problem=identity.credentials(d.login,d.name,d.password);if(problem||!identity.ROLES.has(d.role))return fail(res,400,problem||'Укажите роль.');const secret=await identity.passwordHash(d.password);
+        const r=await tx((s,u)=>u.role==='manager'?identity.create(s,{...d,secret},u):{error:'Только управляющий.'});return r.error?fail(res,actor.role==='manager'?400:403,r.error):json(res,200,r);
+      }
+      const staffMatch=pathname.match(/^\/api\/manage\/staff\/(u_[a-f0-9]{32})$/);
+      if(req.method==='POST'&&staffMatch){const d=await body(req);if(d.password!==undefined&&(typeof d.password!=='string'||d.password.length<12||Buffer.byteLength(d.password)>512))return fail(res,400,'Пароль: не менее 12 символов.');const secret=d.password!==undefined?await identity.passwordHash(d.password):undefined;
+        const r=await tx((s,u)=>identity.setupRoles(s,u,staffMatch[1],{role:d.role,active:d.active,name:d.name,secret}));return r.error?fail(res,r.status,r.error):json(res,200,r);}
+      if(req.method==='GET'&&pathname==='/api/manage/audit'){const r=await tx((s,u)=>u.role==='manager'?s.audit.slice(-500).reverse():null);return r?json(res,200,{items:r}):fail(res,403,'Только управляющий.');}
+      if(req.method==='POST'&&pathname==='/api/auth/preferences'){const d=await body(req),allowed=['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'];if(!d||typeof d!=='object'||Array.isArray(d)||Object.keys(d).some(k=>!allowed.includes(k)||typeof d[k]!=='boolean'))return fail(res,400,'Проверьте настройки.');const result=await tx((s,u)=>{u.preferences={...d};identity.audit(s,u,'preferences_updated','staff',u.id);return identity.publicUser(u);});return json(res,200,{user:result});}
+
+      if(req.method==='GET'&&pathname==='/api/manual')return json(res,200,await tx((s,u)=>manual.list(s,u)));
+      if(req.method==='POST'&&pathname==='/api/manual/import'){const data=await body(req),result=await tx(state=>manual.importOne(state,data,actor));return json(res,result.status,result.data);}
       const manualMatch=pathname.match(/^\/api\/manual\/(patients|tasks)\/((?:p|t)_[a-f0-9]{32})$/);
-      if(req.method==='PUT'&&manualMatch){const data=await body(req),result=await store.transact(state=>manual.save(state,manualMatch[1]==='patients'?'patient':'task',manualMatch[2],data));return json(res,result.status,result.data);}
+      if(req.method==='PUT'&&manualMatch){const data=await body(req),result=await tx(state=>manual.save(state,manualMatch[1]==='patients'?'patient':'task',manualMatch[2],data,actor));return json(res,result.status,result.data);}
       if(req.method==='POST'&&pathname==='/api/setup-webhook'){
         if(!tg||hookSecret.length<24)return fail(res,503,'Проверьте TELEGRAM_BOT_TOKEN и TELEGRAM_WEBHOOK_SECRET (не менее 24 символов).');
         if(!/^[A-Za-z0-9_-]{24,256}$/.test(hookSecret))return fail(res,503,'TELEGRAM_WEBHOOK_SECRET: только буквы, цифры, дефис и подчёркивание.');
         let url;try{url=new URL(baseUrl);}catch(_){return fail(res,503,'Укажите HTTPS PUBLIC_BASE_URL или проверьте URL Render.');}
         if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash)return fail(res,503,'Базовый URL должен быть HTTPS-адресом без пути и параметров.');
+        await tx((s,u)=>{if(u.role!=='manager')throw deny(403,'Только управляющий может настроить webhook.');identity.audit(s,u,'webhook_setup','integration','telegram');});
         const result=await telegram.setWebhook(baseUrl+'/api/telegram/webhook',hookSecret);return result.ok?json(res,200,{ok:true}):fail(res,502,'Telegram не подтвердил установку webhook.');
       }
       if(req.method==='GET'&&pathname==='/api/telegram/conversations'){
-        const result=await store.transact(state=>Object.values(state.conversations).map(c=>({id:c.id,name:c.name,mode:initial(c).mode,reason:c.handoff?.reason||'',latest:c.messages.at(-1)?.at||null,preview:c.messages.at(-1)?.text||''})).sort((a,b)=>String(b.latest).localeCompare(String(a.latest))));return json(res,200,{items:result});
+        const result=await tx(state=>Object.values(state.conversations).map(c=>({id:c.id,name:c.name,mode:initial(c).mode,reason:c.handoff?.reason||'',latest:c.messages.at(-1)?.at||null,preview:c.messages.at(-1)?.text||''})).sort((a,b)=>String(b.latest).localeCompare(String(a.latest))));return json(res,200,{items:result});
       }
-      const match=pathname.match(/^\/api\/telegram\/conversations\/(-?\d{1,20})(?:\/(patient|send|take|resume))?$/);if(!match)return fail(res,404,'Не найдено');
+      const match=pathname.match(/^\/api\/telegram\/conversations\/(-?\d{1,20})(?:\/(patient|send|take|resume|assign))?$/);if(!match)return fail(res,404,'Не найдено');
       const id=match[1],action=match[2];
-      if(req.method==='GET'&&!action){const result=await store.transact(state=>{const c=state.conversations[id];return !c?error(404,'Чат не найден'):response(200,{id:c.id,name:c.name,messages:c.messages,mode:initial(c).mode,handoff:c.handoff,autoEnabled,waitingAiActive:!!(autoEnabled&&tg&&c.mode==='waiting'&&!c.waitingPaused),patient:c.patient||null,patientVersion:Number.isSafeInteger(c.patientVersion)?c.patientVersion:0,patientSources:c.patientSources||{},patientVisibility:c.patientVisibility||{}});});return json(res,result.status,result.data);}
+      if(req.method==='GET'&&!action){const result=await tx(state=>{const c=state.conversations[id];return !c?error(404,'Чат не найден'):response(200,{id:c.id,name:c.name,messages:c.messages,mode:initial(c).mode,handoff:c.handoff,autoEnabled,waitingAiActive:!!(autoEnabled&&tg&&c.mode==='waiting'&&!c.waitingPaused),patient:c.patient||null,patientVersion:Number.isSafeInteger(c.patientVersion)?c.patientVersion:0,patientSources:c.patientSources||{},patientVisibility:c.patientVisibility||{},assigneeUserId:c.assigneeUserId||''});});return json(res,result.status,result.data);}
+      if(req.method==='POST'&&action==='assign'){const d=await body(req);if(typeof d.assigneeUserId!=='string')return fail(res,400,'Выберите сотрудника.');const r=await tx((s,u)=>{const c=s.conversations[id];if(!c)return error(404,'Чат не найден');if(d.assigneeUserId&&(!identity.VALID_ID.test(d.assigneeUserId)||!s.staffUsers[d.assigneeUserId]?.active))return error(400,'Выберите активного сотрудника.');c.assigneeUserId=d.assigneeUserId;identity.audit(s,u,'conversation_assigned','conversation',id);return response(200,{ok:true});});return json(res,r.status,r.data);}
       if(req.method==='POST'&&['take','resume'].includes(action)){
-        const result=await store.transact(state=>{const c=state.conversations[id];if(!c)return error(404,'Чат не найден');
+        const result=await tx(state=>{const c=state.conversations[id];if(!c)return error(404,'Чат не найден');
           if(action==='resume'&&(!autoEnabled||!tg||ai.configError))return error(503,ai.configError||'Автоответ ИИ не включён или Telegram не настроен.');
           if(state.jobs.some(j=>j.chatId===id&&(j.stage==='sending'||(action==='resume'&&j.stage==='generating'))))return error(409,'Завершается предыдущее действие; обновите чат через несколько секунд.');
           delete c.intake;delete c.awaitingContactReply;delete c.waitingPaused;c.modeVersion=(c.modeVersion||0)+1;state.jobs.filter(j=>j.chatId===id&&j.stage==='queued').forEach(j=>j.stage='done');
-          if(action==='resume'){c.mode='ai';c.handoff=null;}else{c.mode='assigned';if(!c.handoff)c.handoff={reason:'Сотрудник взял диалог в работу',summary:shortContext(c),at:new Date().toISOString()};}return response(200,{ok:true});});return json(res,result.status,result.data);
+          if(action==='resume'){c.mode='ai';c.handoff=null;}else{c.mode='assigned';if(!c.handoff)c.handoff={reason:'Сотрудник взял диалог в работу',summary:shortContext(c),at:new Date().toISOString()};}identity.audit(state,actor,action==='take'?'conversation_taken':'conversation_resumed','conversation',id);return response(200,{ok:true});});return json(res,result.status,result.data);
       }
       if(req.method==='POST'&&action==='patient'){
         const data=await body(req),fields=['name','phone','admin','doctor'];if(!data||typeof data!=='object'||Array.isArray(data)||fields.some(k=>typeof data[k]!=='string'||data[k].length>100)||!Number.isSafeInteger(data.expectedVersion)||data.expectedVersion<0)return fail(res,400,'Проверьте поля и версию карточки.');
         if(data.visibility!==undefined&&(!data.visibility||typeof data.visibility!=='object'||Array.isArray(data.visibility)||Object.keys(data.visibility).some(k=>!fields.includes(k))||fields.some(k=>typeof data.visibility[k]!=='boolean')))return fail(res,400,'Проверьте настройки отображения полей.');
-        const result=await store.transact(state=>{const c=state.conversations[id];if(!c)return error(404,'Чат не найден');const version=Number.isSafeInteger(c.patientVersion)?c.patientVersion:0;if(data.expectedVersion!==version)return error(409,'Карточка изменилась. Закройте окно и откройте заново, чтобы не потерять новые данные.');const next=Object.fromEntries(fields.map(k=>[k,data[k].trim()])),changed=fields.filter(k=>(c.patient?.[k]||'')!==next[k]);const visibilityChanged=data.visibility&&fields.some(k=>data.visibility[k]!==((c.patientVisibility||{})[k]!==false));c.patient=next;c.patientSources||={};changed.forEach(k=>{c.patientSources[k]={source:'staff',at:new Date().toISOString()};});if(data.visibility)c.patientVisibility=Object.fromEntries(fields.map(k=>[k,data.visibility[k]]));if(changed.length||visibilityChanged)c.patientVersion=version+1;return response(200,{patient:c.patient,patientSources:c.patientSources,patientVisibility:c.patientVisibility||{},patientVersion:Number.isSafeInteger(c.patientVersion)?c.patientVersion:0});});return json(res,result.status,result.data);
+        const result=await tx(state=>{const c=state.conversations[id];if(!c)return error(404,'Чат не найден');const version=Number.isSafeInteger(c.patientVersion)?c.patientVersion:0;if(data.expectedVersion!==version)return error(409,'Карточка изменилась. Закройте окно и откройте заново, чтобы не потерять новые данные.');const next=Object.fromEntries(fields.map(k=>[k,data[k].trim()])),changed=fields.filter(k=>(c.patient?.[k]||'')!==next[k]);const visibilityChanged=data.visibility&&fields.some(k=>data.visibility[k]!==((c.patientVisibility||{})[k]!==false));c.patient=next;c.patientSources||={};changed.forEach(k=>{c.patientSources[k]={source:'staff',at:new Date().toISOString()};});if(data.visibility)c.patientVisibility=Object.fromEntries(fields.map(k=>[k,data.visibility[k]]));if(changed.length||visibilityChanged){c.patientVersion=version+1;identity.audit(state,actor,'telegram_patient_updated','conversation',id);}return response(200,{patient:c.patient,patientSources:c.patientSources,patientVisibility:c.patientVisibility||{},patientVersion:Number.isSafeInteger(c.patientVersion)?c.patientVersion:0});});return json(res,result.status,result.data);
       }
       if(req.method==='POST'&&action==='send'){
         if(!tg)return fail(res,503,'TELEGRAM_BOT_TOKEN не настроен.');const b=await body(req),text=typeof b.text==='string'?b.text.trim():'',key=String(b.requestId||'');if(!text||text.length>4096||!/^[a-zA-Z0-9_-]{16,100}$/.test(key))return fail(res,400,'Проверьте текст сообщения и идентификатор запроса.');
-        const start=await store.transact(state=>{const c=state.conversations[id];if(!c)return error(404,'Чат не найден');if(state.sends[key])return error(409,'Этот запрос уже обрабатывался. Проверьте историю перед повторной отправкой.');if(state.jobs.some(j=>j.chatId===id&&j.stage==='sending'))return error(409,'ИИ уже отправляет ответ. Дождитесь результата и обновите чат.');delete c.intake;delete c.awaitingContactReply;delete c.waitingPaused;c.modeVersion=(c.modeVersion||0)+1;state.jobs.filter(j=>j.chatId===id&&j.stage==='queued').forEach(j=>j.stage='done');c.mode='assigned';if(!c.handoff)c.handoff={reason:'Сотрудник отвечает вручную',summary:shortContext(c),at:new Date().toISOString()};state.sends[key]={chatId:id,status:'pending',at:new Date().toISOString()};return response(200,{ok:true});});
+        const start=await tx(state=>{const c=state.conversations[id];if(!c)return error(404,'Чат не найден');if(state.sends[key])return error(409,'Этот запрос уже обрабатывался. Проверьте историю перед повторной отправкой.');if(state.jobs.some(j=>j.chatId===id&&j.stage==='sending'))return error(409,'ИИ уже отправляет ответ. Дождитесь результата и обновите чат.');delete c.intake;delete c.awaitingContactReply;delete c.waitingPaused;c.modeVersion=(c.modeVersion||0)+1;state.jobs.filter(j=>j.chatId===id&&j.stage==='queued').forEach(j=>j.stage='done');c.mode='assigned';if(!c.handoff)c.handoff={reason:'Сотрудник отвечает вручную',summary:shortContext(c),at:new Date().toISOString()};state.sends[key]={chatId:id,status:'pending',at:new Date().toISOString(),actorId:actor.id,actorName:actor.name};identity.audit(state,actor,'telegram_send_requested','conversation',id);return response(200,{ok:true});});
         if(start.status!==200)return json(res,start.status,start.data);
         let sent;try{sent=await telegram.send(id,text);}catch(_){sent=null;}
-        const finish=await store.transact(state=>{const c=state.conversations[id],entry=state.sends[key];if(!c||!entry)return error(502,'Результат отправки неизвестен. Проверьте Telegram перед повтором.');if(!sent){entry.status='unknown';return error(502,'Результат отправки неизвестен. Проверьте Telegram перед повтором.');}if(!sent.ok){entry.status='failed';return error(502,'Telegram не подтвердил отправку.');}entry.status='sent';c.messages.push({id:String(sent.result?.message_id||key),direction:'out',author:'admin',text,at:new Date().toISOString()});return response(200,{ok:true});});return json(res,finish.status,finish.data);
+        const finish=await store.transact(state=>{const c=state.conversations[id],entry=state.sends[key];if(!c||!entry)return error(502,'Результат отправки неизвестен. Проверьте Telegram перед повтором.');if(!sent){entry.status='unknown';return error(502,'Результат отправки неизвестен. Проверьте Telegram перед повтором.');}if(!sent.ok){entry.status='failed';return error(502,'Telegram не подтвердил отправку.');}entry.status='sent';c.messages.push({id:String(sent.result?.message_id||key),direction:'out',author:'admin',staffId:entry.actorId,staffName:entry.actorName,text,at:new Date().toISOString()});return response(200,{ok:true});});return json(res,finish.status,finish.data);
       }
       return fail(res,405,'Метод не поддерживается');
-    }catch(e){if(e.message==='too_large')return fail(res,413,'Слишком большой запрос');if(e.message==='bad_json')return fail(res,400,'Некорректный JSON');console.error('Ошибка запроса:',e.code||e.name||'error');return fail(res,502,'Ошибка сервиса или хранилища. Проверьте настройки и журналы Render.');}
+    }catch(e){if(e.httpStatus)return fail(res,e.httpStatus,e.message);if(e.message==='too_large')return fail(res,413,'Слишком большой запрос');if(e.message==='bad_json')return fail(res,400,'Некорректный JSON');console.error('Ошибка запроса:',e.code||e.name||'error');return fail(res,502,'Ошибка сервиса или хранилища. Проверьте настройки и журналы Render.');}
   });
   server.ready=store.ready;server.once('close',()=>{closed=true;clearInterval(timer);store.close().catch(()=>{});});return server;
 }

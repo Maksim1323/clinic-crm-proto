@@ -1,3 +1,4 @@
+const sessionFixture=require('./session-fixture.cjs');
 'use strict';
 const {test}=require('node:test');const assert=require('node:assert/strict');const {Pool}=require('pg');
 const {createServer}=require('../src/app');

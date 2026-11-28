@@ -26,10 +26,19 @@
     } return data;
   }
   window.crmApi=api;
+  window.crmUser=null;window.crmStaff=[];
+  const roleDefaults={administrator:new Set(['name','phone','admin','stage','nospam','inclinic']),curator:new Set(['name','phone','admin','doctor','stage','plan','bonuses','nospam','note']),manager:new Set(['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'])};
+  window.crmFieldAllowed=key=>{const u=window.crmUser;if(!u)return false;if(u.role==='administrator'&&['plan','bonuses'].includes(key))return false;return typeof u.preferences?.[key]==='boolean'?u.preferences[key]:!!roleDefaults[u.role]?.has(key);};
+  window.crmFillStaff=function(select,selected=''){select.replaceChildren(new Option('Не назначен',''));window.crmStaff.filter(u=>u.active).forEach(u=>select.add(new Option(u.name,u.id)));if(selected&&!window.crmStaff.some(u=>u.id===selected&&u.active))select.add(new Option('Неактивный сотрудник',selected));select.value=selected;};
+  async function authPost(url,data){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)}),value=await r.json();if(!r.ok)throw Error(value.error||'Ошибка входа');return value;}
+  let needsBootstrap=false;
+  async function setupLogin(){try{const r=await fetch('/api/auth/status'),v=await r.json();needsBootstrap=!v.configured;el('bootstrap-key-wrap').style.display=needsBootstrap?'':'none';el('bootstrap-name-wrap').style.display=needsBootstrap?'':'none';el('tg-login-title').textContent=needsBootstrap?'Создать управляющего':'Вход в CRM';el('login-hint').textContent=needsBootstrap?'Один раз укажите ADMIN_TOKEN и создайте личный логин и пароль (от 12 символов).':'Войдите под личной учётной записью.';el('crm-login-submit').textContent=needsBootstrap?'Создать и войти':'Войти';}catch(_){el('crm-login-error').textContent='Сервер недоступен.';}}
+  window.crmSetUser=function(user){window.crmUser=user;document.querySelector('.user-name').textContent=user?.name||'CRM';document.querySelector('.user-role').textContent=({administrator:'Администратор',curator:'Куратор',manager:'Управляющий'})[user?.role]||'';el('crm-prefs-btn').style.display=user?'':'none';el('crm-staff-btn').style.display=user?.role==='manager'?'':'none';document.querySelectorAll('#pf-plan,#pf-bonuses').forEach(e=>e.closest('.form-field').style.display=user?.role==='administrator'?'none':'');};
+
   window.getTelegramPatientOptions=()=>telegramItems.map(c=>({id:c.id,name:c.name}));
   function status(message) { el('tg-status').textContent=message; }
   function updateButtons() { el('tg-send-btn').disabled=!currentChat || !patientLoaded || isSending || isResuming;el('tg-resume').disabled=!currentChat || !patientLoaded || isSending || isResuming;el('tg-patient-edit').disabled=!currentChat || !patientLoaded; }
-  function showLogin() {el('crm-login-error').textContent='';el('tg-login-modal').classList.add('open');setTimeout(()=>el('tg-admin-token').focus(),30);}
+  function showLogin() {el('crm-login-error').textContent='';el('tg-login-modal').classList.add('open');setupLogin();setTimeout(()=>el('crm-login-username').focus(),30);}
   window.crmSessionAction = function() { if(adminToken) window.tgLogout(); else showLogin(); };
   window.openTelegramView = function() { showView('comms'); if(!adminToken)showLogin();else tgRefresh(); };
   // A public demo can be opened without a token; server-side chats remain inaccessible.
@@ -54,11 +63,12 @@
   };
   window.tgLogin = async function(){
     if(isLoggingIn)return;
-    const supplied=el('tg-admin-token').value;el('tg-admin-token').value='';
-    if(!supplied){el('crm-login-error').textContent='Введите ключ администратора.';return;}
+    const supplied={login:el('crm-login-username').value.trim(),password:el('crm-login-password').value,name:el('crm-login-name').value.trim(),setupToken:el('tg-admin-token').value};el('crm-login-password').value='';el('tg-admin-token').value='';
+    if(!supplied.login||!supplied.password){el('crm-login-error').textContent='Введите логин и пароль.';return;}
     isLoggingIn=true;el('crm-login-submit').disabled=true;el('crm-login-error').textContent='';
-    const version=++sessionVersion;adminToken=supplied;
+    const version=++sessionVersion;
     try {
+      const auth=await authPost(needsBootstrap?'/api/auth/bootstrap':'/api/auth/login',supplied);if(version!==sessionVersion)return;adminToken=auth.token;window.crmSetUser(auth.user);
       const data=await api('/api/telegram/conversations');
       if(version!==sessionVersion)return;
       await window.crmRefreshManual();
@@ -67,14 +77,14 @@
       status('Подключено к тестовому серверу. Карточки Telegram привязаны к отдельным тестовым чатам.');showInbox(data.items);
       if(!poller)poller=setInterval(()=>{if(adminToken){tgRefresh(true);window.crmRefreshManual().catch(()=>{});}},10000);
     } catch(e) {
-      if(version===sessionVersion){adminToken='';el('crm-login-error').textContent=e.message;}
+      if(version===sessionVersion){adminToken='';window.crmSetUser(null);el('crm-login-error').textContent=e.message;setupLogin();}
     } finally {isLoggingIn=false;el('crm-login-submit').disabled=false;}
   };
   window.tgShowDemo = function(){
     currentChat=null;patientLoaded=false;++patientRevision;window.tgClosePatient();renderTgPatient(null);el('demo-patient-col').style.display='none';el('comms-empty').style.display='';el('tg-patient-col').style.display='none';updateButtons();
   };
   window.tgLogout = function(){
-    ++sessionVersion;adminToken='';window.crmClearManual();window.tgShowDemo();el('tg-input').value='';el('tg-messages').replaceChildren();
+    if(adminToken)fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+adminToken}}).catch(()=>{});++sessionVersion;adminToken='';window.crmSetUser(null);window.crmStaff=[];window.crmClearManual();window.tgShowDemo();el('tg-input').value='';el('tg-messages').replaceChildren();
     telegramItems=[];el('tg-chat-name').textContent='Выберите диалог';el('tg-alert-count').style.display='none';
     el('tg-handoff-status').textContent='Выберите чат';el('tg-handoff-reason').textContent='';el('tg-handoff-summary').textContent='';
     el('tg-take').style.display='none';el('tg-resume').style.display='none';el('crm-session-btn').textContent='Войти';
@@ -90,13 +100,14 @@
   window.tgSelect = async function(id){window.tgClosePatient();currentChat=id;patientLoaded=false;++patientRevision;renderTgPatient(null);el('tg-chat-name').textContent='Загрузка диалога…';el('tg-messages').replaceChildren();el('tg-handoff-status').textContent='Загрузка…';el('tg-handoff-reason').textContent='';el('tg-handoff-summary').textContent='';el('tg-take').style.display='none';el('tg-resume').style.display='none';el('comms-empty').style.display='none';el('demo-patient-col').style.display='none';el('tg-patient-col').style.display='';el('tg-input').value='';updateButtons();renderInbox();await tgRefresh();};
   async function tgLoadMessages(){
     if(!currentChat)return;const chatId=currentChat, revision=patientRevision, data=await api('/api/telegram/conversations/'+encodeURIComponent(chatId));if(chatId!==currentChat || revision!==patientRevision)return;
-    renderTgPatient(data.patient || null,data.patientSources || {},data.patientVersion || 0,data.patientVisibility || {});patientLoaded=true;updateButtons();el('tg-chat-name').textContent=data.name;const labels={ai:'ИИ ведёт диалог',waiting:data.waitingAiActive?'🚩 Нужен человек · ИИ может отвечать':'🚩 Нужен человек',assigned:'В работе сотрудника'};el('tg-handoff-status').textContent=labels[data.mode] || 'Неизвестно';el('tg-handoff-reason').textContent=data.handoff?.reason || (data.autoEnabled ? 'Новые сообщения обрабатывает ИИ.' : 'Автоответ ИИ выключен.');el('tg-handoff-summary').textContent=data.handoff?.summary || '';el('tg-take').style.display=data.mode==='waiting'?'':'none';el('tg-resume').style.display=data.mode==='assigned'?'':'none';const feed=el('tg-messages'); const nearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight < 80;feed.replaceChildren();
+    renderTgPatient(data.patient || null,data.patientSources || {},data.patientVersion || 0,data.patientVisibility || {});window.crmFillStaff(el('tg-assignee-user'),data.assigneeUserId||'');patientLoaded=true;updateButtons();el('tg-chat-name').textContent=data.name;const labels={ai:'ИИ ведёт диалог',waiting:data.waitingAiActive?'🚩 Нужен человек · ИИ может отвечать':'🚩 Нужен человек',assigned:'В работе сотрудника'};el('tg-handoff-status').textContent=labels[data.mode] || 'Неизвестно';el('tg-handoff-reason').textContent=data.handoff?.reason || (data.autoEnabled ? 'Новые сообщения обрабатывает ИИ.' : 'Автоответ ИИ выключен.');el('tg-handoff-summary').textContent=data.handoff?.summary || '';el('tg-take').style.display=data.mode==='waiting'?'':'none';el('tg-resume').style.display=data.mode==='assigned'?'':'none';const feed=el('tg-messages'); const nearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight < 80;feed.replaceChildren();
     data.messages.forEach(m=>{
       const item=document.createElement('div');item.className='hist-item'; const top=document.createElement('div');top.className='hist-top';
-      top.append(text('span',m.direction==='in'?'✈️':'👤','hist-icon'),text('span',m.direction==='in'?'Входящее · Telegram':m.author==='ai'?'ИИ · Telegram':m.author==='system'?'Система · Telegram':'Администратор · Telegram','hist-title'),text('span',new Date(m.at).toLocaleString('ru-RU'),'hist-date'));
+      top.append(text('span',m.direction==='in'?'✈️':'👤','hist-icon'),text('span',m.direction==='in'?'Входящее · Telegram':m.author==='ai'?'ИИ · Telegram':m.author==='system'?'Система · Telegram':(m.staffName||'Сотрудник')+' · Telegram','hist-title'),text('span',new Date(m.at).toLocaleString('ru-RU'),'hist-date'));
       const content=text('div',m.text,'hist-body');content.style.whiteSpace='pre-wrap';item.append(top,content);feed.append(item);
     });if(nearBottom)feed.scrollTop=feed.scrollHeight;
   }
+  window.tgAssign=async function(){if(!currentChat||!patientLoaded)return;try{await api('/api/telegram/conversations/'+encodeURIComponent(currentChat)+'/assign','POST',{assigneeUserId:el('tg-assignee-user').value});toast('Ответственный сохранён');}catch(e){toast(e.message);await tgRefresh(true);}};
   window.tgTake = async function(){
     if(!currentChat || !patientLoaded)return;try{await api('/api/telegram/conversations/'+encodeURIComponent(currentChat)+'/take','POST',{});status('Диалог в работе сотрудника. ИИ поставлен на паузу.');await tgRefresh(true);}catch(e){status(e.message);toast(e.message);}
   };
@@ -111,9 +122,9 @@
   function renderTgPatient(patient,sources={},version=0,visibility={}) {
     selectedPatient=patient;selectedSources=sources;selectedPatientVersion=version;selectedVisibility=visibility;
     for(const [key,empty] of [['name','Не указано'],['phone','Не указан'],['admin','Не указан'],['doctor','Не указан']])el('tg-patient-'+key).textContent=patient?.[key] || empty;
-    for(const key of ['name','phone','admin','doctor'])el('tg-patient-'+key).closest('.profile-row').style.display=visibility[key]===false?'none':'';
+    for(const key of ['name','phone','admin','doctor'])el('tg-patient-'+key).closest('.profile-row').style.display=visibility[key]===false||!window.crmFieldAllowed(key)?'none':'';
     for(const key of ['name','phone']) {
-      el('tg-patient-'+key+'-source').style.display=visibility[key]===false?'none':'';
+      el('tg-patient-'+key+'-source').style.display=visibility[key]===false||!window.crmFieldAllowed(key)?'none':'';
       const source=selectedSources[key]?.source;
       el('tg-patient-'+key+'-source').textContent=!patient?.[key] ? '' : source==='telegram' ? 'Из Telegram · не проверено' : source==='staff' ? 'Указано сотрудником' : 'Источник не указан';
     }
@@ -148,6 +159,15 @@
     } catch(e){if(e.message!=='session_changed'){if(chat===currentChat)status(e.message);toast(e.message);}}
     finally{isSending=false;updateButtons();}
   };
+  const labels={name:'Имя',phone:'Телефон',age:'Возраст',gender:'Пол',channel:'Канал',admin:'Ответственный',doctor:'Врач',stage:'Этап',bonuses:'Бонусы',nps:'NPS',nospam:'Отказ от рассылок',inclinic:'В клинике',plan:'План лечения',note:'Заметка'};
+  window.crmOpenPreferences=function(){const box=el('crm-prefs-fields');box.replaceChildren();for(const [key,label] of Object.entries(labels)){if(window.crmUser?.role==='administrator'&&['plan','bonuses'].includes(key))continue;const row=document.createElement('label');row.className='form-check';const c=document.createElement('input');c.type='checkbox';c.dataset.pref=key;c.checked=window.crmFieldAllowed(key);row.append(c,document.createTextNode(label));box.append(row);}el('crm-prefs-error').textContent='';el('crm-prefs-modal').classList.add('open');};
+  window.crmClosePreferences=()=>{el('crm-old-password').value='';el('crm-new-password').value='';el('crm-prefs-modal').classList.remove('open');};
+  window.crmChangePassword=async function(){const currentPassword=el('crm-old-password').value,newPassword=el('crm-new-password').value;try{await api('/api/auth/password','POST',{currentPassword,newPassword});window.crmClosePreferences();window.tgLogout();el('crm-login-error').textContent='Пароль изменён. Войдите снова.';}catch(e){el('crm-prefs-error').textContent=e.message;}finally{el('crm-old-password').value='';el('crm-new-password').value='';}};
+  window.crmSavePreferences=async function(){const prefs={};el('crm-prefs-fields').querySelectorAll('input').forEach(c=>prefs[c.dataset.pref]=c.checked);try{const r=await api('/api/auth/preferences','POST',prefs);window.crmSetUser(r.user);window.crmClosePreferences();await window.crmRefreshManual();await tgRefresh(true);}catch(e){el('crm-prefs-error').textContent=e.message;}};
+  window.crmCloseStaff=()=>{el('staff-password').value='';el('crm-staff-modal').classList.remove('open');};
+  window.crmOpenStaff=async function(){el('crm-staff-modal').classList.add('open');el('staff-error').textContent='';el('crm-audit-list').textContent='';try{const data=await api('/api/manage/staff');const box=el('crm-staff-list');box.replaceChildren();data.users.forEach(user=>{const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap';row.append(text('span',user.name+' · '+user.login));const role=document.createElement('select');for(const [v,l] of [['administrator','Администратор'],['curator','Куратор'],['manager','Управляющий']])role.add(new Option(l,v));role.value=user.role;const button=text('button',user.active?'Отключить':'Включить','badge'),save=text('button','Изменить роль','badge');button.onclick=async()=>{try{await api('/api/manage/staff/'+user.id,'POST',{active:!user.active});await window.crmOpenStaff();}catch(e){el('staff-error').textContent=e.message;}};save.onclick=async()=>{try{await api('/api/manage/staff/'+user.id,'POST',{role:role.value});await window.crmOpenStaff();}catch(e){el('staff-error').textContent=e.message;}};const pass=document.createElement('input');pass.type='password';pass.placeholder='Новый пароль';pass.autocomplete='new-password';pass.style.cssText='width:150px;padding:5px';const reset=text('button','Сменить пароль','badge');reset.onclick=async()=>{try{await api('/api/manage/staff/'+user.id,'POST',{password:pass.value});pass.value='';await window.crmOpenStaff();}catch(e){pass.value='';el('staff-error').textContent=e.message;}};row.append(role,save,button,pass,reset);box.append(row);});}catch(e){el('staff-error').textContent=e.message;}};
+  window.crmCreateStaff=async function(){try{await api('/api/manage/staff','POST',{name:el('staff-name').value.trim(),login:el('staff-login').value.trim(),password:el('staff-password').value,role:el('staff-role').value});el('staff-password').value='';el('staff-login').value='';el('staff-name').value='';await window.crmOpenStaff();}catch(e){el('staff-error').textContent=e.message;}};
+  window.crmShowAudit=async function(){try{const data=await api('/api/manage/audit');el('crm-audit-list').textContent=data.items.map(x=>new Date(x.at).toLocaleString('ru-RU')+' · '+x.actorName+' · '+({account_created:'создал сотрудника',account_updated:'изменил сотрудника',password_changed:'сменил пароль',preferences_updated:'изменил настройки полей',record_created:'создал запись',record_updated:'изменил запись',automatic_stage_task_created:'создал задачу при смене этапа',telegram_patient_updated:'изменил карточку Telegram',conversation_assigned:'назначил ответственного',conversation_taken:'взял диалог',conversation_resumed:'вернул диалог ИИ',telegram_send_requested:'запросил отправку сообщения',webhook_setup:'настроил webhook'}[x.action]||x.action)+' · '+x.type+' '+x.resourceId).join('\n')||'Пока нет событий';}catch(e){el('staff-error').textContent=e.message;}};
   // One shared CRM entry point; Telegram does not need a separate login.
   showLogin();
 })();

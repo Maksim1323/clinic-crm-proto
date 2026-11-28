@@ -1,13 +1,14 @@
+const sessionFixture=require('./session-fixture.cjs');
 const {test}=require('node:test');const assert=require('node:assert/strict');
 const {JSDOM,ResourceLoader,VirtualConsole}=require('jsdom');const {createServer}=require('../src/app');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 test('Серверные ручные карточки и задачи доступны двум браузерам и сохраняют видимость',async t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crm-ui-test-')),token='test-admin-token-long-enough-123456';
   const app=createServer({env:{ADMIN_TOKEN:token},dataFile:path.join(dir,'db.json')});await new Promise(r=>app.listen(0,'127.0.0.1',r));
-  t.after(()=>{app.close();fs.rmSync(dir,{recursive:true,force:true})});const origin='http://127.0.0.1:'+app.address().port;
+  t.after(()=>{app.close();fs.rmSync(dir,{recursive:true,force:true})});const origin='http://127.0.0.1:'+app.address().port;await sessionFixture.session(origin,token);
   class LocalOnly extends ResourceLoader{fetch(url,opts){return url.startsWith(origin+'/')?super.fetch(url,opts):null;}}
   const errors=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
-  async function load(){const dom=await JSDOM.fromURL(origin+'/',{runScripts:'dangerously',resources:new LocalOnly(),pretendToBeVisual:true,virtualConsole:vc,beforeParse(w){w.fetch=(url,options)=>fetch(new URL(url,origin),options);}});await new Promise(r=>dom.window.addEventListener('load',r));dom.window.document.getElementById('tg-admin-token').value=token;await dom.window.tgLogin();return dom;}
+  async function load(){const dom=await JSDOM.fromURL(origin+'/',{runScripts:'dangerously',resources:new LocalOnly(),pretendToBeVisual:true,virtualConsole:vc,beforeParse(w){w.fetch=(url,options)=>fetch(new URL(url,origin),options);}});await new Promise(r=>dom.window.addEventListener('load',r));dom.window.document.getElementById('crm-login-username').value=sessionFixture.credentials.login;dom.window.document.getElementById('crm-login-password').value=sessionFixture.credentials.password;await dom.window.tgLogin();return dom;}
   const first=await load(),second=await load();t.after(()=>{first.window.close();second.window.close()});const w=first.window,d=w.document;
   assert.equal(d.getElementById('inbox-count').textContent,'0');w.openPatientModal('create');d.getElementById('pf-name').value='Локальный тест';d.getElementById('pf-phone').value='000';await w.savePatientCard();
   let list=await (await fetch(origin+'/api/manual',{headers:{Authorization:'Bearer '+token}})).json();const patientId=list.patients[0].id;

@@ -1,3 +1,4 @@
+const sessionFixture=require('./session-fixture.cjs');
 'use strict';
 const {test}=require('node:test');const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');

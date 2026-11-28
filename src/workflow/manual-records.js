@@ -1,7 +1,8 @@
 'use strict';
 // The prototype uses the same serialised state transaction as Telegram. No
-// external requests are made within transactions. This is not multi-user RBAC.
+// external requests are made within transactions. Role checks apply server-side.
 const crypto=require('node:crypto');
+const identity=require('./identity');
 const FIELDS=['name','phone','age','gender','channelIcon','channelLabel','timeLabel','admin','doctor','preview','createdAt','plan','note'];
 const visibilityFields=['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'];
 const safeId=/^(?:p|t)_[a-f0-9]{32}$/;
@@ -35,21 +36,32 @@ function taskInput(raw,s){
   return {title,assignee:assignee||'—',patientId,dueAt,due,overdue:!!raw.overdue,done:!!raw.done,source};
 }
 function patientName(s,id){if(!id)return '—';if(id.startsWith('tg_')){const c=s.conversations[id.slice(3)];return c?.patient?.name||c?.name||'Telegram';}return s.manualPatients[id]?.name||'—';}
-function publicRecord(record){const {legacyRecord,...visible}=record;return visible;}
-function list(s){ensure(s);return {patients:Object.values(s.manualPatients).map(publicRecord),tasks:Object.values(s.manualTasks).map(t=>({...publicRecord(t),patient:patientName(s,t.patientId)})),employees:Object.values(s.manualEmployees)};}
-function save(s,kind,id,data){
+function publicRecord(record,actor){const {legacyRecord,...visible}=record;if(actor?.role==='administrator'){delete visible.plan;delete visible.bonuses;}return visible;}
+function list(s,actor){ensure(s);return {patients:Object.values(s.manualPatients).map(p=>publicRecord(p,actor)),tasks:Object.values(s.manualTasks).map(t=>({...publicRecord(t,actor),patient:patientName(s,t.patientId)})),employees:Object.values(s.manualEmployees),staff:Object.values(s.staffUsers||{}).filter(u=>u.active).map(u=>({id:u.id,name:u.name,role:u.role,active:true}))};}
+function save(s,kind,id,data,actor){
   ensure(s);if(!safeId.test(id)||(kind==='patient'&&!id.startsWith('p_'))||(kind==='task'&&!id.startsWith('t_')))return bad(400,'Неверный идентификатор');
   if(!data||typeof data!=='object'||Array.isArray(data))return bad(400,'Некорректный запрос');
   const collection=kind==='patient'?s.manualPatients:s.manualTasks,old=collection[id],expected=data.expectedVersion;
   if(old ? !Number.isSafeInteger(expected)||expected!==old.version : expected!==null)return bad(409,'Запись изменилась или уже существует. Скопируйте несохранённый текст, откройте её заново и повторите.');
-  const next=kind==='patient'?patientInput(data.record):taskInput(data.record,s);if(!next)return bad(400,'Проверьте поля, длину текста и связь с пациентом.');
-  next.id=id;next.version=old?old.version+1:1;if(kind==='task')next.employeeId=employeeFor(s,next.assignee);if(old?.legacyRecord)next.legacyRecord=old.legacyRecord;collection[id]=next;
-  if(kind==='patient'&&data.createStageTask===true&&old&&old.stageNum!==next.stageNum){
-    const taskId='t_'+crypto.randomUUID().replaceAll('-','');s.manualTasks[taskId]={id:taskId,version:1,title:'Проверить этап: '+({1:'Первичный приём',2:'Продажа плана лечения',3:'Лечение',4:'Профосмотр',5:'Потенциальный клиент'}[next.stageNum]),patientId:id,assignee:next.admin||'—',dueAt:null,due:'без срока',overdue:false,done:false,source:'Смена этапа',employeeId:employeeFor(s,next.admin)};
+  if(!data.record||typeof data.record!=='object'||Array.isArray(data.record))return bad(400,'Проверьте данные.');
+  let record=data.record;
+  if(kind==='patient'&&actor?.role==='administrator'){
+    if(Object.hasOwn(record,'plan')||Object.hasOwn(record,'bonuses'))return bad(403,'Нет прав на поля плана и финансов.');
+    record={...record,plan:old?.plan||'',bonuses:old?.bonuses||0,visibility:{...(record.visibility||{}),...(old?.visibility?.plan===undefined?{}:{plan:old.visibility.plan}),...(old?.visibility?.bonuses===undefined?{}:{bonuses:old.visibility.bonuses})}};
   }
-  return ok({record:kind==='task'?{...publicRecord(next),patient:patientName(s,next.patientId)}:publicRecord(next)});
+  const assignment=record.assigneeUserId??old?.assigneeUserId??'';
+  if(typeof assignment!=='string'||(assignment&&(!identity.VALID_ID.test(assignment)||!s.staffUsers?.[assignment]?.active&&old?.assigneeUserId!==assignment)))return bad(400,'Выберите активного сотрудника.');
+  const next=kind==='patient'?patientInput(record):taskInput(record,s);if(!next)return bad(400,'Проверьте поля, длину текста и связь с пациентом.');
+  next.assigneeUserId=assignment;if(assignment)next[kind==='task'?'assignee':'admin']=s.staffUsers[assignment].name;next.id=id;next.version=old?old.version+1:1;if(kind==='task')next.employeeId=employeeFor(s,next.assignee);if(old?.legacyRecord)next.legacyRecord=old.legacyRecord;collection[id]=next;
+  if(kind==='patient'&&data.createStageTask===true&&old&&old.stageNum!==next.stageNum){
+    const taskId='t_'+crypto.randomUUID().replaceAll('-','');s.manualTasks[taskId]={id:taskId,version:1,title:'Проверить этап: '+({1:'Первичный приём',2:'Продажа плана лечения',3:'Лечение',4:'Профосмотр',5:'Потенциальный клиент'}[next.stageNum]),patientId:id,assignee:next.admin||'—',dueAt:null,due:'без срока',overdue:false,done:false,source:'Смена этапа',assigneeUserId:next.assigneeUserId||'',employeeId:employeeFor(s,next.admin)};
+    if(actor)identity.audit(s,actor,'automatic_stage_task_created','task',taskId);
+  }
+  if(actor)identity.audit(s,actor,old?'record_updated':'record_created',kind,id);
+  return ok({record:kind==='task'?{...publicRecord(next,actor),patient:patientName(s,next.patientId)}:publicRecord(next,actor)});
 }
-function importOne(s,data){
+function importOne(s,data,actor){
+  if(actor?.role==='administrator')return bad(403,'Импорт старых карточек и задач доступен куратору или управляющему.');
   ensure(s);if(!data||!['patient','task'].includes(data.kind)||typeof data.scope!=='string'||!/^[a-f0-9]{32}$/.test(data.scope)||typeof data.legacyId!=='string'||!data.legacyId||data.legacyId.length>200)return bad(400,'Некорректные данные импорта.');
   const id=idFromLegacy(data.scope,data.kind,data.legacyId),collection=data.kind==='patient'?s.manualPatients:s.manualTasks;
   if(collection[id])return ok({status:'exists',id});
@@ -60,7 +72,7 @@ function importOne(s,data){
     if(!s.manualPatients[linked])return bad(409,'Связанная старая карточка не импортирована; задача оставлена в браузере.');
     record={...record,patientId:linked};
   }
-  const result=save(s,data.kind,id,{expectedVersion:null,record});if(result.status!==200)return result;
+  const result=save(s,data.kind,id,{expectedVersion:null,record},actor);if(result.status!==200)return result;
   // Retain the original imported data, including any legacy fields not used by the current UI.
   collection[id].legacyRecord=data.record;
   return ok({status:'imported',id});

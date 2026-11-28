@@ -1,3 +1,4 @@
+const sessionFixture=require('./session-fixture.cjs');
 'use strict';
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
@@ -23,7 +24,7 @@ test('Кнопки Telegram работают без системных диал�
   const app = createServer({env, fetch:mockFetch, dataFile:path.join(dir,'data.json')});
   await new Promise(resolve => app.listen(0, '127.0.0.1', resolve));
   t.after(()=>{app.close(); fs.rmSync(dir,{recursive:true,force:true});});
-  const base = 'http://127.0.0.1:' + app.address().port;
+  const base = 'http://127.0.0.1:' + app.address().port;await sessionFixture.session(base,token);
   const headers = {Authorization:'Bearer ' + token};
   const incoming = {update_id:12345, message:{message_id:1,chat:{id:123,type:'private'},from:{first_name:'Тест'},text:'Позовите администратора'}};
   const webhook = await fetch(base+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify(incoming)});
@@ -57,9 +58,9 @@ test('Кнопки Telegram работают без системных диал�
   assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true,'единый вход открыт при загрузке');
   assert.match(d.getElementById('tg-login-title').textContent,/Вход в CRM/);
   assert.equal(d.querySelector('#inbox-list [data-source="telegram"]'),null,'приватный чат не показан без входа');
-  d.getElementById('tg-admin-token').value='incorrect-token';await w.tgLogin();
+  d.getElementById('crm-login-username').value=sessionFixture.credentials.login;d.getElementById('crm-login-password').value='incorrect-token';await w.tgLogin();
   assert.match(d.getElementById('crm-login-error').textContent,/Неверный/);assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true);
-  d.getElementById('tg-admin-token').value=token;await w.tgLogin();
+  d.getElementById('crm-login-username').value=sessionFixture.credentials.login;d.getElementById('crm-login-password').value=sessionFixture.credentials.password;await w.tgLogin();
   assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),false);
   assert.equal(d.getElementById('crm-session-btn').textContent,'Выйти');
   assert.equal((await fetch(base+'/api/telegram/conversations')).status,401,'чаты закрыты на сервере без ключа');
@@ -124,9 +125,9 @@ test('Кнопки Telegram работают без системных диал�
   await w.tgSelect('123');assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');assert.notEqual(d.getElementById('tg-patient-name').closest('.profile-row').style.display,'none','видимость каждой карточки независима');
   d.getElementById('tg-patient-edit').click();await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),false,'форма закрыта при смене чата');assert.equal(d.getElementById('tg-patient-name').textContent,'Новая карточка');
 
-  let release;const oldFetch=w.fetch;w.fetch=()=>new Promise(resolve=>{release=resolve;});
+  let release;const oldFetch=w.fetch;w.fetch=(url,options)=>String(url).includes('/api/telegram/conversations')?new Promise(resolve=>{release=resolve;}):oldFetch(url,options);
   const delayedRefresh=w.tgRefresh();w.tgLogout();release({ok:true,json:async()=>({items:[{id:'999',name:'stale private chat',preview:'secret',mode:'waiting'}]})});await delayedRefresh;w.fetch=oldFetch;
   assert.doesNotMatch(d.getElementById('inbox-list').textContent,/stale private chat/,'данные старой сессии не появляются после выхода');
   assert.equal(d.getElementById('tg-patient-col').style.display,'none');assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true);assert.equal(d.querySelector('#inbox-list [data-source=telegram]'),null);assert.equal(d.getElementById('inbox-count').textContent,'0');
-  w.closeTelegramLogin();assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),false);d.getElementById('crm-session-btn').click();assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true);
+  w.closeTelegramLogin();assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),false);d.getElementById('crm-session-btn').click();assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),true);await new Promise(r=>setTimeout(r,100));
 });

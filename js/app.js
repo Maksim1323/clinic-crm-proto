@@ -16,7 +16,8 @@ const STAGES = [
     let pendingStage = null;
     const localVisibilityFields=['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'];
     const localDefaultHidden=new Set(['gender','channel','nps','inclinic','note']);
-    function localFieldVisible(p,key){return typeof p?.visibility?.[key]==='boolean'?p.visibility[key]:!localDefaultHidden.has(key);}
+    function cardFieldVisible(p,key){return typeof p?.visibility?.[key]==='boolean'?p.visibility[key]:!localDefaultHidden.has(key);}
+    function localFieldVisible(p,key){return (window.crmFieldAllowed?window.crmFieldAllowed(key):true) && cardFieldVisible(p,key);}
     function readLocalVisibility(){return Object.fromEntries(localVisibilityFields.map(key=>[key,document.getElementById('pf-show-'+key).checked]));}
 
 
@@ -31,9 +32,9 @@ const STAGES = [
     window.crmClearManual=function(){manualReady=false;++manualRevision;DB.patients={};DB.inboxOrder=[];TASKS=[];currentPatientId=null;closePatientModal();closeTaskModal();document.getElementById('import-local-btn').style.display='none';document.getElementById('import-result').textContent='';document.getElementById('history-feed').replaceChildren();document.getElementById('task-staff-options').replaceChildren();document.getElementById('demo-patient-col').style.display='none';document.getElementById('comms-empty').style.display='';renderInbox();renderTasks();renderKanban();};
     window.crmRefreshManual=async function(){
       const revision=manualRevision,seq=++manualFetchSeq,data=await window.crmApi('/api/manual');if(revision!==manualRevision||seq<manualAppliedSeq)return;manualAppliedSeq=seq;
-      const staff=document.getElementById('task-staff-options');staff.replaceChildren();(data.employees||[]).forEach(e=>staff.append(new Option(e.name,e.name)));
+      window.crmStaff=data.staff||[];const staff=document.getElementById('task-staff-options');staff.replaceChildren();(data.employees||[]).forEach(e=>staff.append(new Option(e.name,e.name)));
       DB.patients=Object.fromEntries(data.patients.map(p=>[p.id,p]));DB.inboxOrder=data.patients.map(p=>p.id).reverse();TASKS=data.tasks.slice().reverse();manualReady=true;
-      document.getElementById('import-local-btn').style.display=hasLegacyData()?'':'none';renderInbox();renderTasks();renderKanban();
+      document.getElementById('import-local-btn').style.display=hasLegacyData()&&window.crmUser?.role!=='administrator'?'':'none';renderInbox();renderTasks();renderKanban();
       if(currentPatientId && DB.patients[currentPatientId] && !(window.tgHasSelectedChat&&window.tgHasSelectedChat()))renderPatient(currentPatientId,false);
     };
     function hasLegacyData(){try{return !!(localStorage.getItem(STORAGE_KEY)||localStorage.getItem(taskKey));}catch(_){return false;}}
@@ -126,7 +127,8 @@ const STAGES = [
         document.getElementById('pf-note').value = p.note || '';
       }
       const shownPatient=patientModalMode==='edit'?DB.patients[currentPatientId]:null;
-      localVisibilityFields.forEach(key=>{document.getElementById('pf-show-'+key).checked=localFieldVisible(shownPatient,key);});
+      window.crmFillStaff(document.getElementById('pf-assignee-user'),shownPatient?.assigneeUserId||'');
+      localVisibilityFields.forEach(key=>{document.getElementById('pf-show-'+key).checked=cardFieldVisible(shownPatient,key);});
       modal.classList.add('open');
       setTimeout(() => document.getElementById('pf-name').focus(), 50);
     }
@@ -143,6 +145,8 @@ const STAGES = [
       const old=creating?null:DB.patients[id];if(!creating&&!old){showManualError('patient-save-error','Карточка недоступна.');return;}
       const ch=document.getElementById('pf-channel').value,meta=CHANNEL_META[ch]||CHANNEL_META.call,gender=document.getElementById('pf-gender').value,npsRaw=document.getElementById('pf-nps').value;
       const p={...(old||{}),id,name,phone,visibility:readLocalVisibility(),age:document.getElementById('pf-age').value.trim()||'—',gender:gender||'',emoji:gender==='female'?'👩':gender==='male'?'👨':'👤',channelIcon:meta.icon,channelLabel:meta.label,timeLabel:old?.timeLabel||'сейчас',unread:old?.unread||0,statusInClinic:document.getElementById('pf-inclinic').checked,admin:document.getElementById('pf-admin').value.trim()||'—',doctor:document.getElementById('pf-doctor').value.trim()||'—',stageNum:parseInt(document.getElementById('pf-stage').value,10)||1,stageTotal:5,noSpam:document.getElementById('pf-nospam').checked,bonuses:parseInt(document.getElementById('pf-bonuses').value,10)||0,nps:npsRaw===''?null:parseInt(npsRaw,10),preview:old?.preview||'Новая карточка',createdAt:old?.createdAt||new Date().toLocaleDateString('ru-RU'),plan:document.getElementById('pf-plan').value.trim(),note:document.getElementById('pf-note').value.trim(),history:[...(old?.history||[])]};
+      p.assigneeUserId=document.getElementById('pf-assignee-user').value;
+      if(window.crmUser?.role==='administrator'){delete p.plan;delete p.bonuses;}
       p.history.unshift({type:'system',icon:creating?'📋':'✏️',title:creating?'Карточка создана':'Карточка обновлена',date:nowLabel(),body:creating?'Пациент добавлен в CRM':'Данные пациента изменены'});
       if(creating&&p.note)p.history.unshift({type:'note',icon:'📝',title:'Заметка',date:nowLabel(),body:escapeHtml(p.note)});
       patientSaving=true;document.getElementById('patient-save-button').disabled=true;showManualError('patient-save-error','');
@@ -486,7 +490,7 @@ const STAGES = [
     function addDemoTask(){openTaskEditor();}
     function openTaskEditor(id){
       if(!requireManual())return;const task=id?TASKS.find(t=>t.id===id):null;if(id&&!task)return;editingTaskId=task?task.id:null;taskEditVersion=task?.version??null;taskDraftId=task?null:newId('t');showManualError('task-save-error','');
-      document.getElementById('task-modal-title').textContent=task?'Редактирование задачи':'Новая задача';document.getElementById('task-title').value=task?.title||'';document.getElementById('task-assignee').value=task?.assignee==='—'?'':task?.assignee||'';document.getElementById('task-due').value=localInputValue(task?.dueAt);
+      document.getElementById('task-modal-title').textContent=task?'Редактирование задачи':'Новая задача';window.crmFillStaff(document.getElementById('task-assignee-user'),task?.assigneeUserId||'');document.getElementById('task-title').value=task?.title||'';document.getElementById('task-assignee').value=task?.assignee==='—'?'':task?.assignee||'';document.getElementById('task-due').value=localInputValue(task?.dueAt);
       const legacy=task&&!task.dueAt&&task.due&&task.due!=='без срока'?task.due:'';document.getElementById('task-legacy-due').textContent=legacy?'Прежний срок: '+legacy+' (без точной даты)':'';document.getElementById('task-clear-legacy-wrap').style.display=legacy?'':'none';document.getElementById('task-clear-legacy').checked=false;
       document.getElementById('task-open-patient').style.display=task?.patientId?'':'none';const select=document.getElementById('task-patient');select.replaceChildren(new Option('Без пациента',''));
       Object.values(DB.patients).forEach(p=>select.add(new Option(p.name+' · карточка',p.id)));(window.getTelegramPatientOptions?.()||[]).forEach(p=>select.add(new Option(p.name+' · Telegram','tg_'+p.id)));
@@ -499,7 +503,7 @@ const STAGES = [
       const dateValue=document.getElementById('task-due').value,date=dateValue?new Date(dateValue):null;if(date&&Number.isNaN(date.getTime())){showManualError('task-save-error','Проверьте срок');return;}
       const task=editingTaskId&&TASKS.find(t=>t.id===editingTaskId);if(editingTaskId&&!task){showManualError('task-save-error','Задача недоступна');return;}
       const keepLegacy=task&&!task.dueAt&&task.due&&task.due!=='без срока'&&!date&&!document.getElementById('task-clear-legacy').checked;
-      const record={...task,title,assignee:document.getElementById('task-assignee').value.trim()||'—',patientId:document.getElementById('task-patient').value,dueAt:date?date.toISOString():null,due:date?date.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):keepLegacy?task.due:'без срока',overdue:keepLegacy?task.overdue:!!(date&&date.getTime()<Date.now()),done:task?.done||false,source:task?.source||'Вручную'};
+      const record={...task,title,assigneeUserId:document.getElementById('task-assignee-user').value,assignee:document.getElementById('task-assignee').value.trim()||'—',patientId:document.getElementById('task-patient').value,dueAt:date?date.toISOString():null,due:date?date.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):keepLegacy?task.due:'без срока',overdue:keepLegacy?task.overdue:!!(date&&date.getTime()<Date.now()),done:task?.done||false,source:task?.source||'Вручную'};
       const id=editingTaskId||taskDraftId;taskSaving=true;document.getElementById('task-save-button').disabled=true;showManualError('task-save-error','');
       try{await window.crmApi('/api/manual/tasks/'+id,'PUT',{record,expectedVersion:taskEditVersion});await window.crmRefreshManual();closeTaskModal();filterTasks('all');toast('Задача сохранена');}
       catch(e){if(e.message!=='session_changed')showManualError('task-save-error',e.message);}

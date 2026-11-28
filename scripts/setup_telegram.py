@@ -22,19 +22,24 @@ def main():
     print('Внимание: webhook этого бота будет заменён. Используйте только тестового бота.')
     if input('Продолжить? Введите ДА: ').strip().upper() != 'ДА':
         print('Отменено.'); return 0
-    token = getpass.getpass('ADMIN_TOKEN (не отображается при вводе): ')
-    request = urllib.request.Request(base+'/api/setup-webhook', data=b'{}', headers={'Authorization':'Bearer '+token, 'Content-Type':'application/json'}, method='POST')
+    login = input('Логин управляющего: ').strip()
+    password = getpass.getpass('Пароль управляющего (не отображается): ')
+    opener = urllib.request.build_opener(NoRedirect())
     try:
-        # Do not follow redirects carrying the admin token to another address.
-        with urllib.request.build_opener(NoRedirect()).open(request, timeout=35) as response:
+        payload = json.dumps({'login': login, 'password': password}).encode('utf-8')
+        auth = urllib.request.Request(base+'/api/auth/login', data=payload, headers={'Content-Type':'application/json'}, method='POST')
+        with opener.open(auth, timeout=35) as response:
+            token = json.load(response)['token']
+        request = urllib.request.Request(base+'/api/setup-webhook', data=b'{}', headers={'Authorization':'Bearer '+token, 'Content-Type':'application/json'}, method='POST')
+        with opener.open(request, timeout=35) as response:
             result = json.load(response)
         if result.get('ok') is True:
             print('Бот подключён. Напишите ему тестовое сообщение.')
             return 0
         print('Сервер не подтвердил подключение. Проверьте настройки.', file=sys.stderr)
     except urllib.error.HTTPError as error:
-        print(f'Подключение не выполнено (HTTP {error.code}). Проверьте ADMIN_TOKEN и настройки сервиса.', file=sys.stderr)
-    except (urllib.error.URLError, ValueError, TimeoutError):
+        print(f'Подключение не выполнено (HTTP {error.code}). Проверьте учётную запись управляющего и настройки сервиса.', file=sys.stderr)
+    except (urllib.error.URLError, ValueError, KeyError, TimeoutError):
         print('Не удалось обратиться к серверу. Проверьте его HTTPS-адрес и соединение.', file=sys.stderr)
     return 1
 
