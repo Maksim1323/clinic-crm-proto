@@ -125,6 +125,7 @@ function createServer(options={}) {
   const timer=setInterval(schedule,2000);timer.unref();store.ready.then(schedule).catch(()=>{});
   function files(req,res,pathname){const allowed={'/':['index.html','text/html; charset=utf-8'],'/index.html':['index.html','text/html; charset=utf-8'],'/css/app.css':['css/app.css','text/css; charset=utf-8'],'/js/app.js':['js/app.js','text/javascript; charset=utf-8'],'/js/telegram.js':['js/telegram.js','text/javascript; charset=utf-8'],'/js/ai-settings-ui.js':['js/ai-settings-ui.js','text/javascript; charset=utf-8'],'/js/staff-assistant-ui.js':['js/staff-assistant-ui.js','text/javascript; charset=utf-8']};if(!allowed[pathname])return false;const [name,type]=allowed[pathname];fs.readFile(path.join(__dirname,'..',name),(err,content)=>{if(err){fail(res,404,'Файл не найден');return;}res.writeHead(200,{'content-type':type,'cache-control':'no-cache','x-content-type-options':'nosniff'});res.end(content);});return true;}
   const server=http.createServer(async(req,res)=>{
+    res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'");
     const pathname=new URL(req.url,'http://localhost').pathname;
     try{
       await store.ready;
@@ -177,14 +178,14 @@ function createServer(options={}) {
         const snapshot=await store.transact(s=>{identity.ensure(s);return {count:identity.currentFailures(s,d.login).length,user:Object.values(s.staffUsers).find(u=>u.login.toLowerCase()===d.login.toLowerCase())||null};});
         if(snapshot.count>=10)return fail(res,429,'Слишком много попыток. Подождите минуту.');
         const verified=await identity.passwordMatches(d.password,snapshot.user?.password||{salt:'00000000000000000000000000000000',hash:'0'.repeat(64)});
-        const r=await store.transact(s=>{identity.ensure(s);const u=snapshot.user&&s.staffUsers[snapshot.user.id];if(!verified||!u?.active||u.password.hash!==snapshot.user.password.hash){identity.failure(s,d.login);return null;}delete s.staffLoginFailures[identity.hash(d.login.toLowerCase())];return {user:identity.publicUser(u),token:identity.issue(s,u)};});
+        const r=await store.transact(s=>{identity.ensure(s);const u=snapshot.user&&s.staffUsers[snapshot.user.id];if(!verified||!u?.active||u.password.hash!==snapshot.user.password.hash){const first=identity.currentFailures(s,d.login).length===0;identity.failure(s,d.login);if(first)identity.audit(s,{id:'anonymous',name:'Неизвестный'},'login_failed','auth','');return null;}delete s.staffLoginFailures[identity.hash(d.login.toLowerCase())];identity.audit(s,u,'login_success','auth','');return {user:identity.publicUser(u),token:identity.issue(s,u)};});
         return r?json(res,200,r):fail(res,401,'Неверный логин или пароль.');
       }
       const token=(req.headers.authorization||'').replace(/^Bearer /,'');let actor;
       const tx=fn=>store.transact(s=>{const u=identity.resolve(s,token);if(!u)throw deny(401,'Сессия закончилась. Войдите снова.');actor=u;return fn(s,u);});
       await tx(()=>null);
       if(req.method==='GET'&&pathname==='/api/auth/me')return json(res,200,await tx((s,u)=>identity.publicUser(u)));
-      if(req.method==='POST'&&pathname==='/api/auth/logout'){await tx(s=>{delete s.staffSessions[identity.hash(token)];});return json(res,200,{ok:true});}
+      if(req.method==='POST'&&pathname==='/api/auth/logout'){await tx((s,u)=>{delete s.staffSessions[identity.hash(token)];identity.audit(s,u,'logout','auth','');});return json(res,200,{ok:true});}
       if(req.method==='POST'&&pathname==='/api/auth/password'){
         const d=await body(req);if(typeof d.currentPassword!=='string'||Buffer.byteLength(d.currentPassword)>512||typeof d.newPassword!=='string'||d.newPassword.length<12||Buffer.byteLength(d.newPassword)>512)return fail(res,400,'Новый пароль: не менее 12 символов.');
         const previous=actor.password,valid=await identity.passwordMatches(d.currentPassword,previous);if(!valid)return fail(res,403,'Неверный текущий пароль.');const secret=await identity.passwordHash(d.newPassword);
