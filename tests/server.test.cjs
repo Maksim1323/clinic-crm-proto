@@ -1,8 +1,9 @@
+const sessionFixture=require('./session-fixture.cjs');
 'use strict';
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const fs=require('node:fs');const os=require('node:os');const path=require('node:path');
-const {createServer}=require('./server');
+const {createServer}=require('../src/app');
 test('Telegram, Gemini и ручное подтверждение: серверный сценарий',async t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crm-test-')), dataFile=path.join(dir,'data.json');
   const admin='test-admin-token-with-more-than-24-chars', secret='test_webhook_secret_1234567890', calls=[];
@@ -20,13 +21,20 @@ test('Telegram, Gemini и ручное подтверждение: сервер�
   const incoming=()=>req('/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify(u)});
   assert.equal((await incoming()).status,200);await incoming();
   x=await req('/api/telegram/conversations/123',{headers:authorized});assert.equal(x.data.messages.length,1);
-  x=await req('/api/telegram/conversations/123/draft',{method:'POST',headers:jsonHeaders,body:'{}'});assert.equal(x.data.draft,'Тестовый черновик');assert.equal(calls.filter(c=>c.url.includes('sendMessage')).length,0,'ИИ не отправляет ответ автоматически');
+  assert.equal((await req('/api/telegram/conversations/123/draft',{method:'POST',headers:jsonHeaders,body:'{}'})).status,404);
+  const patient={name:'Тест',phone:'000',admin:'Администратор',doctor:'Врач'};const patientInput={...patient,expectedVersion:0};
+  assert.equal((await req('/api/telegram/conversations/123/patient',{method:'POST',headers:jsonHeaders,body:JSON.stringify({...patientInput,name:'x'.repeat(101)})})).status,400);
+  assert.equal((await req('/api/telegram/conversations/123/patient',{method:'POST',headers:jsonHeaders,body:JSON.stringify(patientInput)})).status,200);
+  assert.deepEqual((await req('/api/telegram/conversations/123',{headers:authorized})).data.patient,patient);
+  assert.deepEqual(JSON.parse(fs.readFileSync(dataFile,'utf8')).conversations['123'].patient,patient);
   const msg={text:'Проверенный ответ',requestId:'aabbccddeeff11223344556677889900'};
   x=await req('/api/telegram/conversations/123/send',{method:'POST',headers:jsonHeaders,body:JSON.stringify(msg)});assert.equal(x.status,200);
   x=await req('/api/telegram/conversations/123/send',{method:'POST',headers:jsonHeaders,body:JSON.stringify(msg)});assert.equal(x.status,409);assert.equal(calls.filter(c=>c.url.includes('sendMessage')).length,1,'защита от повтора');
   x=await req('/api/telegram/conversations/123',{headers:authorized});assert.equal(x.data.messages.length,2);assert.equal(x.data.messages[1].text,'Проверенный ответ');
   assert.ok(fs.readFileSync(dataFile,'utf8').includes('Добрый день'),'история сохранена на диск');
-  const denied=await fetch(root+'/.env');assert.equal(denied.status,404,'секретные файлы не раздаются');
+  const page=await fetch(root+'/');assert.equal(page.status,200,'страница доступна');
+  for(const asset of ['/css/app.css','/js/app.js','/js/telegram.js']) assert.equal((await fetch(root+asset)).status,200,'доступен '+asset);
+  for(const hidden of ['/.env','/src/app.js','/tests/server.test.cjs','/package.json']) assert.equal((await fetch(root+hidden)).status,404,'сервер не раздаёт '+hidden);
 });
 
 test('Автоответ, триггеры, передача и возврат ИИ',async t=>{
@@ -52,10 +60,10 @@ test('Автоответ, триггеры, передача и возврат �
   async function wait(predicate){const deadline=Date.now()+2000;while(Date.now()<deadline){if(await predicate())return;await new Promise(r=>setTimeout(r,10));}assert.fail('состояние не появилось');}
   await incoming(123,'Добрый день');await wait(async()=>sent.length===1);assert.match(sent[0].text,/Здравствуйте/);let c=await chat(123);assert.equal(c.mode,'ai');assert.equal(c.messages.at(-1).author,'ai');
   await incoming(123,'Хочу поговорить с администратором');c=await chat(123);assert.equal(c.mode,'waiting');assert.match(c.handoff.reason,/сотрудника/);assert.match(c.handoff.summary,/администратором/);
-  await wait(async()=>sent.length===2);assert.match(sent[1].text,/сотруднику/);await incoming(123,'Когда сможете ответить?');await new Promise(r=>setTimeout(r,40));assert.equal(sent.length,2,'нет сообщений ИИ после передачи');
+  await wait(async()=>sent.length===2);assert.match(sent[1].text,/сотруднику/);await incoming(123,'Когда сможете ответить?');await wait(async()=>sent.length===3);assert.equal((await chat(123)).mode,'waiting','передача остаётся активной');
   await req('/api/telegram/conversations/123/take',{method:'POST',headers,body:'{}'});assert.equal((await chat(123)).mode,'assigned');
-  await req('/api/telegram/conversations/123/resume',{method:'POST',headers,body:'{}'});assert.equal((await chat(123)).mode,'ai');await new Promise(r=>setTimeout(r,30));assert.equal(sent.length,2,'старые сообщения не переотправляются');
-  await incoming(123,'Спасибо!');await wait(async()=>sent.length===3);
+  await req('/api/telegram/conversations/123/resume',{method:'POST',headers,body:'{}'});assert.equal((await chat(123)).mode,'ai');await new Promise(r=>setTimeout(r,30));assert.equal(sent.length,3,'старые сообщения не переотправляются');
+  await incoming(123,'Спасибо!');await wait(async()=>sent.length===4);
   await incoming(124,'Мне 16 лет');assert.equal((await chat(124)).mode,'waiting','несовершеннолетний: передача');
   await incoming(125,'У меня болят зубы');assert.match((await chat(125)).handoff.reason,/Медицинский/);
   aiMode='handoff';await incoming(126,'Это необычный случай');await wait(async()=>(await chat(126)).mode==='waiting');assert.match((await chat(126)).handoff.summary,/Сводка ИИ/);
@@ -74,4 +82,26 @@ test('Передача человеку во время генерации от�
   const deadline=Date.now()+1000;while(!sent.length && Date.now()<deadline)await new Promise(r=>setTimeout(r,10));
   assert.equal(sent.length,1);assert.match(sent[0],/сотруднику/);assert.ok(!sent.includes('Это ответ ИИ'));
   const chat=await (await fetch(root+'/api/telegram/conversations/123',{headers:{Authorization:'Bearer '+admin}})).json();assert.equal(chat.mode,'waiting');
+});
+
+test('Автоответ Telegram использует выбранный OpenAI-совместимый API',async t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crm-provider-')),admin='test-admin-token-with-more-than-24-chars',secret='test_webhook_secret_1234567890',calls=[];
+  const env={ADMIN_TOKEN:admin,TELEGRAM_BOT_TOKEN:'test-token',TELEGRAM_WEBHOOK_SECRET:secret,AI_AUTO_REPLY:'true',AI_PROVIDER:'openai',OPENAI_API_KEY:'fake',OPENAI_MODEL:'vendor/test',OPENAI_BASE_URL:'https://example.test/v1'};
+  const mock=async(url,opt)=>{calls.push(url);if(url.includes('chat/completions'))return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({action:'reply',reply:'Здравствуйте!',reason:'',summary:''})}}]})};return {ok:true,json:async()=>({ok:true,result:{message_id:12}})};};
+  const server=createServer({env,fetch:mock,dataFile:path.join(dir,'data.json')});await new Promise(r=>server.listen(0,'127.0.0.1',r));const root='http://127.0.0.1:'+server.address().port;
+  t.after(()=>{server.close();fs.rmSync(dir,{recursive:true,force:true});});
+  await fetch(root+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:1,message:{message_id:1,chat:{id:123,type:'private'},text:'Здравствуйте'}})});
+  const deadline=Date.now()+2000;let chat;do {await new Promise(r=>setTimeout(r,10));chat=await (await fetch(root+'/api/telegram/conversations/123',{headers:{Authorization:'Bearer '+admin}})).json();} while(chat.messages.length<2 && Date.now()<deadline);
+  assert.equal(chat.messages.at(-1).author,'ai');assert.equal(chat.messages.at(-1).text,'Здравствуйте!');assert.ok(calls.some(x=>x==='https://example.test/v1/chat/completions'));assert.ok(!calls.some(x=>x.includes('googleapis')));
+});
+
+test('Автоответ Telegram использует GigaChat с OAuth',async t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crm-giga-')),admin='test-admin-token-with-more-than-24-chars',secret='test_webhook_secret_1234567890',calls=[];
+  const env={ADMIN_TOKEN:admin,TELEGRAM_BOT_TOKEN:'fake',TELEGRAM_WEBHOOK_SECRET:secret,AI_AUTO_REPLY:'true',AI_PROVIDER:'gigachat',GIGACHAT_AUTH_KEY:'fake'};
+  const mock=async(url,opt)=>{calls.push(url);if(url.includes('/oauth'))return {ok:true,json:async()=>({access_token:'fake-token',expires_at:Date.now()+1800000})};if(url.includes('chat/completions'))return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({action:'reply',reply:'Здравствуйте!',reason:'',summary:''})}}]})};return {ok:true,json:async()=>({ok:true,result:{message_id:12}})};};
+  const server=createServer({env,fetch:mock,dataFile:path.join(dir,'data.json')});await new Promise(r=>server.listen(0,'127.0.0.1',r));const root='http://127.0.0.1:'+server.address().port;
+  t.after(()=>{server.close();fs.rmSync(dir,{recursive:true,force:true});});
+  await fetch(root+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:1,message:{message_id:1,chat:{id:123,type:'private'},text:'Привет'}})});
+  let chat;const deadline=Date.now()+2000;do {await new Promise(r=>setTimeout(r,10));chat=await (await fetch(root+'/api/telegram/conversations/123',{headers:{Authorization:'Bearer '+admin}})).json();} while(chat.messages.length<2 && Date.now()<deadline);
+  assert.equal(chat.messages.at(-1).author,'ai');assert.ok(calls.some(x=>x.includes('/oauth')));assert.ok(calls.some(x=>x==='https://api.giga.chat/v1/chat/completions'));
 });

@@ -1,0 +1,12 @@
+'use strict';const {test}=require('node:test'),assert=require('node:assert/strict'),{Pool}=require('pg'),{createServer}=require('../src/app');const url=process.env.TEST_ROLES_DATABASE_URL;
+test('PostgreSQL: начальная настройка, права и отзыв сессии между экземплярами',{skip:!url},async t=>{
+ const pool=new Pool({connectionString:url});await pool.query('DROP TABLE IF EXISTS clinic_state');await pool.end();const key='setup-token-at-least-24-characters',env={DATABASE_URL:url,ADMIN_TOKEN:key,TELEGRAM_WEBHOOK_SECRET:'webhook-secret-at-least-24-characters'};
+ let a=createServer({env}),b=createServer({env});await Promise.all([a.ready,b.ready]);await Promise.all([new Promise(r=>a.listen(0,'127.0.0.1',r)),new Promise(r=>b.listen(0,'127.0.0.1',r))]);t.after(()=>{a.close();b.close()});
+ const root=x=>'http://127.0.0.1:'+x.address().port,req=async(x,path,method='GET',data,token)=>{const r=await fetch(root(x)+path,{method,headers:{...(token?{Authorization:'Bearer '+token}:{}),...(data?{'content-type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});return [r.status,await r.json()]};
+ const bootstrap={login:'manager',name:'Управляющий',password:'Strongpass123456',setupToken:key};const results=await Promise.all([req(a,'/api/auth/bootstrap','POST',bootstrap),req(b,'/api/auth/bootstrap','POST',bootstrap)]);assert.deepEqual(results.map(x=>x[0]).sort(),[200,409]);const boss=results.find(x=>x[0]===200)[1].token;
+ const [code,created]=await req(b,'/api/manage/staff','POST',{login:'admin',name:'Администратор',password:'Strongpass123456',role:'administrator'},boss);assert.equal(code,200);const [,login]=await req(a,'/api/auth/login','POST',{login:'admin',password:'Strongpass123456'});
+ assert.equal((await req(b,'/api/auth/me','GET',null,login.token))[1].id,created.user.id);
+ assert.equal((await req(b,'/api/manage/staff/'+created.user.id,'POST',{role:'curator'},boss))[0],200);assert.equal((await req(a,'/api/auth/me','GET',null,login.token))[0],401);
+ const [,newLogin]=await req(b,'/api/auth/login','POST',{login:'admin',password:'Strongpass123456'});assert.equal(newLogin.user.role,'curator');
+ await Promise.all([new Promise(r=>a.close(r)),new Promise(r=>b.close(r))]);a=createServer({env});await a.ready;await new Promise(r=>a.listen(0,'127.0.0.1',r));assert.equal((await req(a,'/api/auth/me','GET',null,newLogin.token))[0],200);assert.equal((await req(a,'/api/manage/audit','GET',null,boss))[1].items.some(e=>e.action==='account_updated'),true);
+});

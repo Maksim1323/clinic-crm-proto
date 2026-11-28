@@ -6,134 +6,67 @@ const STAGES = [
       { num: 5, label: '5 · Потенциальный клиент' }
     ];
 
-    const TEMPLATES = {
-      address: {
-        title: 'Шаблон · Адрес клиники',
-        text: 'Наш адрес: ул. Примерная, 12, 3 этаж. Парковка во дворе. Работаем пн–сб 9:00–21:00.'
-      },
-      price: {
-        title: 'Шаблон · Прайс',
-        text: 'Проф. чистка — от 4 500 ₽\nПервичный осмотр — бесплатно\nКонсультация ортодонта — 2 000 ₽\nПолный прайс пришлём по запросу.'
-      }
-    };
-
-    const DB = {
-      patients: {
-        ivanov: {
-          id: 'ivanov', name: 'Иванов Иван Иванович', age: '35 лет', emoji: '👨', createdAt: '12.05.2024', gender: 'male',
-          phone: '+7 999 123-45-67', channelIcon: '📞', channelLabel: 'UIS · Первичный',
-          timeLabel: '00:15', unread: 0, statusInClinic: true,
-          admin: 'Анна Петрова', doctor: 'Смирнов А.А.',
-          stageNum: 2, stageTotal: 5, noSpam: true, bonuses: 1500, nps: 9,
-          preview: 'Идёт разговор...',
-          plan: 'Ортодонтия · брекет-система · ориентир 85 000 ₽',
-          history: [
-            { type:'visit', icon:'🩺', title:'Приём · Первичная консультация', date:'14.05.2024',
-              body:'Врач: Смирнов А.А. · NPS 9/10<br><span class="text-indigo-600 font-medium">Назначен план «Ортодонтия»</span>' },
-            { type:'msg', icon:'✈️', title:'Telegram', date:'13.05.2024',
-              body:'<div class="text-slate-400 italic">Пациент: «А как подготовиться?» <span class="text-[11px]">(удалено)</span></div><div class="text-slate-700 mt-1">Анна: «Специальной подготовки не требуется...»</div>' },
-            { type:'call', icon:'📞', title:'Звонок UIS · Первичный', date:'12.05.2024',
-              body:'<button onclick="toast(\'Воспроизведение записи...\')" class="text-[12px] text-teal-600 font-medium mb-2 hover:underline">▶ Прослушать</button><div class="bg-white rounded-lg border border-slate-100 p-3 text-[13px]"><div class="text-slate-500 mb-1 font-medium text-[12px]">🤖 ИИ-транскрибация</div><div class="text-slate-700">«Алло, здравствуйте, я хочу записаться на осмотр...»</div><div class="mt-2 flex items-start gap-2 bg-teal-50 rounded-lg px-3 py-2 border border-teal-100"><span>💡</span><span class="text-[12px] text-teal-800">Скрипт «Запись на первичный осмотр»</span></div></div>' }
-          ]
-        },
-        smirnova: {
-          id: 'smirnova', name: 'Мария Смирнова', age: '28 лет', emoji: '👩', createdAt: '06.11.2026', gender: 'female',
-          phone: '+7 916 444-55-66', channelIcon: '✈️', channelLabel: 'Telegram',
-          timeLabel: 'сейчас', unread: 1, statusInClinic: false,
-          admin: 'Анна Петрова', doctor: '—',
-          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 0, nps: null,
-          preview: 'Хочу записаться на чистку...',
-          plan: null,
-          history: [
-            { type:'msg', icon:'✈️', title:'Telegram', date:'сегодня 15:42',
-              body:'<div class="text-slate-700">Пациент: «Здравствуйте! Хочу записаться на профессиональную чистку. Есть окна на этой неделе?»</div>' },
-            { type:'msg', icon:'✈️', title:'Telegram', date:'сегодня 15:40',
-              body:'<div class="text-slate-400 italic">Пациент начал диалог</div>' }
-          ]
-        },
-        alexey: {
-          id: 'alexey', name: 'Алексей Воронов', age: '41 год', emoji: '👨', createdAt: '05.11.2026', gender: 'male',
-          phone: '+7 903 777-88-99', channelIcon: '🌐', channelLabel: 'ВКонтакте',
-          timeLabel: '12:40', unread: 0, statusInClinic: false,
-          admin: 'Мария Ковалёва', doctor: '—',
-          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 200, nps: null,
-          preview: 'Сколько стоит проф. чистка?',
-          plan: null,
-          history: [
-            { type:'msg', icon:'🌐', title:'ВКонтакте', date:'сегодня 12:40',
-              body:'<div class="text-slate-700">Пациент: «Добрый день. Сколько стоит профессиональная чистка? Есть скидки для первичных?»</div>' }
-          ]
-        },
-        site: {
-          id: 'site', name: 'Неизвестный (сайт)', age: '—', emoji: '📧', createdAt: '06.11.2026', gender: null,
-          phone: '+7 926 111-22-33', channelIcon: '📧', channelLabel: 'Сайт · Форма',
-          timeLabel: '11:05', unread: 0, statusInClinic: false,
-          admin: '—', doctor: '—',
-          stageNum: 1, stageTotal: 5, noSpam: false, bonuses: 0, nps: null,
-          preview: '«Перезвоните мне»',
-          plan: null,
-          history: [
-            { type:'email', icon:'📧', title:'Обращение с сайта', date:'сегодня 11:05',
-              body:'<div class="text-slate-700">Телефон: +7 926 111-22-33<br>Сообщение: «Перезвоните мне, хочу записаться к ортодонту»</div><div class="mt-2 text-[12px] text-slate-400">Источник: форма на сайте</div>' }
-          ]
-        },
-        mis: {
-          id: 'mis', name: 'Козлова Елена', age: '32 года', emoji: '👩', createdAt: '20.04.2024', gender: 'female',
-          phone: '+7 905 333-44-55', channelIcon: '✔️', channelLabel: 'МИС · Подтверждение',
-          timeLabel: 'авто', unread: 0, statusInClinic: false,
-          admin: 'Анна Петрова', doctor: 'Кузнецова О.В.',
-          stageNum: 3, stageTotal: 5, noSpam: false, bonuses: 800, nps: 8,
-          preview: 'Визит сегодня 14:30',
-          plan: 'Терапия · этап 2 из 4',
-          history: [
-            { type:'mis', icon:'✔️', title:'МИС · Авто-подтверждение', date:'сегодня 09:00',
-              body:'<div class="text-slate-700">Пациент подтвердил визит на <b>сегодня 14:30</b><br>Врач: Кузнецова О.В. · Терапия</div>' },
-            { type:'visit', icon:'🩺', title:'Приём · Терапия (этап 2)', date:'20.04.2024',
-              body:'Врач: Кузнецова О.В. · NPS 8/10<br><span class="text-indigo-600 font-medium">Следующий этап: 03.05.2024</span>' }
-          ]
-        }
-      },
-      inboxOrder: ['ivanov', 'smirnova', 'alexey', 'site', 'mis']
-    };
-
-    let currentPatientId = 'ivanov';
+    // Server-backed manual cards; legacy browser data is read only on explicit import.
+    const DB = {patients:{}, inboxOrder:[]};
+    // Fingerprints only; edits to old examples are retained as user data.
+    const oldPatientHashes={ivanov:'678ce3fc',smirnova:'5a4abae3',alexey:'dfcc47b3',site:'7ba6aa2e',mis:'396d6011'};
+    const oldTaskHashes={t1:'4dcee95',t2:'6927ebd4',t3:'7fb0ffdb',t4:'fc7d9b50',t5:'512e16ff',t6:'40f30a8c'};
+    function fingerprint(obj){let h=2166136261;const text=JSON.stringify(obj);for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(16);}
+    let currentPatientId = null, searchSequence=0, searchTimer=null;
     let pendingStage = null;
+    const localVisibilityFields=['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'];
+    const localDefaultHidden=new Set(['gender','channel','nps','inclinic','note']);
+    function cardFieldVisible(p,key){return typeof p?.visibility?.[key]==='boolean'?p.visibility[key]:!localDefaultHidden.has(key);}
+    function localFieldVisible(p,key){return (window.crmFieldAllowed?window.crmFieldAllowed(key):true) && cardFieldVisible(p,key);}
+    function readLocalVisibility(){return Object.fromEntries(localVisibilityFields.map(key=>[key,document.getElementById('pf-show-'+key).checked]));}
+
 
     const STORAGE_KEY = 'cliniccrm_v13';
 
-    function saveDB() {
-      try {
-        const payload = {
-          patients: DB.patients,
-          inboxOrder: DB.inboxOrder,
-          currentPatientId
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      } catch (e) { console.warn('save failed', e); }
+    const taskKey='cliniccrm_journey_tasks_v1';
+    let manualReady=false, patientEditVersion=null, patientSaving=false, taskEditVersion=null, taskSaving=false, manualRevision=0,patientDraftId=null,taskDraftId=null,manualFetchSeq=0,manualAppliedSeq=0;
+    function newId(prefix){const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);return prefix+'_'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');}
+    function localInputValue(value){if(!value)return '';const d=new Date(value);if(Number.isNaN(d.getTime()))return '';return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+    function showManualError(id,message){document.getElementById(id).textContent=message;}
+    function requireManual(){if(manualReady)return true;toast('Войдите в CRM, чтобы работать с серверными карточками и задачами');return false;}
+    window.crmClearManual=function(){window.crmResolveImportDuplicate?.(false);manualReady=false;++manualRevision;DB.patients={};DB.inboxOrder=[];TASKS=[];currentPatientId=null;clearTimeout(searchTimer);++searchSequence;document.getElementById('patient-search').value='';document.getElementById('patient-search-results').replaceChildren();document.getElementById('patient-search-results').style.display='none';closePatientModal();closeTaskModal();document.getElementById('import-local-btn').style.display='none';document.getElementById('import-result').textContent='';document.getElementById('history-feed').replaceChildren();document.getElementById('pr-linked-tasks').replaceChildren();document.getElementById('task-staff-options').replaceChildren();document.getElementById('demo-patient-col').style.display='none';document.getElementById('comms-empty').style.display='';renderInbox();renderTasks();renderKanban();};
+    window.crmRefreshManual=async function(){
+      const revision=manualRevision,seq=++manualFetchSeq,data=await window.crmApi('/api/manual');if(revision!==manualRevision||seq<manualAppliedSeq)return;manualAppliedSeq=seq;
+      window.crmStaff=data.staff||[];const staff=document.getElementById('task-staff-options');staff.replaceChildren();(data.employees||[]).forEach(e=>staff.append(new Option(e.name,e.name)));
+      DB.patients=Object.fromEntries(data.patients.map(p=>[p.id,p]));DB.inboxOrder=data.patients.map(p=>p.id).reverse();TASKS=data.tasks.slice().reverse();manualReady=true;
+      document.getElementById('import-local-btn').style.display=hasLegacyData()&&window.crmUser?.role!=='administrator'?'':'none';renderInbox();renderTasks();renderKanban();
+      if(currentPatientId && DB.patients[currentPatientId] && !(window.tgHasSelectedChat&&window.tgHasSelectedChat()))renderPatient(currentPatientId,false);
+    };
+    function hasLegacyData(){try{return !!(localStorage.getItem(STORAGE_KEY)||localStorage.getItem(taskKey));}catch(_){return false;}}
+    function legacySnapshot(){
+      let patients=[],tasks=[];const a=localStorage.getItem(STORAGE_KEY),b=localStorage.getItem(taskKey);
+      if(a){const d=JSON.parse(a);if(!d||!d.patients||typeof d.patients!=='object'||Array.isArray(d.patients))throw Error('Старые карточки имеют неизвестный формат. Данные в браузере не изменены.');patients=Object.entries(d.patients).filter(([id,p])=>!oldPatientHashes[id]||fingerprint(p)!==oldPatientHashes[id]);}
+      if(b){const data=JSON.parse(b);if(!Array.isArray(data))throw Error('Старые задачи имеют неизвестный формат. Данные в браузере не изменены.');tasks=data.filter(t=>t&&(!oldTaskHashes[t.id]||fingerprint(t)!==oldTaskHashes[t.id])).map(t=>[String(t.id||''),t]);}
+      return {patients,tasks};
     }
+    let importing=false,resolveImportDuplicate=null;
+    window.crmResolveImportDuplicate=function(approved){if(!resolveImportDuplicate)return;const resolve=resolveImportDuplicate;resolveImportDuplicate=null;document.getElementById('import-duplicates-modal').classList.remove('open');document.getElementById('import-duplicates-list').replaceChildren();resolve(approved);};
+    function reviewImportDuplicate(matches){return new Promise(resolve=>{resolveImportDuplicate=resolve;const list=document.getElementById('import-duplicates-list');list.replaceChildren();for(const item of matches){const row=document.createElement('div');row.style.margin='6px 0';row.textContent=(item.kind==='telegram'?'Telegram · ':'Карточка · ')+(item.name||'Без имени')+' · '+(item.phone||'без телефона')+(item.source==='telegram'?' · не проверен':'');list.append(row);}document.getElementById('import-duplicates-modal').classList.add('open');});}
 
-    function loadDB() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (data.patients && typeof data.patients === 'object') {
-          // merge: keep defaults for missing, overwrite with saved
-          Object.keys(data.patients).forEach(id => {
-            DB.patients[id] = Object.assign({}, DB.patients[id] || {}, data.patients[id]);
-          });
+    window.crmImportLegacy=async function(){
+      if(!requireManual()||importing)return;let snapshot,scope;const startedRevision=manualRevision;
+      try{snapshot=legacySnapshot();scope=localStorage.getItem('cliniccrm_import_scope_v1');if(!scope){scope=newId('x').slice(2);localStorage.setItem('cliniccrm_import_scope_v1',scope);}if(!/^[a-f0-9]{32}$/.test(scope))throw Error('Не удалось определить источник импорта.');}catch(e){toast(e.message||'Не удалось прочитать данные браузера');return;}
+      const button=document.getElementById('import-local-btn');importing=true;button.disabled=true;let added=0,exists=0,failed=0;const errors=[];
+      try{
+        for(const [kind,items] of [['patient',snapshot.patients],['task',snapshot.tasks]])for(const [legacyId,original] of items){
+          let record=JSON.parse(JSON.stringify(original));
+          if(kind==='task'&&record.dueAt&&!/(?:Z|[+-]\d\d:\d\d)$/.test(record.dueAt)){const date=new Date(record.dueAt);if(!Number.isNaN(date.getTime()))record.dueAt=date.toISOString();}
+          try{let acknowledgedDuplicates=[],result;for(;;){try{result=await window.crmApi('/api/manual/import','POST',{scope,kind,legacyId,record,acknowledgedDuplicates});break;}catch(e){if(e.code!=='possible_duplicate')throw e;const approved=await reviewImportDuplicate(e.details.matches);if(startedRevision!==manualRevision)throw Error('session_changed');if(!approved)throw Error('Совпадение оставлено в браузере; импорт пропущен.');acknowledgedDuplicates=e.details.matches.map(m=>m.id);}}if(result.status==='exists')exists++;else added++;}catch(e){if(e.message==='session_changed')throw e;failed++;errors.push((kind==='patient'?'Карточка ':'Задача ')+legacyId+': '+e.message);}
         }
-        if (Array.isArray(data.inboxOrder) && data.inboxOrder.length) {
-          DB.inboxOrder = data.inboxOrder;
-        }
-        if (data.currentPatientId && DB.patients[data.currentPatientId]) {
-          currentPatientId = data.currentPatientId;
-        }
-      } catch (e) { console.warn('load failed', e); }
-    }
+        await window.crmRefreshManual();
+        const message='Импорт: добавлено '+added+', уже было '+exists+', не удалось '+failed+'. Данные в браузере не удалены.';
+        document.getElementById('import-result').textContent=message+(errors.length?' '+errors.join(' | '):'');toast(message);
+      }catch(e){if(e.message!=='session_changed')toast('Импорт прерван. Повторите: уже перенесённые записи не дублируются.');}
+      finally{importing=false;button.disabled=false;}
+    };
 
     const CHANNEL_META = {
-      call:  { icon: '📞', label: 'UIS · Звонок' },
+      call:  { icon: '📞', label: 'Звонок' },
       tg:    { icon: '✈️', label: 'Telegram' },
       vk:    { icon: '🌐', label: 'ВКонтакте' },
       email: { icon: '📧', label: 'Сайт · Форма' },
@@ -143,7 +76,10 @@ const STAGES = [
     let patientModalMode = 'edit';
 
     function openPatientModal(mode) {
+      if(!requireManual())return;
       patientModalMode = mode || 'edit';
+      patientEditVersion=mode==='create'?null:DB.patients[currentPatientId]?.version;patientDraftId=mode==='create'?newId('p'):null;
+      showManualError('patient-save-error','');document.getElementById('patient-duplicates').replaceChildren();
       const modal = document.getElementById('patient-modal');
       const title = document.getElementById('patient-modal-title');
       const sub = document.getElementById('patient-modal-sub');
@@ -157,7 +93,7 @@ const STAGES = [
         document.getElementById('pf-age').value = '';
         document.getElementById('pf-gender').value = 'male';
         document.getElementById('pf-channel').value = 'tg';
-        document.getElementById('pf-admin').value = 'Анна Петрова';
+        document.getElementById('pf-admin').value = '';
         document.getElementById('pf-doctor').value = '';
         document.getElementById('pf-stage').value = '1';
         document.getElementById('pf-bonuses').value = '0';
@@ -193,117 +129,39 @@ const STAGES = [
         document.getElementById('pf-plan').value = p.plan || '';
         document.getElementById('pf-note').value = p.note || '';
       }
+      const shownPatient=patientModalMode==='edit'?DB.patients[currentPatientId]:null;
+      window.crmFillStaff(document.getElementById('pf-assignee-user'),shownPatient?.assigneeUserId||'');
+      localVisibilityFields.forEach(key=>{document.getElementById('pf-show-'+key).checked=cardFieldVisible(shownPatient,key);});
       modal.classList.add('open');
       setTimeout(() => document.getElementById('pf-name').focus(), 50);
     }
 
     function closePatientModal() {
-      document.getElementById('patient-modal').classList.remove('open');
+      document.getElementById('patient-modal').classList.remove('open');document.getElementById('patient-duplicates').replaceChildren();
     }
 
-    function savePatientCard() {
-      const name = document.getElementById('pf-name').value.trim();
-      const phone = document.getElementById('pf-phone').value.trim();
-      if (!name) { toast('Укажите ФИО'); return; }
-      if (!phone) { toast('Укажите телефон'); return; }
-
-      const ch = document.getElementById('pf-channel').value;
-      const meta = CHANNEL_META[ch] || CHANNEL_META.call;
-      const gender = document.getElementById('pf-gender').value;
-      const emoji = gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤');
-      const stageNum = parseInt(document.getElementById('pf-stage').value, 10) || 1;
-      const npsRaw = document.getElementById('pf-nps').value;
-      const nps = npsRaw === '' ? null : parseInt(npsRaw, 10);
-
-      if (patientModalMode === 'create') {
-        const id = 'p_' + Date.now();
-        const patient = {
-          id, name, age: document.getElementById('pf-age').value.trim() || '—',
-          emoji, gender: gender || null, phone,
-          channelIcon: meta.icon, channelLabel: meta.label,
-          timeLabel: 'сейчас', unread: 0, statusInClinic: document.getElementById('pf-inclinic').checked,
-          admin: document.getElementById('pf-admin').value.trim() || '—',
-          doctor: document.getElementById('pf-doctor').value.trim() || '—',
-          stageNum, stageTotal: 5,
-          noSpam: document.getElementById('pf-nospam').checked,
-          bonuses: parseInt(document.getElementById('pf-bonuses').value, 10) || 0,
-          nps,
-          preview: 'Новая карточка',
-          createdAt: new Date().toLocaleDateString('ru-RU'),
-          plan: document.getElementById('pf-plan').value.trim() || null,
-          note: document.getElementById('pf-note').value.trim() || '',
-          history: [{
-            type: 'system', icon: '📋', title: 'Карточка создана',
-            date: nowLabel(),
-            body: '<div class="text-slate-700">Пациент добавлен в CRM · канал: ' + meta.label + '</div>'
-          }]
-        };
-        const note = document.getElementById('pf-note').value.trim();
-        if (note) {
-          patient.history.unshift({
-            type: 'note', icon: '📝', title: 'Заметка',
-            date: nowLabel(),
-            body: '<div class="text-slate-700" style="white-space:pre-wrap">' + escapeHtml(note) + '</div>'
-          });
-        }
-        DB.patients[id] = patient;
-        DB.inboxOrder.unshift(id);
-        closePatientModal();
-        saveDB();
-        showView('comms');
-        selectPatient(id);
-        toast('✓ Карточка создана: ' + name);
-      } else {
-        const id = document.getElementById('pf-id').value || currentPatientId;
-        const p = DB.patients[id];
-        if (!p) { toast('Пациент не найден'); return; }
-        const oldName = p.name;
-        p.name = name;
-        p.phone = phone;
-        p.age = document.getElementById('pf-age').value.trim() || '—';
-        p.gender = gender || null;
-        p.emoji = emoji;
-        p.channelIcon = meta.icon;
-        p.channelLabel = meta.label;
-        p.admin = document.getElementById('pf-admin').value.trim() || '—';
-        p.doctor = document.getElementById('pf-doctor').value.trim() || '—';
-        p.stageNum = stageNum;
-        p.bonuses = parseInt(document.getElementById('pf-bonuses').value, 10) || 0;
-        p.nps = nps;
-        p.noSpam = document.getElementById('pf-nospam').checked;
-        p.statusInClinic = document.getElementById('pf-inclinic').checked;
-        p.plan = document.getElementById('pf-plan').value.trim() || null;
-        p.note = document.getElementById('pf-note').value.trim() || '';
-        p.history.unshift({
-          type: 'system', icon: '✏️', title: 'Карточка обновлена',
-          date: nowLabel(),
-          body: '<div class="text-slate-700">Данные пациента изменены' + (oldName !== name ? ' (ФИО: ' + escapeHtml(oldName) + ' → ' + escapeHtml(name) + ')' : '') + '</div>'
-        });
-        closePatientModal();
-        saveDB();
-        renderPatient(id, false);
-        toast('✓ Карточка сохранена');
-      }
+    async function savePatientCard(acknowledgedDuplicates=[]) {
+      if(!requireManual()||patientSaving)return;
+      const name=document.getElementById('pf-name').value.trim(),phone=document.getElementById('pf-phone').value.trim();
+      if(!name||!phone){showManualError('patient-save-error','Укажите ФИО и телефон');return;}
+      const creating=patientModalMode==='create',id=creating?patientDraftId:document.getElementById('pf-id').value;
+      const old=creating?null:DB.patients[id];if(!creating&&!old){showManualError('patient-save-error','Карточка недоступна.');return;}
+      const ch=document.getElementById('pf-channel').value,meta=CHANNEL_META[ch]||CHANNEL_META.call,gender=document.getElementById('pf-gender').value,npsRaw=document.getElementById('pf-nps').value;
+      const p={...(old||{}),id,name,phone,visibility:readLocalVisibility(),age:document.getElementById('pf-age').value.trim()||'—',gender:gender||'',emoji:gender==='female'?'👩':gender==='male'?'👨':'👤',channelIcon:meta.icon,channelLabel:meta.label,timeLabel:old?.timeLabel||'сейчас',unread:old?.unread||0,statusInClinic:document.getElementById('pf-inclinic').checked,admin:document.getElementById('pf-admin').value.trim()||'—',doctor:document.getElementById('pf-doctor').value.trim()||'—',stageNum:parseInt(document.getElementById('pf-stage').value,10)||1,stageTotal:5,noSpam:document.getElementById('pf-nospam').checked,bonuses:parseInt(document.getElementById('pf-bonuses').value,10)||0,nps:npsRaw===''?null:parseInt(npsRaw,10),preview:old?.preview||'Новая карточка',createdAt:old?.createdAt||new Date().toLocaleDateString('ru-RU'),plan:document.getElementById('pf-plan').value.trim(),note:document.getElementById('pf-note').value.trim(),history:[...(old?.history||[])]};
+      p.assigneeUserId=document.getElementById('pf-assignee-user').value;
+      if(window.crmUser?.role==='administrator'){delete p.plan;delete p.bonuses;}
+      p.history.unshift({type:'system',icon:creating?'📋':'✏️',title:creating?'Карточка создана':'Карточка обновлена',date:nowLabel(),body:creating?'Пациент добавлен в CRM':'Данные пациента изменены'});
+      if(creating&&p.note)p.history.unshift({type:'note',icon:'📝',title:'Заметка',date:nowLabel(),body:escapeHtml(p.note)});
+      patientSaving=true;document.getElementById('patient-save-button').disabled=true;showManualError('patient-save-error','');
+      try{await window.crmApi('/api/manual/patients/'+id,'PUT',{record:p,expectedVersion:patientEditVersion,acknowledgedDuplicates});await window.crmRefreshManual();closePatientModal();showView('comms');selectPatient(id);toast('Карточка сохранена');}
+      catch(e){if(e.message!=='session_changed'){showManualError('patient-save-error',e.message);if(e.code==='possible_duplicate'){const phoneAtReview=phone;window.crmShowDuplicates('patient-duplicates',e.details.matches,ids=>{if(document.getElementById('pf-phone').value.trim()!==phoneAtReview){showManualError('patient-save-error','Телефон изменён. Проверьте совпадения заново.');document.getElementById('patient-duplicates').replaceChildren();return;}savePatientCard(ids);});}}}
+      finally{patientSaving=false;document.getElementById('patient-save-button').disabled=false;}
     }
 
-    function sendMessage() {
-      const input = document.getElementById('msg-input');
-      if (!input) return;
-      const text = (input.value || '').trim();
-      if (!text) return;
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      if (p.noSpam) {
-        // still allow 1:1 reply, only block marketing templates
-      }
-      addHistory('💬', 'Исходящее сообщение',
-        `<div class="text-slate-700" style="white-space:pre-wrap">${escapeHtml(text)}</div>
-         <div style="margin-top:8px;font-size:12px;color:#0d9488">Отправлено · ${nowLabel()}</div>`);
-      p.preview = 'Вы: ' + text.slice(0, 40);
-      p.unread = 0;
-      input.value = '';
-      saveDB();
-      toast('✓ Сообщение сохранено в истории');
+    async function sendMessage() {
+      if(!requireManual())return;const input=document.getElementById('msg-input'),p=DB.patients[currentPatientId],text=input.value.trim();if(!p||!text)return;
+      const next={...p,history:[{type:'action',icon:'💬',title:'Заметка · сообщение не отправлено',date:nowLabel(),body:escapeHtml(text)},...p.history],preview:'Заметка: '+text.slice(0,40),unread:0};
+      try{await window.crmApi('/api/manual/patients/'+p.id,'PUT',{record:next,expectedVersion:p.version});if(input.value.trim()===text)input.value='';await window.crmRefreshManual();toast('Сохранено как заметка; сообщение не отправлено');}catch(e){if(e.message!=='session_changed')toast(e.message);}
     }
 
     function escapeHtml(s) {
@@ -317,67 +175,11 @@ const STAGES = [
       return 'сегодня ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
     }
 
-    function addHistory(icon, title, body) {
-      const p = DB.patients[currentPatientId];
-      p.history.unshift({ type: 'action', icon, title, date: nowLabel(), body });
-      saveDB();
-      renderPatient(currentPatientId, false);
-    }
-
     // ===== ACTIONS =====
-    function actionBookMIS() {
-      const p = DB.patients[currentPatientId];
-      addHistory('📝', 'Запись в МИС',
-        `<div class="text-slate-700">Администратор создал запись на приём в МИС.<br>
-        Пациент: <b>${p.name}</b><br>
-        Статус в МИС: <span class="text-teal-600 font-medium">ожидает подтверждения</span></div>
-        <div class="mt-2 text-[12px] text-slate-400">Синхронизация с IDENT / МИС выполнена (демо)</div>`);
-      if (p.stageNum === 1) {
-        p.stageNum = 1;
-        p.preview = 'Запись в МИС создана';
-      }
-      toast('✓ Запись создана в МИС');
-    }
-
-    function actionTemplate(key) {
-      const t = TEMPLATES[key];
-      if (!t) return;
-      const p = DB.patients[currentPatientId];
-      if (p.noSpam && key === 'price') {
-        toast('⚠ У пациента отказ от рассылок — шаблон не отправлен');
-        addHistory('🚫', 'Блок рассылки',
-          `<div class="text-rose-600">Попытка отправить «${escapeHtml(String(t.title || ""))}» заблокирована: у пациента стоит отказ от рассылок.</div>`);
-        return;
-      }
-      addHistory('💬', t.title + ' · отправлено',
-        `<div class="text-slate-700 whitespace-pre-line">${t.text}</div>
-         <div class="mt-2 text-[12px] text-teal-600">Отправлено пациенту · ${nowLabel()}</div>`);
-      toast('✓ ' + t.title + ' отправлен');
-    }
-
-    function actionPlan() {
-      const p = DB.patients[currentPatientId];
-      if (p.plan) {
-        addHistory('📄', 'План лечения',
-          `<div class="text-slate-700"><b>Текущий план:</b><br>${p.plan}</div>
-           <div class="mt-2 text-[12px] text-slate-400">Открыт для просмотра / отправки пациенту</div>`);
-        toast('✓ План лечения: ' + p.plan.slice(0, 40) + '…');
-      } else {
-        addHistory('📄', 'План лечения',
-          `<div class="text-slate-500">План лечения ещё не назначен. После первичного приёма врач сформирует план в МИС — он появится здесь.</div>`);
-        toast('План лечения пока не назначен');
-      }
-    }
-
-    function actionReminder() {
-      const p = DB.patients[currentPatientId];
-      addHistory('🔔', 'Напоминание создано',
-        `<div class="text-slate-700">Задача: связаться с пациентом <b>${p.name}</b><br>
-        Срок: завтра, 11:00<br>
-        Ответственный: ${p.admin !== '—' ? p.admin : 'Анна Петрова'}</div>
-        <div class="mt-2 text-[12px] text-amber-600">Задача добавлена в список задач</div>`);
-      toast('✓ Напоминание создано на завтра 11:00');
-    }
+    function actionBookMIS() { toast('Запись в МИС недоступна в демо.'); }
+    function actionPlan() { toast('План лечения в демо недоступен; проверьте данные в МИС'); }
+    function actionReminder() { openTaskEditor(); }
+    function demoEscalation() { openTaskEditor(); toast('Создайте задачу для передачи сотруднику'); }
 
     function openStageModal() {
       const p = DB.patients[currentPatientId];
@@ -396,29 +198,21 @@ const STAGES = [
       pendingStage = null;
     }
 
-    function confirmStage() {
-      if (pendingStage == null) return;
-      const p = DB.patients[currentPatientId];
-      const old = STAGES.find(s => s.num === p.stageNum);
-      const neu = STAGES.find(s => s.num === pendingStage);
-      p.stageNum = pendingStage;
-      addHistory('🔄', 'Смена статуса',
-        `<div class="text-slate-700">Этап изменён:<br>
-        <span class="text-slate-400">${old ? old.label : '—'}</span>
-        → <span class="text-indigo-600 font-medium">${neu.label}</span></div>`);
-      closeStageModal();
-      toast('✓ Статус: ' + neu.label);
-      renderPatient(currentPatientId, false);
-    }
+    async function confirmStage() {if(pendingStage==null)return;const id=currentPatientId,stage=pendingStage;await movePatientStage(id,stage);closeStageModal();}
 
     // ===== RENDER =====
+    function updateInboxCount() {
+      const telegramCount = window.getTelegramInboxCount ? window.getTelegramInboxCount() : 0;
+      document.getElementById('inbox-count').textContent = String(DB.inboxOrder.length + (Number.isFinite(telegramCount) ? telegramCount : 0));
+    }
     function renderInbox() {
       const list = document.getElementById('inbox-list');
       list.innerHTML = '';
+      if (window.renderTelegramInboxItems) window.renderTelegramInboxItems(list);
       DB.inboxOrder.forEach(id => {
         const p = DB.patients[id];
         const el = document.createElement('div');
-        el.className = 'sidebar-item px-4 py-3.5' + (id === currentPatientId ? ' active' : '');
+        el.className = 'sidebar-item px-4 py-3.5' + (id === currentPatientId && !(window.tgHasSelectedChat && window.tgHasSelectedChat()) ? ' active' : '');
         el.onclick = () => selectPatient(id);
         const title = p.channelIcon === '📞' ? p.phone : p.name;
         el.innerHTML = `
@@ -429,184 +223,21 @@ const STAGES = [
                 <span class="ch-name">${title}</span>
                 ${p.unread ? `<span class="unread">${p.unread}</span>` : `<span class="ch-time">${p.timeLabel}</span>`}
               </div>
-              <div class="ch-preview">${p.preview}</div>
+              <div class="ch-preview">Демо · ${p.preview}</div>
             </div>
           </div>`;
         list.appendChild(el);
       });
-      document.getElementById('inbox-count').textContent = DB.inboxOrder.length;
+      updateInboxCount();
     }
 
-
-    const AI_RECS = {
-      1: {
-        title: 'Сценарий: запись на приём',
-        body: 'По регламенту первичного приёма: уточнить специализацию, предложить 2 реальных слота из МИС, не создавать запись без подтверждения администратора.',
-        actions: [
-          { label: '✓ Подтвердить предложение слотов', fn: 'aiConfirmSlots' },
-          { label: '✎ Править черновик сообщения', fn: 'aiEditDraft' },
-          { label: 'Передать человеку', fn: 'demoEscalation' }
-        ],
-        process: 2
-      },
-      2: {
-        title: 'Сценарий: сопровождение после консультации',
-        body: 'План лечения в МИС есть, оплата частичная, следующий визит не назначен. По регламенту курации: связаться в течение 48 часов, предложить поэтапную оплату, не закрывать в отказ без предложения рассрочки.',
-        actions: [
-          { label: '✓ Подтвердить задачу куратору', fn: 'aiConfirmCurator' },
-          { label: 'Открыть шпаргалку звонка', fn: 'aiShowBrief' },
-          { label: 'Передать куратору', fn: 'demoEscalation' }
-        ],
-        process: 2
-      },
-      3: {
-        title: 'Контроль лечения',
-        body: 'ИИ отслеживает явки и оплаты по плану. Отклонений по регламенту не обнаружено. Следующий шаг — напоминание о визите за 24 часа.',
-        actions: [
-          { label: '✓ Поставить напоминание', fn: 'actionReminder' },
-          { label: 'Без изменений', fn: 'aiDismiss' }
-        ],
-        process: 3
-      },
-      4: {
-        title: 'Профосмотр / recall',
-        body: 'По регламенту гарантии: через 6 месяцев после имплантации/коронок нужна профгигиена. ИИ подобрал окна у гигиениста.',
-        actions: [
-          { label: '✓ Отправить приглашение', fn: 'aiConfirmSlots' },
-          { label: 'Отложить', fn: 'aiDismiss' }
-        ],
-        process: 2
-      },
-      5: {
-        title: 'Потенциальный / прогрев',
-        body: 'Пациент в базе прогрева. Проверка D1: если есть отказ от рассылок — не звонить автоматически. Человек решает, допустим ли контакт.',
-        actions: [
-          { label: 'Разрешить один контакт', fn: 'aiConfirmCurator' },
-          { label: 'Оставить в покое', fn: 'aiDismiss' }
-        ],
-        process: 1
-      }
-    };
-
-    function renderAIRec(p) {
-      const rec = AI_RECS[p.stageNum] || AI_RECS[1];
-      const title = document.getElementById('ai-rec-title');
-      const body = document.getElementById('ai-rec-body');
-      const acts = document.getElementById('ai-rec-actions');
-      const strip = document.getElementById('ai-process-strip');
-      if (!title) return;
-      title.textContent = rec.title;
-      let extra = '';
-      if (p.noSpam) extra = ' ⚠ У пациента отказ от рассылок — маркетинг заблокирован.';
-      body.textContent = rec.body + extra;
-      acts.innerHTML = rec.actions.map(a => {
-        const cls = a.label.indexOf('✓') === 0 ? 'confirm' : '';
-        return `<button type="button" class="${cls}" onclick="${a.fn}()">${a.label}</button>`;
-      }).join('');
-      if (strip) {
-        const steps = strip.querySelectorAll('.step');
-        steps.forEach((s, i) => s.classList.toggle('active', i === (rec.process || 1)));
-      }
-      // auto show escalation visual if noSpam + stage 5 or conflict markers in history
-      const esc = document.getElementById('esc-banner');
-      if (esc && p._escalation) {
-        esc.classList.add('show');
-        document.getElementById('esc-title').textContent = p._escalation.title;
-        document.getElementById('esc-body').textContent = p._escalation.body;
-        document.getElementById('esc-sla').textContent = 'SLA: ' + p._escalation.sla;
-      } else if (esc) {
-        esc.classList.remove('show');
-      }
-    }
-
-    function aiConfirmSlots() {
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      addHistory('🤖', 'ИИ · подтверждены слоты',
-        '<div>Администратор подтвердил предложение ИИ: 2 окна из МИС. Запись <b>не создана автоматически</b> — требуется финальный клик «Записать в МИС».</div>');
-      p.preview = 'ИИ: слоты подтверждены';
-      toast('✓ Предложение принято · запись ждёт подтверждения в МИС');
-      setProcessStep(3);
-    }
-    function aiEditDraft() {
-      const input = document.getElementById('msg-input');
-      if (input) {
-        input.value = 'Добрый день! Могу предложить приём: завтра 14:00 или послезавтра 11:30 к стоматологу. Какой вариант удобнее?';
-        showPatientHistory();
-        input.focus();
-      }
-      toast('Черновик подставлен · отправьте вручную');
-    }
-    function aiConfirmCurator() {
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      addHistory('🤖', 'ИИ · задача куратору',
-        '<div>Сформирован Action Package: связаться в 48 ч, предложить поэтапную оплату, не закрывать в отказ без рассрочки.</div>');
-      toast('✓ Задача куратору поставлена (демо)');
-      setProcessStep(3);
-    }
-    function aiShowBrief() {
-      const p = DB.patients[currentPatientId];
-      const html = `
-        <div style="margin-bottom:12px"><b>Причина:</b> план лечения без следующего визита</div>
-        <div style="margin-bottom:12px"><b>Контекст МИС:</b> план · оплата частичная · врач ${p && p.doctor || '—'}</div>
-        <div style="margin-bottom:12px"><b>Суть:</b> пациент «подумает» · по регламенту нельзя закрывать без предложения рассрочки</div>
-        <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:10px">
-          <b>Рекомендуемое первое действие:</b><br>
-          Позвонить, напомнить про временную фиксацию (до 3 недель), предложить этап 1 и 2 окна на этой неделе.
-        </div>`;
-      document.getElementById('handoff-content').innerHTML = html;
-      document.getElementById('handoff-modal').classList.add('open');
-    }
-    function aiDismiss() {
-      toast('Рекомендация отложена');
-      setProcessStep(0);
-    }
-    function setProcessStep(n) {
-      const strip = document.getElementById('ai-process-strip');
-      if (!strip) return;
-      strip.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i === n));
-    }
-    function demoEscalation() {
-      const p = DB.patients[currentPatientId];
-      if (!p) return;
-      p._escalation = {
-        title: '🚩 Регламент №2 · Конфликт / претензия (демо)',
-        body: 'Обнаружены маркеры негатива или запрос «верните деньги». Авто-рассылки заморожены. Нужен человек.',
-        sla: '≤ 15 мин · Директор / Главврач / Сервис'
-      };
-      const handoff = `
-        <div style="margin-bottom:10px;padding:8px 10px;background:#fff1f2;border-radius:8px;color:#be123c;font-weight:600">
-          Причина: Регламент №2 · Юридический и репутационный щит
-        </div>
-        <div style="margin-bottom:10px"><b>Клинический контекст (IDENT):</b> последний визит и план подтягиваются из МИС (в прототипе — демо).</div>
-        <div style="margin-bottom:10px"><b>Суть диалога:</b> ${(p.preview || '—')}</div>
-        <div style="margin-bottom:10px"><b>Пациент:</b> ${p.name} · ${p.phone || ''}</div>
-        <div style="background:#f8fafc;border-radius:10px;padding:10px">
-          <b>Рекомендуемое действие:</b> перехватить диалог живым сотрудником, не отправлять шаблоны, зафиксировать претензию.
-        </div>`;
-      document.getElementById('handoff-content').innerHTML = handoff;
-      document.getElementById('handoff-modal').classList.add('open');
-      renderAIRec(p);
-      addHistory('🚩', 'Эскалация · handoff',
-        '<div>ИИ передал карточку человеку. Авто-сценарии остановлены. SLA ≤ 15 мин.</div>');
-      toast('Эскалация: человек вызван');
-    }
-    function closeHandoff() {
-      document.getElementById('handoff-modal').classList.remove('open');
-    }
-    function acceptHandoff() {
-      addHistory('👤', 'Человек принял handoff',
-        '<div>Сотрудник подтвердил приём в работу. ИИ остаётся в режиме ассистента.</div>');
-      closeHandoff();
-      toast('✓ В работе у сотрудника');
-      setProcessStep(3);
-    }
 
     function renderPatient(id, showToast = true) {
       const p = DB.patients[id];
       if (!p) return;
       currentPatientId = id;
+      document.getElementById('comms-empty').style.display='none';
+      document.getElementById('demo-patient-col').style.display='';
       const stage = STAGES.find(s => s.num === p.stageNum);
 
       document.getElementById('p-emoji').textContent = p.emoji;
@@ -639,22 +270,21 @@ const STAGES = [
       feed.innerHTML = p.history.map(h => `
         <div class="hist-item">
           <div class="hist-top">
-            <span class="hist-icon">${h.icon}</span>
-            <span class="hist-title">${h.title}</span>
-            <span class="hist-date">${h.date}</span>
+            <span class="hist-icon">${escapeHtml(String(h.icon||""))}</span>
+            <span class="hist-title">${escapeHtml(String(h.title||""))}</span>
+            <span class="hist-date">${escapeHtml(String(h.date||""))}</span>
           </div>
-          <div class="hist-body">${h.body}</div>
+          <div class="hist-body" style="white-space:pre-wrap">${escapeHtml(historyText(h.body))}</div>
         </div>
       `).join('');
 
       // Profile card (design)
-      renderProfileCard(p);
-      renderAIRec(p);
-
+      renderProfileCard(p);renderPatientRelations(p.id);
       renderInbox();
       if (showToast) toast('Карточка: ' + p.name);
     }
 
+    function historyText(html){const parsed=new DOMParser().parseFromString(String(html||''),'text/html');parsed.querySelectorAll('script,style,iframe,object,svg,math').forEach(n=>n.remove());parsed.querySelectorAll('br').forEach(n=>n.replaceWith('\n'));parsed.querySelectorAll('div,p').forEach(n=>n.append('\n'));return (parsed.body.textContent||'').trim();}
     function initials(name) {
       const parts = (name || '').trim().split(/\s+/).filter(Boolean);
       if (!parts.length) return '?';
@@ -667,22 +297,24 @@ const STAGES = [
       av.textContent = initials(p.name);
       av.className = 'profile-avatar ' + (p.gender === 'male' ? 'male' : (p.gender === 'female' ? 'female' : ''));
       document.getElementById('pr-name').textContent = p.name;
-      const since = p.createdAt || '06.11.2026';
-      document.getElementById('pr-since').textContent = 'Пациент с ' + since;
+      document.getElementById('pr-name').style.display=localFieldVisible(p,'name')?'':'none';
+      av.textContent=localFieldVisible(p,'name')?initials(p.name):'👤';
+      const since = p.createdAt || '';
+      document.getElementById('pr-since').textContent = since ? 'Пациент с ' + since : 'Дата создания не указана';
 
       const tags = document.getElementById('pr-tags');
-      const ageTag = (p.age && /\d+/.test(p.age) && parseInt(p.age) < 18) ? 'Ребёнок' : 'Взрослый';
-      let tagHtml = '<span class="tag muted">' + ageTag + '</span>';
-      if (p.plan) {
+      const ageTag = !p.age || !/\d+/.test(p.age) ? 'Возраст не указан' : (parseInt(p.age) < 18 ? 'Ребёнок' : 'Взрослый');
+      let tagHtml = localFieldVisible(p,'age') ? '<span class="tag muted">' + ageTag + '</span>' : '';
+      if (p.plan && localFieldVisible(p,'plan')) {
         const short = p.plan.split('·')[0].trim().slice(0, 24);
         tagHtml += '<span class="tag">' + escapeHtml(short) + '</span>';
-      } else if (p.stageNum === 1) {
+      } else if (p.stageNum === 1 && localFieldVisible(p,'stage')) {
         tagHtml += '<span class="tag">Первичный</span>';
       }
       tags.innerHTML = tagHtml;
 
       const spam = document.getElementById('pr-spam');
-      spam.style.display = p.noSpam ? 'flex' : 'none';
+      spam.style.display = p.noSpam && localFieldVisible(p,'nospam') ? 'flex' : 'none';
 
       document.getElementById('pr-phone').textContent = p.phone || '—';
       const adminName = p.admin && p.admin !== '—' ? p.admin : 'Не назначен';
@@ -705,17 +337,15 @@ const STAGES = [
         5: 'В базе прогрева'
       };
       document.getElementById('pr-process-status').textContent = statusMap[p.stageNum] || '—';
+      for(const key of ['phone','admin','doctor','bonuses'])document.getElementById('pr-'+key).closest('.profile-row').style.display=localFieldVisible(p,key)?'':'none';
+      document.querySelector('#profile-card .process-box').style.display=localFieldVisible(p,'stage')?'':'none';
+      const extras={gender:p.gender==='male'?'Мужской':p.gender==='female'?'Женский':'Не указан',channel:p.channelLabel||'Не указан',nps:p.nps==null?'Не указан':String(p.nps),inclinic:p.statusInClinic?'Да':'Нет',note:p.note||'Не указана'};
+      for(const [key,value] of Object.entries(extras)){document.getElementById('pr-'+key).textContent=value;document.querySelector('[data-profile-extra="'+key+'"]').style.display=localFieldVisible(p,key)?'':'none';}
+      document.getElementById('pr-extra-fields').style.display=Object.keys(extras).some(key=>localFieldVisible(p,key))?'':'none';
 
-      // show profile card mode
-      document.querySelector('.patient-col')?.classList.add('profile-mode');
     }
 
-    function showPatientHistory() {
-      document.querySelector('.patient-col')?.classList.remove('profile-mode');
-      toast('Чат');
-    }
-
-    function selectPatient(id) { renderPatient(id); }
+    function selectPatient(id) { if (window.tgShowDemo) window.tgShowDemo(); renderPatient(id); }
 
     function renderKanban() {
       const byStage = { 1: [], 2: [], 3: [], 4: [], 5: [] };
@@ -795,44 +425,19 @@ const STAGES = [
       movePatientStage(id, stage);
     }
 
-    function movePatientStage(id, newStage) {
-      newStage = parseInt(newStage, 10);
-      if (newStage < 1 || newStage > 5) return;
-      const p = DB.patients[id];
-      if (!p) return;
-      if (p.stageNum === newStage) return;
-      const old = STAGES.find(s => s.num === p.stageNum);
-      const neu = STAGES.find(s => s.num === newStage);
-      p.stageNum = newStage;
-      p.history.unshift({
-        type: 'system', icon: '🔄',
-        title: 'Смена этапа',
-        date: nowLabel(),
-        body: `<div>Этап: <b>${old ? old.label : '—'}</b> → <b>${neu ? neu.label : '—'}</b> (канбан)</div>`
-      });
-      const prevNum = old ? old.num : null;
-      if (typeof saveDB === 'function') saveDB();
-      renderKanban();
-      if (currentPatientId === id) renderPatient(id, false);
-      if (typeof onStageChanged === 'function') onStageChanged(id, prevNum, newStage);
-      toast('→ ' + (neu ? neu.label : newStage));
+    async function movePatientStage(id,newStage) {
+      if(!requireManual())return;newStage=parseInt(newStage,10);const p=DB.patients[id];if(!p||newStage<1||newStage>5||p.stageNum===newStage)return;
+      const old=STAGES.find(x=>x.num===p.stageNum),neu=STAGES.find(x=>x.num===newStage);
+      const next={...p,stageNum:newStage,history:[{type:'system',icon:'🔄',title:'Смена этапа',date:nowLabel(),body:'Этап: '+(old?.label||'—')+' → '+neu.label},...p.history]};
+      try{await window.crmApi('/api/manual/patients/'+id,'PUT',{record:next,expectedVersion:p.version,createStageTask:true});await window.crmRefreshManual();toast('Этап изменён');}catch(e){if(e.message!=='session_changed')toast(e.message);}
     }
 
-
-
-    let TASKS = [
-      { id: 't1', title: 'Подтвердить запись на чистку', patientId: 'smirnova', patient: 'Мария Смирнова', assignee: 'Анна Петрова', due: 'сегодня 18:00', overdue: false, done: false, source: 'ИИ · запись' },
-      { id: 't2', title: 'Перезвонить по цене проф. чистки', patientId: 'alexey', patient: 'Алексей Воронов', assignee: 'Анна Петрова', due: 'сегодня 14:00', overdue: true, done: false, source: 'ВКонтакте' },
-      { id: 't3', title: 'Уточнить следующий шаг после консультации', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Мария Ковалёва', due: 'завтра 12:00', overdue: false, done: false, source: 'ИИ · курация' },
-      { id: 't4', title: 'Проверить визит и NPS', patientId: 'mis', patient: 'Козлова Елена', assignee: 'Анна Петрова', due: 'сегодня 16:30', overdue: false, done: false, source: 'МИС' },
-      { id: 't5', title: 'Связаться: форма с сайта', patientId: 'site', patient: 'Неизвестный (сайт)', assignee: 'Анна Петрова', due: 'вчера 17:00', overdue: true, done: false, source: 'Сайт' },
-      { id: 't6', title: 'Отправить памятку после удаления', patientId: 'ivanov', patient: 'Иванов Иван Иванович', assignee: 'Дмитрий Соколов', due: '06.11', overdue: false, done: true, source: 'Регламент' }
-    ];
+    let TASKS = [];
     let taskFilter = 'all';
 
     function filterTasks(f) {
       taskFilter = f;
-      ['all','mine','overdue','done'].forEach(x => {
+      ['all','overdue','done'].forEach(x => {
         const el = document.getElementById('tf-' + x);
         if (el) el.className = 'badge' + (x === f ? ' teal' : '');
       });
@@ -843,29 +448,25 @@ const STAGES = [
       const list = document.getElementById('tasks-list');
       const stats = document.getElementById('tasks-stats');
       if (!list) return;
-      const mine = 'Анна Петрова';
       let items = TASKS.slice();
-      if (taskFilter === 'mine') items = items.filter(t => t.assignee === mine && !t.done);
-      else if (taskFilter === 'overdue') items = items.filter(t => t.overdue && !t.done);
+      if (taskFilter === 'overdue') items = items.filter(t => t.overdue && !t.done);
       else if (taskFilter === 'done') items = items.filter(t => t.done);
       else items = items.filter(t => !t.done).concat(items.filter(t => t.done));
 
       const open = TASKS.filter(t => !t.done).length;
       const od = TASKS.filter(t => t.overdue && !t.done).length;
-      const my = TASKS.filter(t => t.assignee === mine && !t.done).length;
       const done = TASKS.filter(t => t.done).length;
       if (stats) {
         stats.innerHTML = `
           <div class="tasks-stat"><div class="n">${open}</div><div class="l">Открытых</div></div>
           <div class="tasks-stat"><div class="n" style="color:#e11d48">${od}</div><div class="l">Просрочено</div></div>
-          <div class="tasks-stat"><div class="n">${my}</div><div class="l">Мои</div></div>
           <div class="tasks-stat"><div class="n" style="color:#0d9488">${done}</div><div class="l">Выполнено</div></div>`;
       }
 
       list.innerHTML = items.map(t => `
         <div class="task-card ${t.done ? 'done' : ''} ${t.overdue && !t.done ? 'overdue' : ''}">
-          <div class="task-check ${t.done ? 'on' : ''}" onclick="event.stopPropagation(); toggleTask('${t.id}')">${t.done ? '✓' : ''}</div>
-          <div class="task-body" onclick="openTaskPatient('${t.patientId}')">
+          <div class="task-check ${t.done ? 'on' : ''}" onclick="event.stopPropagation(); toggleTask(decodeURIComponent('${encodeURIComponent(String(t.id)).replace(/'/g,'%27')}'))">${t.done ? '✓' : ''}</div>
+          <div class="task-body" onclick="openTaskEditor(decodeURIComponent('${encodeURIComponent(String(t.id)).replace(/'/g,'%27')}'))">
             <div class="task-title">${escapeHtml(String(t.title || ""))}</div>
             <div class="task-meta">
               <span>👤 ${escapeHtml(String(t.patient || ""))}</span>
@@ -874,427 +475,56 @@ const STAGES = [
             </div>
           </div>
           <div class="task-right">
-            <div class="badge ${t.overdue && !t.done ? 'rose' : ''}">${escapeHtml(String(t.due || ""))}</div>
+            <div class="badge ${t.overdue && !t.done ? 'rose' : ''}">${escapeHtml(String(t.due || ""))}</div><button type="button" class="badge" onclick="openTaskEditor(decodeURIComponent('${encodeURIComponent(String(t.id)).replace(/'/g,'%27')}'))">Редактировать</button>
           </div>
         </div>
       `).join('') || '<div style="padding:24px;color:#94a3b8;text-align:center">Нет задач в этом фильтре</div>';
     }
 
-    function toggleTask(id) {
-      const t = TASKS.find(x => x.id === id);
-      if (!t) return;
-      t.done = !t.done;
-      if (t.done) t.overdue = false;
-      renderTasks();
-      toast(t.done ? '✓ Задача выполнена' : 'Задача снова открыта');
+    async function toggleTask(id) {
+      if(!requireManual())return;const t=TASKS.find(x=>x.id===id);if(!t)return;
+      try{await window.crmApi('/api/manual/tasks/'+id,'PUT',{record:{...t,done:!t.done,overdue:t.done?t.overdue:false},expectedVersion:t.version});await window.crmRefreshManual();}catch(e){if(e.message!=='session_changed')toast(e.message);}
     }
-
     function openTaskPatient(pid) {
-      if (!pid || !DB.patients[pid]) { toast('Пациент не найден'); return; }
-      showView('comms');
-      selectPatient(pid);
+      if(!pid)return;if(pid.startsWith('tg_')){showView('comms');window.tgSelect(pid.slice(3));return;}
+      if(!DB.patients[pid]){toast('Пациент не найден');return;}showView('comms');selectPatient(pid);
     }
-
-    function addDemoTask() {
-      const id = 't' + Date.now();
-      TASKS.unshift({
-        id, title: 'Новая задача администратора',
-        patientId: currentPatientId, patient: (DB.patients[currentPatientId] || {}).name || '—',
-        assignee: 'Анна Петрова', due: 'сегодня 19:00', overdue: false, done: false, source: 'Вручную'
-      });
-      taskFilter = 'all';
-      filterTasks('all');
-      toast('✓ Задача создана');
+    let editingTaskId=null;
+    function addDemoTask(){openTaskEditor();}
+    function openTaskEditor(id){
+      if(!requireManual())return;const task=id?TASKS.find(t=>t.id===id):null;if(id&&!task)return;editingTaskId=task?task.id:null;taskEditVersion=task?.version??null;taskDraftId=task?null:newId('t');showManualError('task-save-error','');
+      document.getElementById('task-modal-title').textContent=task?'Редактирование задачи':'Новая задача';window.crmFillStaff(document.getElementById('task-assignee-user'),task?.assigneeUserId||'');document.getElementById('task-title').value=task?.title||'';document.getElementById('task-assignee').value=task?.assignee==='—'?'':task?.assignee||'';document.getElementById('task-due').value=localInputValue(task?.dueAt);
+      const legacy=task&&!task.dueAt&&task.due&&task.due!=='без срока'?task.due:'';document.getElementById('task-legacy-due').textContent=legacy?'Прежний срок: '+legacy+' (без точной даты)':'';document.getElementById('task-clear-legacy-wrap').style.display=legacy?'':'none';document.getElementById('task-clear-legacy').checked=false;
+      document.getElementById('task-open-patient').style.display=task?.patientId?'':'none';const select=document.getElementById('task-patient');select.replaceChildren(new Option('Без пациента',''));
+      Object.values(DB.patients).forEach(p=>select.add(new Option(p.name+' · карточка',p.id)));(window.getTelegramPatientOptions?.()||[]).forEach(p=>select.add(new Option(p.name+' · Telegram','tg_'+p.id)));
+      select.value=task?.patientId||'';document.getElementById('task-modal').classList.add('open');document.getElementById('task-title').focus();
     }
-
-
-    const ANALYTICS_DATA = {
-      today: {
-        kpis: [
-          { label: 'Первичные обращения', value: '24', sub: '↑ 12% к вчера', up: true },
-          { label: 'Записались на приём', value: '18', sub: 'конверсия 75%', up: false },
-          { label: 'Среднее время ответа', value: '4:12', sub: '↓ лучше цели 5 мин', up: true },
-          { label: 'Просроченные задачи', value: '3', sub: 'требуют внимания', danger: true }
-        ],
-        bars: [
-          { lbl: 'Пн', v: 18 }, { lbl: 'Вт', v: 22 }, { lbl: 'Ср', v: 15 },
-          { lbl: 'Чт', v: 28 }, { lbl: 'Пт', v: 24 }, { lbl: 'Сб', v: 12 }, { lbl: 'Вс', v: 8 }
-        ],
-        funnel: [
-          { name: 'Обращения', n: 24, pct: 100, color: '#14b8a6' },
-          { name: 'Квалификация', n: 21, pct: 88, color: '#2dd4bf' },
-          { name: 'Запись', n: 18, pct: 75, color: '#38bdf8' },
-          { name: 'Визит', n: 14, pct: 58, color: '#818cf8' }
-        ],
-        channels: [
-          { name: 'Телефон / UIS', pct: 38, color: '#14b8a6' },
-          { name: 'Telegram', pct: 24, color: '#38bdf8' },
-          { name: 'ВКонтакте', pct: 20, color: '#a78bfa' },
-          { name: 'Сайт', pct: 18, color: '#fbbf24' }
-        ],
-        donut: 'conic-gradient(#14b8a6 0 38%, #38bdf8 38% 62%, #a78bfa 62% 82%, #fbbf24 82% 100%)',
-        admins: [
-          { name: 'Анна Петрова', av: 'АП', c: '12 / 14 · 86%', w: 86, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
-          { name: 'Мария Ковалёва', av: 'МК', c: '8 / 11 · 73%', w: 73, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
-          { name: 'Дмитрий Соколов', av: 'ДС', c: '5 / 9 · 56%', w: 56, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
-        ],
-        speed: [
-          { lbl: '9:00', v: 6.2 }, { lbl: '11:00', v: 4.1 }, { lbl: '13:00', v: 3.8 },
-          { lbl: '15:00', v: 5.5 }, { lbl: '17:00', v: 4.0 }, { lbl: '19:00', v: 3.2 }
-        ],
-        sub: 'Последние 7 дней · сегодня выделено'
-      },
-      week: {
-        kpis: [
-          { label: 'Первичные обращения', value: '142', sub: '↑ 8% к прошлой неделе', up: true },
-          { label: 'Записались на приём', value: '98', sub: 'конверсия 69%', up: false },
-          { label: 'Среднее время ответа', value: '5:04', sub: 'на уровне цели', up: false },
-          { label: 'Просроченные задачи', value: '7', sub: 'за неделю', danger: true }
-        ],
-        bars: [
-          { lbl: 'Пн', v: 22 }, { lbl: 'Вт', v: 19 }, { lbl: 'Ср', v: 25 },
-          { lbl: 'Чт', v: 18 }, { lbl: 'Пт', v: 28 }, { lbl: 'Сб', v: 16 }, { lbl: 'Вс', v: 14 }
-        ],
-        funnel: [
-          { name: 'Обращения', n: 142, pct: 100, color: '#14b8a6' },
-          { name: 'Квалификация', n: 118, pct: 83, color: '#2dd4bf' },
-          { name: 'Запись', n: 98, pct: 69, color: '#38bdf8' },
-          { name: 'Визит', n: 71, pct: 50, color: '#818cf8' }
-        ],
-        channels: [
-          { name: 'Телефон / UIS', pct: 42, color: '#14b8a6' },
-          { name: 'Telegram', pct: 22, color: '#38bdf8' },
-          { name: 'ВКонтакте', pct: 18, color: '#a78bfa' },
-          { name: 'Сайт', pct: 18, color: '#fbbf24' }
-        ],
-        donut: 'conic-gradient(#14b8a6 0 42%, #38bdf8 42% 64%, #a78bfa 64% 82%, #fbbf24 82% 100%)',
-        admins: [
-          { name: 'Анна Петрова', av: 'АП', c: '41 / 52 · 79%', w: 79, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
-          { name: 'Мария Ковалёва', av: 'МК', c: '33 / 48 · 69%', w: 69, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
-          { name: 'Дмитрий Соколов', av: 'ДС', c: '24 / 42 · 57%', w: 57, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
-        ],
-        speed: [
-          { lbl: 'Пн', v: 5.1 }, { lbl: 'Вт', v: 4.8 }, { lbl: 'Ср', v: 5.5 },
-          { lbl: 'Чт', v: 4.2 }, { lbl: 'Пт', v: 6.0 }, { lbl: 'Сб', v: 3.9 }
-        ],
-        sub: 'Текущая неделя'
-      },
-      month: {
-        kpis: [
-          { label: 'Первичные обращения', value: '586', sub: '↑ 15% к прошлому месяцу', up: true },
-          { label: 'Записались на приём', value: '401', sub: 'конверсия 68%', up: false },
-          { label: 'Среднее время ответа', value: '5:22', sub: 'чуть выше цели', up: false },
-          { label: 'Просроченные задачи', value: '19', sub: 'за месяц', danger: true }
-        ],
-        bars: [
-          { lbl: 'Нед1', v: 120 }, { lbl: 'Нед2', v: 135 }, { lbl: 'Нед3', v: 148 },
-          { lbl: 'Нед4', v: 183 }
-        ],
-        funnel: [
-          { name: 'Обращения', n: 586, pct: 100, color: '#14b8a6' },
-          { name: 'Квалификация', n: 492, pct: 84, color: '#2dd4bf' },
-          { name: 'Запись', n: 401, pct: 68, color: '#38bdf8' },
-          { name: 'Визит', n: 312, pct: 53, color: '#818cf8' }
-        ],
-        channels: [
-          { name: 'Телефон / UIS', pct: 40, color: '#14b8a6' },
-          { name: 'Telegram', pct: 25, color: '#38bdf8' },
-          { name: 'ВКонтакте', pct: 19, color: '#a78bfa' },
-          { name: 'Сайт', pct: 16, color: '#fbbf24' }
-        ],
-        donut: 'conic-gradient(#14b8a6 0 40%, #38bdf8 40% 65%, #a78bfa 65% 84%, #fbbf24 84% 100%)',
-        admins: [
-          { name: 'Анна Петрова', av: 'АП', c: '168 / 210 · 80%', w: 80, bg: '#ccfbf1', fg: '#0f766e', bar: '#2dd4bf' },
-          { name: 'Мария Ковалёва', av: 'МК', c: '132 / 190 · 69%', w: 69, bg: '#e0f2fe', fg: '#0369a1', bar: '#38bdf8' },
-          { name: 'Дмитрий Соколов', av: 'ДС', c: '101 / 186 · 54%', w: 54, bg: '#ede9fe', fg: '#6d28d9', bar: '#a78bfa' }
-        ],
-        speed: [
-          { lbl: 'Нед1', v: 5.4 }, { lbl: 'Нед2', v: 5.1 }, { lbl: 'Нед3', v: 4.9 }, { lbl: 'Нед4', v: 5.6 }
-        ],
-        sub: 'Текущий месяц по неделям'
-      }
-    };
-    let analyticsPeriod = 'today';
-
-    function setAnalyticsPeriod(p) {
-      analyticsPeriod = p;
-      document.querySelectorAll('.period-btn').forEach(b => {
-        b.classList.toggle('active', b.getAttribute('data-period') === p);
-      });
-      renderAnalytics();
+    window.crmOpenTaskById=function(id){if(!TASKS.some(t=>t.id===id)){toast('Задача недоступна.');return;}showView('tasks');openTaskEditor(id);};
+    window.crmGetManualPatientOptions=()=>Object.values(DB.patients).map(p=>({id:p.id,name:p.name,phone:p.phone}));
+    window.crmOpenPatientRef=function(ref){if(!ref)return;closePatientModal();if(ref.startsWith('tg_')){showView('comms');window.tgSelect(ref.slice(3));return;}if(!DB.patients[ref]){toast('Карточка не найдена');return;}showView('comms');selectPatient(ref);};
+    window.crmShowDuplicates=function(container,matches,proceed){const box=document.getElementById(container);box.replaceChildren();const title=document.createElement('p');title.textContent='Возможные совпадения по телефону. Сначала проверьте карточки: один номер может принадлежать разным людям.';box.append(title);for(const p of matches){const row=document.createElement('div'),button=document.createElement('button');row.style.margin='5px 0';button.type='button';button.className='badge';button.textContent=(p.kind==='telegram'?'Telegram · ':'Карточка · ')+(p.name||'Без имени')+' · '+(p.phone||'без телефона')+(p.source==='telegram'?' · телефон не проверен':'');button.onclick=()=>window.crmOpenPatientRef(p.id);row.append(button);box.append(row);}const button=document.createElement('button');button.type='button';button.className='badge';button.textContent='Проверено — сохранить отдельно';button.onclick=()=>proceed(matches.map(p=>p.id));box.append(button);};
+    function renderPatientRelations(id){window.crmRenderRelatedTasks('pr-linked-tasks',id);}
+    window.crmRenderRelatedTasks=function(container,ref){const box=document.getElementById(container);box.replaceChildren();const tasks=TASKS.filter(t=>t.patientId===ref);if(!tasks.length){box.textContent='Нет связанных задач';return;}for(const task of tasks){const b=document.createElement('button');b.type='button';b.className='badge';b.textContent=(task.done?'✓ ':'')+task.title;b.onclick=()=>{showView('tasks');openTaskEditor(task.id);};box.append(b);}};
+    window.crmTaskForReference=function(ref){if(!requireManual())return;openTaskEditor();const select=document.getElementById('task-patient');select.value=ref;if(select.value!==ref){closeTaskModal();toast('Связанная запись недоступна.');}};
+    window.crmTaskForManual=()=>{if(currentPatientId)window.crmTaskForReference(currentPatientId);};
+    window.crmPatientSearch=function(){const q=document.getElementById('patient-search').value.trim(),seq=++searchSequence,box=document.getElementById('patient-search-results');clearTimeout(searchTimer);box.replaceChildren();if(!q){box.style.display='none';return;}box.style.display='';if(!manualReady){box.textContent='Войдите в CRM для поиска.';return;}box.textContent='Поиск…';searchTimer=setTimeout(async()=>{try{const result=await window.crmApi('/api/patients/search?q='+encodeURIComponent(q));if(seq!==searchSequence)return;box.replaceChildren();if(!result.items.length){box.textContent='Нет совпадений. Для поиска укажите хотя бы 2 буквы или 3 цифры.';return;}for(const item of result.items){const row=document.createElement('div'),b=document.createElement('button');row.style.margin='5px 0';b.type='button';b.className='badge';b.textContent=(item.kind==='telegram'?'Telegram · ':'Карточка · ')+(item.name||'Без имени')+(item.phone?' · '+item.phone:'')+(item.source==='telegram'?' · телефон не проверен':'');b.onclick=()=>window.crmOpenPatientRef(item.id);row.append(b);box.append(row);}}catch(e){if(seq===searchSequence)box.textContent=e.message;}},200);};
+    function openTaskLinkedPatient(){const task=TASKS.find(t=>t.id===editingTaskId);if(!task?.patientId)return;const id=task.patientId;closeTaskModal();openTaskPatient(id);}
+    function closeTaskModal(){document.getElementById('task-modal').classList.remove('open');editingTaskId=null;}
+    async function saveTask(){
+      if(!requireManual()||taskSaving)return;const title=document.getElementById('task-title').value.trim();if(!title){showManualError('task-save-error','Укажите задачу');return;}
+      const dateValue=document.getElementById('task-due').value,date=dateValue?new Date(dateValue):null;if(date&&Number.isNaN(date.getTime())){showManualError('task-save-error','Проверьте срок');return;}
+      const task=editingTaskId&&TASKS.find(t=>t.id===editingTaskId);if(editingTaskId&&!task){showManualError('task-save-error','Задача недоступна');return;}
+      const keepLegacy=task&&!task.dueAt&&task.due&&task.due!=='без срока'&&!date&&!document.getElementById('task-clear-legacy').checked;
+      const record={...task,title,assigneeUserId:document.getElementById('task-assignee-user').value,assignee:document.getElementById('task-assignee').value.trim()||'—',patientId:document.getElementById('task-patient').value,dueAt:date?date.toISOString():null,due:date?date.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):keepLegacy?task.due:'без срока',overdue:keepLegacy?task.overdue:!!(date&&date.getTime()<Date.now()),done:task?.done||false,source:task?.source||'Вручную'};
+      const id=editingTaskId||taskDraftId;taskSaving=true;document.getElementById('task-save-button').disabled=true;showManualError('task-save-error','');
+      try{await window.crmApi('/api/manual/tasks/'+id,'PUT',{record,expectedVersion:taskEditVersion});await window.crmRefreshManual();closeTaskModal();filterTasks('all');toast('Задача сохранена');}
+      catch(e){if(e.message!=='session_changed')showManualError('task-save-error',e.message);}
+      finally{taskSaving=false;document.getElementById('task-save-button').disabled=false;}
     }
-
-    function renderAnalytics() {
-      const d = ANALYTICS_DATA[analyticsPeriod] || ANALYTICS_DATA.today;
-      const kpi = document.getElementById('kpi-grid');
-      if (!kpi) return;
-      kpi.innerHTML = d.kpis.map(k => `
-        <div class="card kpi-card">
-          <div class="kpi-label">${k.label}</div>
-          <div class="kpi-value" ${k.danger ? 'style="color:#e11d48"' : ''}>${k.value}</div>
-          <div class="kpi-sub ${k.up ? 'up' : ''}">${k.sub}</div>
-        </div>`).join('');
-
-      const maxB = Math.max(...d.bars.map(b => b.v), 1);
-      const bars = document.getElementById('chart-bars');
-      if (bars) {
-        bars.innerHTML = d.bars.map((b, i) => {
-          const h = Math.round((b.v / maxB) * 100);
-          const active = analyticsPeriod === 'today' && i === d.bars.length - 3;
-          return `<div class="bar-col">
-            <div class="val">${b.v}</div>
-            <div class="bar ${active ? '' : ''}" style="height:${h}%"></div>
-            <div class="lbl">${b.lbl}</div>
-          </div>`;
-        }).join('');
-      }
-      const sub = document.getElementById('chart-leads-sub');
-      if (sub) sub.textContent = d.sub;
-
-      const funnel = document.getElementById('chart-funnel');
-      if (funnel) {
-        funnel.innerHTML = d.funnel.map(f => `
-          <div class="funnel-row">
-            <div class="fname">${f.name}</div>
-            <div class="funnel-track">
-              <div class="funnel-fill" style="width:${f.pct}%;background:${f.color}">${f.n} · ${f.pct}%</div>
-            </div>
-          </div>`).join('');
-      }
-
-      const donut = document.getElementById('chart-donut');
-      if (donut) donut.style.background = d.donut;
-      const ch = document.getElementById('chart-channels');
-      if (ch) {
-        ch.innerHTML = d.channels.map(c => `
-          <div class="channel-row">
-            <span class="channel-dot" style="background:${c.color}"></span>
-            <span style="flex:1">${c.name}</span>
-            <span style="font-weight:600;color:#334155">${c.pct}%</span>
-          </div>`).join('');
-      }
-
-      const adm = document.getElementById('chart-admins');
-      if (adm) {
-        adm.innerHTML = d.admins.map(a => `
-          <div class="admin-row">
-            <div class="admin-avatar" style="background:${a.bg};color:${a.fg}">${a.av}</div>
-            <div style="flex:1">
-              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-                <span style="font-weight:500">${a.name}</span><span style="color:#64748b">${a.c}</span>
-              </div>
-              <div class="bar-fill"><span style="width:${a.w}%;background:${a.bar}"></span></div>
-            </div>
-          </div>`).join('');
-      }
-
-      const maxS = Math.max(...d.speed.map(s => s.v), 1);
-      const speed = document.getElementById('chart-speed');
-      if (speed) {
-        speed.innerHTML = d.speed.map(s => {
-          const h = Math.round((s.v / maxS) * 100);
-          const over = s.v > 5;
-          return `<div class="bar-col">
-            <div class="val">${s.v.toFixed(1)}</div>
-            <div class="bar ${over ? 'muted' : ''}" style="height:${h}%;${over ? 'background:linear-gradient(180deg,#fda4af,#e11d48)' : ''}"></div>
-            <div class="lbl">${s.lbl}</div>
-          </div>`;
-        }).join('');
-      }
-    }
-
-
-
-    const MSG_TEMPLATES = [
-      { id: 'addr', name: 'Адрес клиники', body: 'Мы находимся по адресу: ул. Примерная, 10. Парковка во дворе. Ждём вас!' },
-      { id: 'price', name: 'Прайс проф. чистки', body: 'Профессиональная гигиена — от 4 500 ₽. Для первичных пациентов скидка 10% при записи на этой неделе.' },
-      { id: 'remind', name: 'Напоминание о визите', body: 'Добрый день! Напоминаем о записи завтра. Если нужно перенести — ответьте на это сообщение.' },
-      { id: 'after', name: 'После консультации', body: 'Спасибо, что были у нас! Если остались вопросы по плану лечения — напишите, подскажем по этапам и оплате.' },
-      { id: 'noshow', name: 'Неявка', body: 'Вы не смогли прийти на приём. Давайте подберём новое удобное время — напишите, когда вам комфортно.' }
-    ];
-
-    let TRIGGERS = [
-      { id: 'tr1', name: 'Смена этапа → задача', when: 'Пациент переведён на другой этап', action: 'Создать задачу ответственному', on: true },
-      { id: 'tr2', name: 'Новый лид без ответа 30 мин', when: 'Входящее без ответа', action: 'Уведомление администратору', on: true },
-      { id: 'tr3', name: 'Отказ от рассылок', when: 'Флаг noSpam', action: 'Блок маркетинг-шаблонов', on: true },
-      { id: 'tr4', name: 'После записи в МИС', when: 'Успешная запись', action: 'Шаблон «Напоминание о визите»', on: false },
-      { id: 'tr5', name: 'Просроченная задача', when: 'Срок задачи истёк', action: 'Push в колокольчик', on: true }
-    ];
-
-    let NOTIFS = [];
-    let AUTO_LOG = [];
-
-    function renderTemplates() {
-      const el = document.getElementById('templates-list');
-      if (!el) return;
-      el.innerHTML = MSG_TEMPLATES.map(t => `
-        <div class="tpl-item">
-          <div class="t-name">${t.name}</div>
-          <div class="t-body">${t.body}</div>
-          <div class="t-actions">
-            <button type="button" onclick="useTemplate('${t.id}')">Вставить в чат</button>
-            <button type="button" onclick="previewTemplate('${t.id}')">Просмотр</button>
-          </div>
-        </div>`).join('');
-    }
-
-    function renderTriggers() {
-      const el = document.getElementById('triggers-list');
-      if (!el) return;
-      el.innerHTML = TRIGGERS.map(t => `
-        <div class="trg-item">
-          <div class="trg-row">
-            <button type="button" class="toggle ${t.on ? 'on' : ''}" onclick="toggleTrigger('${t.id}')" title="Вкл/выкл"></button>
-            <div style="flex:1">
-              <div class="t-name">${t.name}</div>
-              <div class="t-body">Когда: ${t.when}<br>Действие: ${t.action}</div>
-            </div>
-          </div>
-        </div>`).join('');
-    }
-
-    function renderAutoLog() {
-      const el = document.getElementById('auto-log');
-      if (!el) return;
-      if (!AUTO_LOG.length) {
-        el.innerHTML = '<div style="color:#94a3b8;padding:8px 0">Пока пусто — сработавшие триггеры появятся здесь</div>';
-        return;
-      }
-      el.innerHTML = AUTO_LOG.slice(0, 20).map(l => `
-        <div class="log-item">
-          <span>${l.icon || '⚡'}</span>
-          <div style="flex:1"><b>${l.title}</b><div style="color:#64748b">${l.body}</div></div>
-          <span style="color:#94a3b8;white-space:nowrap">${l.time}</span>
-        </div>`).join('');
-    }
-
-    function renderAuto() {
-      renderTemplates();
-      renderTriggers();
-      renderAutoLog();
-    }
-
-    function useTemplate(id) {
-      const t = MSG_TEMPLATES.find(x => x.id === id);
-      if (!t) return;
-      showView('comms');
-      const input = document.getElementById('msg-input');
-      if (input) { input.value = t.body; input.focus(); }
-      toast('Шаблон «' + t.name + '» в поле ввода');
-    }
-
-    function previewTemplate(id) {
-      const t = MSG_TEMPLATES.find(x => x.id === id);
-      if (!t) return;
-      toast(t.name + ': ' + t.body.slice(0, 80) + '…');
-    }
-
-    function toggleTrigger(id) {
-      const t = TRIGGERS.find(x => x.id === id);
-      if (!t) return;
-      t.on = !t.on;
-      renderTriggers();
-      toast(t.on ? 'Триггер включён' : 'Триггер выключен');
-    }
-
-    function logAuto(icon, title, body) {
-      AUTO_LOG.unshift({ icon, title, body, time: nowLabel() });
-      renderAutoLog();
-    }
-
-    function pushNotif(title, body, patientId) {
-      NOTIFS.unshift({ id: 'n' + Date.now(), title, body, time: nowLabel(), patientId: patientId || null, read: false });
-      renderNotifBadge();
-      renderNotifList();
-    }
-
-    function renderNotifBadge() {
-      const b = document.getElementById('notif-badge');
-      if (!b) return;
-      const n = NOTIFS.filter(x => !x.read).length;
-      b.style.display = n ? 'flex' : 'none';
-      b.textContent = n > 9 ? '9+' : String(n);
-    }
-
-    function renderNotifList() {
-      const el = document.getElementById('notif-list');
-      if (!el) return;
-      if (!NOTIFS.length) {
-        el.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px">Пока нет уведомлений</div>';
-        return;
-      }
-      el.innerHTML = NOTIFS.map(n => `
-        <div class="notif-item" onclick="openNotif('${n.id}')">
-          <div class="n-title">${n.title}</div>
-          <div class="n-body">${n.body}</div>
-          <div class="n-time">${n.time}</div>
-        </div>`).join('');
-    }
-
-    function toggleNotifPanel(e) {
-      if (e) e.stopPropagation();
-      const p = document.getElementById('notif-panel');
-      if (!p) return;
-      p.classList.toggle('open');
-      if (p.classList.contains('open')) {
-        NOTIFS.forEach(n => n.read = true);
-        renderNotifBadge();
-      }
-    }
-
-    function clearNotifs() {
-      NOTIFS = [];
-      renderNotifBadge();
-      renderNotifList();
-    }
-
-    function openNotif(id) {
-      const n = NOTIFS.find(x => x.id === id);
-      if (n && n.patientId && DB.patients[n.patientId]) {
-        showView('comms');
-        selectPatient(n.patientId);
-      }
-      document.getElementById('notif-panel')?.classList.remove('open');
-    }
-
-    document.addEventListener('click', () => {
-      document.getElementById('notif-panel')?.classList.remove('open');
-    });
-
-    function fireTrigger(triggerId, ctx) {
-      const t = TRIGGERS.find(x => x.id === triggerId);
-      if (!t || !t.on) return false;
-      logAuto('⚡', t.name, (ctx && ctx.detail) || t.action);
-      pushNotif('Авто: ' + t.name, (ctx && ctx.detail) || t.action, ctx && ctx.patientId);
-      return true;
-    }
-
-    function onStageChanged(patientId, oldStage, newStage) {
-      const p = DB.patients[patientId];
-      fireTrigger('tr1', {
-        patientId,
-        detail: (p ? p.name : patientId) + ': этап ' + oldStage + ' → ' + newStage + '. Создана задача ответственному.'
-      });
-      if (typeof TASKS !== 'undefined' && p) {
-        TASKS.unshift({
-          id: 't_auto_' + Date.now(),
-          title: 'Проверить этап: ' + (STAGES.find(s => s.num === newStage) || {}).label,
-          patientId, patient: p.name,
-          assignee: p.admin || 'Анна Петрова',
-          due: 'сегодня', overdue: false, done: false, source: 'Автотриггер'
-        });
-      }
-    }
-
-    function runDemoTrigger() {
-      fireTrigger('tr2', { detail: 'Демо: лид без ответа 30 мин · Мария Смирнова', patientId: 'smirnova' });
-      fireTrigger('tr5', { detail: 'Демо: просрочена задача «Перезвонить по цене»', patientId: 'alexey' });
-      toast('Триггеры прогнаны · смотрите колокольчик и журнал');
-      renderAuto();
-    }
-
+    const oldRenderTasks=renderTasks;renderTasks=function(){TASKS.forEach(t=>{if(t.dueAt&&!t.done){const d=new Date(t.dueAt);t.overdue=d.getTime()<Date.now();t.due=d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}});oldRenderTasks();};
 
     function showView(name) {
+      if (!document.getElementById('view-' + name)) return;
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       const view = document.getElementById('view-' + name);
@@ -1303,8 +533,6 @@ const STAGES = [
       if (nav) nav.classList.add('active');
       if (name === 'kanban') renderKanban();
       if (name === 'tasks') renderTasks();
-      if (name === 'analytics') renderAnalytics();
-      if (name === 'auto') renderAuto();
     }
 
     function toast(msg) {
@@ -1315,6 +543,15 @@ const STAGES = [
       window._toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     }
 
-    loadDB();
+    renderInbox = function() {
+      const list=document.getElementById('inbox-list');list.innerHTML='';
+      if(window.renderTelegramInboxItems)window.renderTelegramInboxItems(list);
+      DB.inboxOrder.forEach(id=>{const p=DB.patients[id];if(!p)return;const node=document.createElement('div');
+        node.className='sidebar-item px-4 py-3.5'+(id===currentPatientId && !(window.tgHasSelectedChat && window.tgHasSelectedChat())?' active':'');node.onclick=()=>selectPatient(id);
+        const safe=v=>escapeHtml(String(v ?? ''));const title=p.channelIcon==='📞'?p.phone:p.name;
+        node.innerHTML=`<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">Карточка · ${safe(p.preview)}</div></div></div>`;list.appendChild(node);
+      });updateInboxCount();
+    };
     renderInbox();
-    renderPatient(currentPatientId, false);
+
+    document.getElementById('pf-phone').addEventListener('input',()=>document.getElementById('patient-duplicates').replaceChildren());

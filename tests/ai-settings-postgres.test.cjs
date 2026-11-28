@@ -1,0 +1,14 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),{Pool}=require('pg'),{createServer}=require('../src/app'),{DEFAULTS}=require('../src/workflow/ai-settings');
+const url=process.env.TEST_AI_DATABASE_URL;
+test('PostgreSQL: конкурентные публикации, проверка между экземплярами и сохранение версий после перезапуска',{skip:!url},async t=>{
+ const db=new Pool({connectionString:url});await db.query('DROP SCHEMA IF EXISTS crm_v2 CASCADE');await db.query('DROP TABLE IF EXISTS clinic_state');const env={DATABASE_URL:url,ADMIN_TOKEN:'setup-token-at-least-24-characters'};let a=createServer({env}),b=createServer({env});await Promise.all([a.ready,b.ready]);await Promise.all([new Promise(r=>a.listen(0,'127.0.0.1',r)),new Promise(r=>b.listen(0,'127.0.0.1',r))]);t.after(()=>{a.close();b.close();db.end()});
+ const root=x=>'http://127.0.0.1:'+x.address().port;async function req(x,p,method='GET',data,token){const r=await fetch(root(x)+p,{method,headers:{...(token?{Authorization:'Bearer '+token}:{}),...(data?{'content-type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});return [r.status,await r.json()];}
+ let [,first]=await req(a,'/api/auth/bootstrap','POST',{login:'manager',name:'Первый',password:'Strongpass123456',setupToken:env.ADMIN_TOKEN});const boss=first.token;
+ await req(a,'/api/manage/staff','POST',{login:'manager2',name:'Второй',password:'Strongpass123456',role:'manager'},boss);let [,second]=await req(b,'/api/auth/login','POST',{login:'manager2',password:'Strongpass123456'});
+ const route='/api/manage/ai-settings',left=structuredClone(DEFAULTS),right=structuredClone(DEFAULTS);left.style='formal';right.style='neutral';
+ assert.equal((await req(a,route+'/preview','POST',{expectedVersion:0,config:left,sample:'привет'},boss))[1].valid,true);assert.equal((await req(b,route+'/preview','POST',{expectedVersion:0,config:right,sample:'привет'},second.token))[1].valid,true);
+ const results=await Promise.all([req(b,route,'PUT',{expectedVersion:0,config:left,restoredFrom:null},boss),req(a,route,'PUT',{expectedVersion:0,config:right,restoredFrom:null},second.token)]);assert.deepEqual(results.map(x=>x[0]).sort(),[200,409]);const winner=results.find(x=>x[0]===200)[1].current.config.style;
+ const state=await db.query('SELECT payload FROM clinic_state WHERE id=1');assert.equal(state.rows[0].payload.aiSettingsVersions[1].config.style,winner);assert((await db.query("SELECT payload->'extra'->'aiSettingsVersions' data FROM crm_v2.state_parts WHERE record_key='root'")).rows[0].data);
+ await Promise.all([new Promise(r=>a.close(r)),new Promise(r=>b.close(r))]);a=createServer({env});await a.ready;await new Promise(r=>a.listen(0,'127.0.0.1',r));const [,loaded]=await req(a,route,'GET',null,boss);assert.equal(loaded.current.config.style,winner);assert.deepEqual(loaded.versions.map(x=>x.version),[1,0]);
+});
