@@ -174,24 +174,27 @@
       </div>
       <div class="patient-col" id="tg-patient-col" style="display:none">
         <div class="card patient-header tg-header-card">
-          <div class="patient-top"><div><div class="tg-card-hint">Карточка пациента · Telegram</div><div class="tg-name-line"><h1 class="patient-name" id="tg-chat-name">Выберите диалог</h1><button type="button" class="tg-edit-icon" id="tg-patient-edit" onclick="tgEditPatient()" aria-label="Редактировать карточку пациента" title="Редактировать карточку пациента" disabled><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4zm13-17 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div class="tg-card-source" id="tg-patient-name-source"></div></div><span class="badge" id="tg-connection">Сервер · тест</span></div>
+          <div class="tg-card-main">
+            <div class="tg-card-identity">
+              <div class="tg-card-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 19c.6-3.5 3-5.5 6.5-5.5s5.9 2 6.5 5.5"/></svg></div>
+              <div class="tg-card-person">
+                <div class="tg-name-line"><h1 class="patient-name" id="tg-chat-name">Выберите диалог</h1><button type="button" class="tg-edit-icon" id="tg-patient-edit" onclick="tgEditPatient()" aria-label="Редактировать карточку пациента" title="Редактировать карточку пациента" disabled><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4zm13-17 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="profile-row tg-pill tg-pill-age" data-tg-field="age"><span class="value" id="tg-patient-age">Не указан</span></span><span class="profile-row tg-pill tg-pill-clinic" data-tg-field="inclinic"><span aria-hidden="true">●</span><span class="value" id="tg-patient-inclinic">В клинике</span></span></div>
+                <div class="tg-card-source" id="tg-patient-name-source"></div>
+                <div class="tg-card-meta"><div class="profile-row" data-tg-field="admin"><span class="label">Ответственный:</span> <span class="value" id="tg-patient-admin">Не указан</span></div><div class="profile-row" data-tg-field="doctor"><span class="label">Врач:</span> <span class="value" id="tg-patient-doctor">Не указан</span></div></div>
+              </div>
+            </div>
+            <div class="tg-card-actions"><div class="tg-card-badges"><span class="profile-row tg-pill tg-pill-spam" data-tg-field="nospam"><span aria-hidden="true">⚑</span><span class="value" id="tg-patient-nospam">Отказ от рассылок</span></span><span class="profile-row tg-pill tg-pill-bonus" data-tg-field="bonuses"><span aria-hidden="true">✦</span><span class="value" id="tg-patient-bonuses">Не указаны</span></span><span class="profile-row tg-pill tg-pill-nps" data-tg-field="nps"><span aria-hidden="true">★</span><span class="value" id="tg-patient-nps">Не указан</span></span></div><button type="button" class="tg-edit-text" id="tg-patient-edit-text" onclick="tgEditPatient()" disabled>Редактировать карточку</button></div>
+          </div>
+          <div class="profile-row tg-card-stage" data-tg-field="stage"><span class="tg-stage-caption">Этап</span><span class="tg-stage-value"><span id="tg-stage-number"></span><span class="value" id="tg-patient-stage">Не указан</span></span><span class="tg-stage-indicator" id="tg-stage-indicator" aria-hidden="true"><span id="tg-stage-fill"></span></span><span class="tg-stage-count" id="tg-stage-count"></span></div>
           <div class="tg-header-fields">
             <div><div class="profile-row"><span class="label">Телефон</span><span class="value" id="tg-patient-phone">Не указан</span></div><div class="tg-card-source" id="tg-patient-phone-source"></div></div>
-            <div class="profile-row"><span class="label">Ответственный</span><span class="value" id="tg-patient-admin">Не указан</span></div>
-            <div class="profile-row"><span class="label">Врач</span><span class="value" id="tg-patient-doctor">Не указан</span></div>
-            <div class="profile-row" data-tg-field="age"><span class="label">Возраст</span><span class="value" id="tg-patient-age">Не указан</span></div>
             <div class="profile-row" data-tg-field="gender"><span class="label">Пол</span><span class="value" id="tg-patient-gender">Не указан</span></div>
             <div class="profile-row" data-tg-field="channel"><span class="label">Канал</span><span class="value" id="tg-patient-channel">Telegram</span></div>
-            <div class="profile-row" data-tg-field="stage"><span class="label">Этап</span><span class="value" id="tg-patient-stage">Не указан</span></div>
-            <div class="profile-row" data-tg-field="bonuses"><span class="label">Бонусы</span><span class="value" id="tg-patient-bonuses">Не указаны</span></div>
-            <div class="profile-row" data-tg-field="nps"><span class="label">NPS</span><span class="value" id="tg-patient-nps">Не указан</span></div>
-            <div class="profile-row" data-tg-field="nospam"><span class="label">Отказ от рассылок</span><span class="value" id="tg-patient-nospam">Нет</span></div>
-            <div class="profile-row" data-tg-field="inclinic"><span class="label">Сейчас в клинике</span><span class="value" id="tg-patient-inclinic">Нет</span></div>
             <div class="profile-row" data-tg-field="plan"><span class="label">План лечения</span><span class="value" id="tg-patient-plan">Не указан</span></div>
             <div class="profile-row" data-tg-field="note"><span class="label">Заметка</span><span class="value" id="tg-patient-note">Не указана</span></div>
             <div class="form-field" data-tg-field="admin"><label for="tg-assignee-user">Ответственный сотрудник</label><select id="tg-assignee-user" onchange="tgAssign()"></select></div>
           </div>
-          <div id="tg-possible-duplicates" style="font-size:12px"></div><div class="patient-sub" id="tg-status"></div>
+          <div id="tg-possible-duplicates" style="font-size:12px"></div><div class="patient-sub" id="tg-status"></div><span class="badge tg-connection" id="tg-connection">Сервер · тест</span>
         </div>
         <div class="content-row">
           <div class="card history-card">
