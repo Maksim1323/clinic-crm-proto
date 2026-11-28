@@ -3,6 +3,7 @@
 // external requests are made within transactions. Role checks apply server-side.
 const crypto=require('node:crypto');
 const identity=require('./identity');
+const patientSearch=require('./patient-search');
 const FIELDS=['name','phone','age','gender','channelIcon','channelLabel','timeLabel','admin','doctor','preview','createdAt','plan','note'];
 const visibilityFields=['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'];
 const safeId=/^(?:p|t)_[a-f0-9]{32}$/;
@@ -37,7 +38,7 @@ function taskInput(raw,s){
 }
 function patientName(s,id){if(!id)return '—';if(id.startsWith('tg_')){const c=s.conversations[id.slice(3)];return c?.patient?.name||c?.name||'Telegram';}return s.manualPatients[id]?.name||'—';}
 function publicRecord(record,actor){const {legacyRecord,...visible}=record;if(actor?.role==='administrator'){delete visible.plan;delete visible.bonuses;}return visible;}
-function list(s,actor){ensure(s);return {patients:Object.values(s.manualPatients).map(p=>publicRecord(p,actor)),tasks:Object.values(s.manualTasks).map(t=>({...publicRecord(t,actor),patient:patientName(s,t.patientId)})),employees:Object.values(s.manualEmployees),staff:Object.values(s.staffUsers||{}).filter(u=>u.active).map(u=>({id:u.id,name:u.name,role:u.role,active:true}))};}
+function list(s,actor){ensure(s);return {patients:Object.values(s.manualPatients).map(p=>publicRecord(p,actor)),tasks:Object.values(s.manualTasks).map(t=>({...publicRecord(t,actor),patient:patientName(s,t.patientId)})),employees:Object.values(s.manualEmployees),links:Object.values(s.conversations||{}).filter(c=>c.linkedPatientId&&s.manualPatients[c.linkedPatientId]).map(c=>({chatId:c.id,patientId:c.linkedPatientId,name:c.patient?.name||c.name||'Telegram'})),staff:Object.values(s.staffUsers||{}).filter(u=>u.active).map(u=>({id:u.id,name:u.name,role:u.role,active:true}))};}
 function save(s,kind,id,data,actor){
   ensure(s);if(!safeId.test(id)||(kind==='patient'&&!id.startsWith('p_'))||(kind==='task'&&!id.startsWith('t_')))return bad(400,'Неверный идентификатор');
   if(!data||typeof data!=='object'||Array.isArray(data))return bad(400,'Некорректный запрос');
@@ -52,6 +53,9 @@ function save(s,kind,id,data,actor){
   const assignment=record.assigneeUserId??old?.assigneeUserId??'';
   if(typeof assignment!=='string'||(assignment&&(!identity.VALID_ID.test(assignment)||!s.staffUsers?.[assignment]?.active&&old?.assigneeUserId!==assignment)))return bad(400,'Выберите активного сотрудника.');
   const next=kind==='patient'?patientInput(record):taskInput(record,s);if(!next)return bad(400,'Проверьте поля, длину текста и связь с пациентом.');
+  if(kind==='patient'&&(!old||patientSearch.phoneKey(next.phone)!==patientSearch.phoneKey(old.phone))){
+    const matches=patientSearch.duplicates(s,next.phone,id);if(matches.length&&!patientSearch.acknowledged(matches,data.acknowledgedDuplicates))return {status:409,data:{error:'Найдены карточки с таким телефоном. Проверьте совпадения перед сохранением.',code:'possible_duplicate',matches}};
+  }
   next.assigneeUserId=assignment;if(assignment)next[kind==='task'?'assignee':'admin']=s.staffUsers[assignment].name;next.id=id;next.version=old?old.version+1:1;if(kind==='task')next.employeeId=employeeFor(s,next.assignee);if(old?.legacyRecord)next.legacyRecord=old.legacyRecord;collection[id]=next;
   if(kind==='patient'&&data.createStageTask===true&&old&&old.stageNum!==next.stageNum){
     const taskId='t_'+crypto.randomUUID().replaceAll('-','');s.manualTasks[taskId]={id:taskId,version:1,title:'Проверить этап: '+({1:'Первичный приём',2:'Продажа плана лечения',3:'Лечение',4:'Профосмотр',5:'Потенциальный клиент'}[next.stageNum]),patientId:id,assignee:next.admin||'—',dueAt:null,due:'без срока',overdue:false,done:false,source:'Смена этапа',assigneeUserId:next.assigneeUserId||'',employeeId:employeeFor(s,next.admin)};
@@ -72,7 +76,7 @@ function importOne(s,data,actor){
     if(!s.manualPatients[linked])return bad(409,'Связанная старая карточка не импортирована; задача оставлена в браузере.');
     record={...record,patientId:linked};
   }
-  const result=save(s,data.kind,id,{expectedVersion:null,record},actor);if(result.status!==200)return result;
+  const result=save(s,data.kind,id,{expectedVersion:null,record,acknowledgedDuplicates:data.acknowledgedDuplicates},actor);if(result.status!==200)return result;
   // Retain the original imported data, including any legacy fields not used by the current UI.
   collection[id].legacyRecord=data.record;
   return ok({status:'imported',id});

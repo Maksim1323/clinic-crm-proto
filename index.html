@@ -50,7 +50,8 @@
         <div class="filters">
           <button class="badge teal">Все</button>
         </div>
-        <div class="inbox-list" id="inbox-list"></div>
+        <div class="form-field" style="padding:8px 12px"><label for="patient-search">Поиск пациента или чата</label><input id="patient-search" maxlength="100" placeholder="Имя или телефон" autocomplete="off" oninput="crmPatientSearch()" /></div>
+        <div id="patient-search-results" role="status" style="display:none;padding:0 12px;font-size:12px"></div><div class="inbox-list" id="inbox-list"></div>
         <div class="sidebar-foot">
           <button onclick="openPatientModal('create')" class="btn-primary">+ Новый пациент</button>
           <button type="button" id="import-local-btn" class="badge" onclick="crmImportLegacy()" style="display:none;margin-top:8px;width:100%">Импортировать из браузера</button><div id="import-result" style="font-size:11px;color:#64748b;margin-top:6px" role="status"></div>
@@ -162,6 +163,7 @@
             <div class="ptitle" id="pr-process">—</div>
             <div class="pstatus"><span class="pdot"></span> <span id="pr-process-status">—</span></div>
           </div>
+          <div class="profile-fields"><div class="tg-card-hint">Связанные диалоги</div><div id="pr-linked-chats"></div><div class="tg-card-hint" style="margin-top:8px">Связанные задачи</div><div id="pr-linked-tasks"></div><button type="button" class="badge" onclick="crmTaskForManual()">+ Задача</button></div>
           <div class="profile-actions-bar">
             <button type="button" class="primary" onclick="openPatientModal('edit')">Редактировать</button>
           </div>
@@ -177,7 +179,7 @@
             <div class="history-feed" id="tg-messages"><div class="ch-preview">Чтобы начать, подключите бота и отправьте ему тестовое сообщение.</div></div>
             <div class="composer"><textarea id="tg-input" rows="2" placeholder="Проверьте и отредактируйте ответ перед отправкой..."></textarea><button type="button" class="composer-send" id="tg-send-btn" onclick="tgSend()" disabled>Отправить</button></div>
           </div>
-          <div class="card actions-card" style="width:260px"><div class="tg-patient-card"><h2>Карточка пациента</h2><div class="tg-card-hint">Отдельная карточка этого тестового чата</div><div class="form-field"><label for="tg-assignee-user">Ответственный сотрудник</label><select id="tg-assignee-user" onchange="tgAssign()"></select></div><div class="profile-row"><span class="label">Имя</span><span class="value" id="tg-patient-name">Не указано</span></div><div class="tg-card-source" id="tg-patient-name-source"></div><div class="profile-row"><span class="label">Телефон</span><span class="value" id="tg-patient-phone">Не указан</span></div><div class="tg-card-source" id="tg-patient-phone-source"></div><div class="profile-row"><span class="label">Ответственный</span><span class="value" id="tg-patient-admin">Не указан</span></div><div class="profile-row"><span class="label">Врач</span><span class="value" id="tg-patient-doctor">Не указан</span></div><button type="button" class="btn-primary" id="tg-patient-edit" onclick="tgEditPatient()" disabled>Редактировать</button></div><div class="ai-panel"><div class="ai-panel-head"><span class="ai-badge">ИИ</span><span>Статус диалога</span></div><div class="ai-title" id="tg-handoff-status">Выберите чат</div><div class="ai-body" id="tg-handoff-reason">Причина и контекст передачи появятся здесь.</div><div class="ai-body" id="tg-handoff-summary" style="margin-top:8px;white-space:pre-wrap"></div><div class="ai-actions"><button type="button" class="confirm" id="tg-take" onclick="tgTake()" style="display:none">Взять в работу</button><button type="button" id="tg-resume" onclick="tgResume()" style="display:none">Вернуть ИИ</button></div></div><div class="actions-hint">Тестовые данные. МИС не подключена. Сводка ИИ может содержать ошибки; проверяйте историю.</div></div>
+          <div class="card actions-card" style="width:260px"><div class="tg-patient-card"><h2>Карточка пациента</h2><div class="tg-card-hint">Отдельная карточка этого тестового чата</div><div class="form-field"><label for="tg-case-status">Статус обращения (отдельно от ИИ)</label><select id="tg-case-status" onchange="tgSetCaseStatus()" disabled><option value="new">Новое</option><option value="in_progress">В работе</option><option value="resolved">Завершено</option></select></div><div class="tg-card-hint" style="margin-top:8px">Связанная ручная карточка</div><div id="tg-linked-patient" style="font-size:12px"></div><button type="button" class="badge" id="tg-link-open" onclick="tgOpenLink()" disabled>Связать карточку</button><div id="tg-possible-duplicates" style="font-size:12px"></div><div class="tg-card-hint" style="margin-top:8px">Задачи этого чата</div><div id="tg-linked-tasks"></div><button type="button" class="badge" onclick="tgTaskForChat()">+ Задача</button><div class="form-field"><label for="tg-assignee-user">Ответственный сотрудник</label><select id="tg-assignee-user" onchange="tgAssign()"></select></div><div class="profile-row"><span class="label">Имя</span><span class="value" id="tg-patient-name">Не указано</span></div><div class="tg-card-source" id="tg-patient-name-source"></div><div class="profile-row"><span class="label">Телефон</span><span class="value" id="tg-patient-phone">Не указан</span></div><div class="tg-card-source" id="tg-patient-phone-source"></div><div class="profile-row"><span class="label">Ответственный</span><span class="value" id="tg-patient-admin">Не указан</span></div><div class="profile-row"><span class="label">Врач</span><span class="value" id="tg-patient-doctor">Не указан</span></div><button type="button" class="btn-primary" id="tg-patient-edit" onclick="tgEditPatient()" disabled>Редактировать</button></div><div class="ai-panel"><div class="ai-panel-head"><span class="ai-badge">ИИ</span><span>Статус диалога</span></div><div class="ai-title" id="tg-handoff-status">Выберите чат</div><div class="ai-body" id="tg-handoff-reason">Причина и контекст передачи появятся здесь.</div><div class="ai-body" id="tg-handoff-summary" style="margin-top:8px;white-space:pre-wrap"></div><div class="ai-actions"><button type="button" class="confirm" id="tg-take" onclick="tgTake()" style="display:none">Взять в работу</button><button type="button" id="tg-resume" onclick="tgResume()" style="display:none">Вернуть ИИ</button></div></div><div class="actions-hint">Тестовые данные. МИС не подключена. Сводка ИИ может содержать ошибки; проверяйте историю.</div></div>
         </div>
       </div>
     </div>
@@ -233,6 +235,7 @@
 
   
   <!-- Patient create/edit modal -->
+  <div class="modal-bg" id="import-duplicates-modal"><div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="import-duplicates-title"><h3 id="import-duplicates-title">Совпадение при импорте</h3><p style="font-size:12px;color:#64748b;margin:8px 0">Карточки не объединяются, данные в браузере не удаляются. Проверьте совпадения перед импортом.</p><div id="import-duplicates-list" style="font-size:12px"></div><div class="modal-actions"><button type="button" onclick="crmResolveImportDuplicate(false)">Пропустить запись</button><button type="button" class="ok" onclick="crmResolveImportDuplicate(true)">Импортировать отдельно</button></div></div></div>
   <div class="modal-bg" id="patient-modal" onclick="if(event.target===this)closePatientModal()">
     <div class="modal wide">
       <h3 id="patient-modal-title" style="font-size:18px;font-weight:600;margin-bottom:4px">Карточка пациента</h3>
@@ -327,7 +330,7 @@
         <label class="field-visibility"><input type="checkbox" id="pf-show-note" /> Показывать в карточке</label>
         </div>
       </div>
-      <p id="patient-save-error" role="alert" style="font-size:12px;color:#e11d48"></p>
+      <div id="patient-duplicates" style="font-size:12px"></div><p id="patient-save-error" role="alert" style="font-size:12px;color:#e11d48"></p>
       <div class="modal-actions">
         <button type="button" onclick="closePatientModal()">Отмена</button>
         <button type="button" id="patient-save-button" class="ok" onclick="savePatientCard()">Сохранить</button>
@@ -372,6 +375,7 @@
       <p id="task-save-error" role="alert" style="font-size:12px;color:#e11d48"></p><div class="modal-actions"><button type="button" id="task-open-patient" onclick="openTaskLinkedPatient()" style="display:none">Открыть пациента</button><button type="button" onclick="closeTaskModal()">Отмена</button><button type="button" id="task-save-button" class="ok" onclick="saveTask()">Сохранить</button></div>
     </div>
   </div>
+  <div class="modal-bg" id="tg-link-modal" role="dialog" aria-modal="true" aria-labelledby="tg-link-title" onclick="if(event.target===this)tgCloseLink()"><div class="modal wide"><h3 id="tg-link-title">Связать диалог с карточкой</h3><p style="font-size:12px;color:#64748b;margin:8px 0">Выберите вручную после проверки. Карточки, сообщения и задачи не объединяются и не изменяются.</p><div class="form-field"><label for="tg-link-select">Ручная карточка пациента</label><select id="tg-link-select"></select></div><p id="tg-link-error" role="alert" style="color:#e11d48;font-size:12px"></p><div class="modal-actions"><button type="button" onclick="tgCloseLink()">Отмена</button><button type="button" class="ok" id="tg-link-save" onclick="tgSaveLink()">Сохранить связь</button></div></div></div>
   <div class="modal-bg" id="tg-patient-modal" role="dialog" aria-modal="true" aria-labelledby="tg-patient-modal-title" onclick="if(event.target===this)tgClosePatient()">
     <div class="modal wide"><h3 id="tg-patient-modal-title">Карточка пациента</h3><p style="font-size:13px;color:#64748b;margin-top:6px">Только тестовые данные. Карточка связана с выбранным Telegram-чатом, не с МИС. Галочки управляют отображением, а не удаляют данные.</p>
       <div class="form-grid" style="margin-top:16px">
@@ -379,7 +383,7 @@
         <div class="form-field"><label for="tg-pf-phone">Телефон</label><input id="tg-pf-phone" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-phone" /> Показывать в карточке</label></div>
         <div class="form-field"><label for="tg-pf-admin">Ответственный</label><input id="tg-pf-admin" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-admin" /> Показывать в карточке</label></div>
         <div class="form-field"><label for="tg-pf-doctor">Врач</label><input id="tg-pf-doctor" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-doctor" /> Показывать в карточке</label></div>
-      </div><p id="tg-patient-error" role="alert" style="font-size:13px;color:#e11d48;margin-top:8px"></p>
+      </div><div id="tg-patient-duplicates" style="font-size:12px"></div><p id="tg-patient-error" role="alert" style="font-size:13px;color:#e11d48;margin-top:8px"></p>
       <div class="modal-actions"><button type="button" onclick="tgClosePatient()">Отмена</button><button type="button" class="ok" id="tg-patient-save" onclick="tgSavePatient()">Сохранить</button></div>
     </div>
   </div>

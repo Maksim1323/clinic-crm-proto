@@ -12,7 +12,7 @@ const STAGES = [
     const oldPatientHashes={ivanov:'678ce3fc',smirnova:'5a4abae3',alexey:'dfcc47b3',site:'7ba6aa2e',mis:'396d6011'};
     const oldTaskHashes={t1:'4dcee95',t2:'6927ebd4',t3:'7fb0ffdb',t4:'fc7d9b50',t5:'512e16ff',t6:'40f30a8c'};
     function fingerprint(obj){let h=2166136261;const text=JSON.stringify(obj);for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(16);}
-    let currentPatientId = null;
+    let currentPatientId = null, manualLinks=[], searchSequence=0, searchTimer=null;
     let pendingStage = null;
     const localVisibilityFields=['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'];
     const localDefaultHidden=new Set(['gender','channel','nps','inclinic','note']);
@@ -29,11 +29,11 @@ const STAGES = [
     function localInputValue(value){if(!value)return '';const d=new Date(value);if(Number.isNaN(d.getTime()))return '';return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
     function showManualError(id,message){document.getElementById(id).textContent=message;}
     function requireManual(){if(manualReady)return true;toast('Войдите в CRM, чтобы работать с серверными карточками и задачами');return false;}
-    window.crmClearManual=function(){manualReady=false;++manualRevision;DB.patients={};DB.inboxOrder=[];TASKS=[];currentPatientId=null;closePatientModal();closeTaskModal();document.getElementById('import-local-btn').style.display='none';document.getElementById('import-result').textContent='';document.getElementById('history-feed').replaceChildren();document.getElementById('task-staff-options').replaceChildren();document.getElementById('demo-patient-col').style.display='none';document.getElementById('comms-empty').style.display='';renderInbox();renderTasks();renderKanban();};
+    window.crmClearManual=function(){window.crmResolveImportDuplicate?.(false);manualReady=false;++manualRevision;DB.patients={};DB.inboxOrder=[];TASKS=[];manualLinks=[];currentPatientId=null;clearTimeout(searchTimer);++searchSequence;document.getElementById('patient-search').value='';document.getElementById('patient-search-results').replaceChildren();document.getElementById('patient-search-results').style.display='none';closePatientModal();closeTaskModal();document.getElementById('import-local-btn').style.display='none';document.getElementById('import-result').textContent='';document.getElementById('history-feed').replaceChildren();document.getElementById('pr-linked-chats').replaceChildren();document.getElementById('pr-linked-tasks').replaceChildren();document.getElementById('task-staff-options').replaceChildren();document.getElementById('demo-patient-col').style.display='none';document.getElementById('comms-empty').style.display='';renderInbox();renderTasks();renderKanban();};
     window.crmRefreshManual=async function(){
       const revision=manualRevision,seq=++manualFetchSeq,data=await window.crmApi('/api/manual');if(revision!==manualRevision||seq<manualAppliedSeq)return;manualAppliedSeq=seq;
       window.crmStaff=data.staff||[];const staff=document.getElementById('task-staff-options');staff.replaceChildren();(data.employees||[]).forEach(e=>staff.append(new Option(e.name,e.name)));
-      DB.patients=Object.fromEntries(data.patients.map(p=>[p.id,p]));DB.inboxOrder=data.patients.map(p=>p.id).reverse();TASKS=data.tasks.slice().reverse();manualReady=true;
+      DB.patients=Object.fromEntries(data.patients.map(p=>[p.id,p]));DB.inboxOrder=data.patients.map(p=>p.id).reverse();TASKS=data.tasks.slice().reverse();manualLinks=data.links||[];manualReady=true;
       document.getElementById('import-local-btn').style.display=hasLegacyData()&&window.crmUser?.role!=='administrator'?'':'none';renderInbox();renderTasks();renderKanban();
       if(currentPatientId && DB.patients[currentPatientId] && !(window.tgHasSelectedChat&&window.tgHasSelectedChat()))renderPatient(currentPatientId,false);
     };
@@ -44,16 +44,19 @@ const STAGES = [
       if(b){const data=JSON.parse(b);if(!Array.isArray(data))throw Error('Старые задачи имеют неизвестный формат. Данные в браузере не изменены.');tasks=data.filter(t=>t&&(!oldTaskHashes[t.id]||fingerprint(t)!==oldTaskHashes[t.id])).map(t=>[String(t.id||''),t]);}
       return {patients,tasks};
     }
-    let importing=false;
+    let importing=false,resolveImportDuplicate=null;
+    window.crmResolveImportDuplicate=function(approved){if(!resolveImportDuplicate)return;const resolve=resolveImportDuplicate;resolveImportDuplicate=null;document.getElementById('import-duplicates-modal').classList.remove('open');document.getElementById('import-duplicates-list').replaceChildren();resolve(approved);};
+    function reviewImportDuplicate(matches){return new Promise(resolve=>{resolveImportDuplicate=resolve;const list=document.getElementById('import-duplicates-list');list.replaceChildren();for(const item of matches){const row=document.createElement('div');row.style.margin='6px 0';row.textContent=(item.kind==='telegram'?'Telegram · ':'Карточка · ')+(item.name||'Без имени')+' · '+(item.phone||'без телефона')+(item.source==='telegram'?' · не проверен':'');list.append(row);}document.getElementById('import-duplicates-modal').classList.add('open');});}
+
     window.crmImportLegacy=async function(){
-      if(!requireManual()||importing)return;let snapshot,scope;
+      if(!requireManual()||importing)return;let snapshot,scope;const startedRevision=manualRevision;
       try{snapshot=legacySnapshot();scope=localStorage.getItem('cliniccrm_import_scope_v1');if(!scope){scope=newId('x').slice(2);localStorage.setItem('cliniccrm_import_scope_v1',scope);}if(!/^[a-f0-9]{32}$/.test(scope))throw Error('Не удалось определить источник импорта.');}catch(e){toast(e.message||'Не удалось прочитать данные браузера');return;}
       const button=document.getElementById('import-local-btn');importing=true;button.disabled=true;let added=0,exists=0,failed=0;const errors=[];
       try{
         for(const [kind,items] of [['patient',snapshot.patients],['task',snapshot.tasks]])for(const [legacyId,original] of items){
           let record=JSON.parse(JSON.stringify(original));
           if(kind==='task'&&record.dueAt&&!/(?:Z|[+-]\d\d:\d\d)$/.test(record.dueAt)){const date=new Date(record.dueAt);if(!Number.isNaN(date.getTime()))record.dueAt=date.toISOString();}
-          try{const result=await window.crmApi('/api/manual/import','POST',{scope,kind,legacyId,record});if(result.status==='exists')exists++;else added++;}catch(e){if(e.message==='session_changed')throw e;failed++;errors.push((kind==='patient'?'Карточка ':'Задача ')+legacyId+': '+e.message);}
+          try{let acknowledgedDuplicates=[],result;for(;;){try{result=await window.crmApi('/api/manual/import','POST',{scope,kind,legacyId,record,acknowledgedDuplicates});break;}catch(e){if(e.code!=='possible_duplicate')throw e;const approved=await reviewImportDuplicate(e.details.matches);if(startedRevision!==manualRevision)throw Error('session_changed');if(!approved)throw Error('Совпадение оставлено в браузере; импорт пропущен.');acknowledgedDuplicates=e.details.matches.map(m=>m.id);}}if(result.status==='exists')exists++;else added++;}catch(e){if(e.message==='session_changed')throw e;failed++;errors.push((kind==='patient'?'Карточка ':'Задача ')+legacyId+': '+e.message);}
         }
         await window.crmRefreshManual();
         const message='Импорт: добавлено '+added+', уже было '+exists+', не удалось '+failed+'. Данные в браузере не удалены.';
@@ -76,7 +79,7 @@ const STAGES = [
       if(!requireManual())return;
       patientModalMode = mode || 'edit';
       patientEditVersion=mode==='create'?null:DB.patients[currentPatientId]?.version;patientDraftId=mode==='create'?newId('p'):null;
-      showManualError('patient-save-error','');
+      showManualError('patient-save-error','');document.getElementById('patient-duplicates').replaceChildren();
       const modal = document.getElementById('patient-modal');
       const title = document.getElementById('patient-modal-title');
       const sub = document.getElementById('patient-modal-sub');
@@ -134,10 +137,10 @@ const STAGES = [
     }
 
     function closePatientModal() {
-      document.getElementById('patient-modal').classList.remove('open');
+      document.getElementById('patient-modal').classList.remove('open');document.getElementById('patient-duplicates').replaceChildren();
     }
 
-    async function savePatientCard() {
+    async function savePatientCard(acknowledgedDuplicates=[]) {
       if(!requireManual()||patientSaving)return;
       const name=document.getElementById('pf-name').value.trim(),phone=document.getElementById('pf-phone').value.trim();
       if(!name||!phone){showManualError('patient-save-error','Укажите ФИО и телефон');return;}
@@ -150,8 +153,8 @@ const STAGES = [
       p.history.unshift({type:'system',icon:creating?'📋':'✏️',title:creating?'Карточка создана':'Карточка обновлена',date:nowLabel(),body:creating?'Пациент добавлен в CRM':'Данные пациента изменены'});
       if(creating&&p.note)p.history.unshift({type:'note',icon:'📝',title:'Заметка',date:nowLabel(),body:escapeHtml(p.note)});
       patientSaving=true;document.getElementById('patient-save-button').disabled=true;showManualError('patient-save-error','');
-      try{await window.crmApi('/api/manual/patients/'+id,'PUT',{record:p,expectedVersion:patientEditVersion});await window.crmRefreshManual();closePatientModal();showView('comms');selectPatient(id);toast('Карточка сохранена');}
-      catch(e){if(e.message!=='session_changed')showManualError('patient-save-error',e.message);}
+      try{await window.crmApi('/api/manual/patients/'+id,'PUT',{record:p,expectedVersion:patientEditVersion,acknowledgedDuplicates});await window.crmRefreshManual();closePatientModal();showView('comms');selectPatient(id);toast('Карточка сохранена');}
+      catch(e){if(e.message!=='session_changed'){showManualError('patient-save-error',e.message);if(e.code==='possible_duplicate'){const phoneAtReview=phone;window.crmShowDuplicates('patient-duplicates',e.details.matches,ids=>{if(document.getElementById('pf-phone').value.trim()!==phoneAtReview){showManualError('patient-save-error','Телефон изменён. Проверьте совпадения заново.');document.getElementById('patient-duplicates').replaceChildren();return;}savePatientCard(ids);});}}}
       finally{patientSaving=false;document.getElementById('patient-save-button').disabled=false;}
     }
 
@@ -276,7 +279,7 @@ const STAGES = [
       `).join('');
 
       // Profile card (design)
-      renderProfileCard(p);
+      renderProfileCard(p);renderPatientRelations(p.id);
       renderInbox();
       if (showToast) toast('Карточка: ' + p.name);
     }
@@ -496,6 +499,14 @@ const STAGES = [
       Object.values(DB.patients).forEach(p=>select.add(new Option(p.name+' · карточка',p.id)));(window.getTelegramPatientOptions?.()||[]).forEach(p=>select.add(new Option(p.name+' · Telegram','tg_'+p.id)));
       select.value=task?.patientId||'';document.getElementById('task-modal').classList.add('open');document.getElementById('task-title').focus();
     }
+    window.crmGetManualPatientOptions=()=>Object.values(DB.patients).map(p=>({id:p.id,name:p.name,phone:p.phone}));
+    window.crmOpenPatientRef=function(ref){if(!ref)return;closePatientModal();if(ref.startsWith('tg_')){showView('comms');window.tgSelect(ref.slice(3));return;}if(!DB.patients[ref]){toast('Карточка не найдена');return;}showView('comms');selectPatient(ref);};
+    window.crmShowDuplicates=function(container,matches,proceed){const box=document.getElementById(container);box.replaceChildren();const title=document.createElement('p');title.textContent='Возможные совпадения по телефону. Сначала проверьте карточки: один номер может принадлежать разным людям.';box.append(title);for(const p of matches){const row=document.createElement('div'),button=document.createElement('button');row.style.margin='5px 0';button.type='button';button.className='badge';button.textContent=(p.kind==='telegram'?'Telegram · ':'Карточка · ')+(p.name||'Без имени')+' · '+(p.phone||'без телефона')+(p.source==='telegram'?' · телефон не проверен':'');button.onclick=()=>window.crmOpenPatientRef(p.id);row.append(button);box.append(row);}const button=document.createElement('button');button.type='button';button.className='badge';button.textContent='Проверено — сохранить отдельно';button.onclick=()=>proceed(matches.map(p=>p.id));box.append(button);};
+    function renderPatientRelations(id){const box=document.getElementById('pr-linked-chats');box.replaceChildren();const linked=manualLinks.filter(c=>c.patientId===id);if(!linked.length){box.textContent='Нет связанных диалогов';}else for(const item of linked){const b=document.createElement('button');b.type='button';b.className='badge';b.textContent='Telegram · '+item.name;b.onclick=()=>window.tgSelect(item.chatId);box.append(b);}window.crmRenderRelatedTasks('pr-linked-tasks',id);}
+    window.crmRenderRelatedTasks=function(container,ref){const box=document.getElementById(container);box.replaceChildren();const linkedChats=manualLinks.filter(c=>c.patientId===ref).map(c=>'tg_'+c.chatId);const tasks=TASKS.filter(t=>t.patientId===ref||linkedChats.includes(t.patientId));if(!tasks.length){box.textContent='Нет связанных задач';return;}for(const task of tasks){const b=document.createElement('button');b.type='button';b.className='badge';b.textContent=(task.done?'✓ ':'')+task.title+(task.patientId!==ref?' · через Telegram':'');b.onclick=()=>{showView('tasks');openTaskEditor(task.id);};box.append(b);}};
+    window.crmTaskForReference=function(ref){if(!requireManual())return;openTaskEditor();const select=document.getElementById('task-patient');select.value=ref;if(select.value!==ref){closeTaskModal();toast('Связанная запись недоступна.');}};
+    window.crmTaskForManual=()=>{if(currentPatientId)window.crmTaskForReference(currentPatientId);};
+    window.crmPatientSearch=function(){const q=document.getElementById('patient-search').value.trim(),seq=++searchSequence,box=document.getElementById('patient-search-results');clearTimeout(searchTimer);box.replaceChildren();if(!q){box.style.display='none';return;}box.style.display='';if(!manualReady){box.textContent='Войдите в CRM для поиска.';return;}box.textContent='Поиск…';searchTimer=setTimeout(async()=>{try{const result=await window.crmApi('/api/patients/search?q='+encodeURIComponent(q));if(seq!==searchSequence)return;box.replaceChildren();if(!result.items.length){box.textContent='Нет совпадений. Для поиска укажите хотя бы 2 буквы или 3 цифры.';return;}for(const item of result.items){const row=document.createElement('div'),b=document.createElement('button');row.style.margin='5px 0';b.type='button';b.className='badge';b.textContent=(item.kind==='telegram'?'Telegram · ':'Карточка · ')+(item.name||'Без имени')+(item.phone?' · '+item.phone:'')+(item.source==='telegram'?' · телефон не проверен':'');b.onclick=()=>window.crmOpenPatientRef(item.id);row.append(b);box.append(row);}}catch(e){if(seq===searchSequence)box.textContent=e.message;}},200);};
     function openTaskLinkedPatient(){const task=TASKS.find(t=>t.id===editingTaskId);if(!task?.patientId)return;const id=task.patientId;closeTaskModal();openTaskPatient(id);}
     function closeTaskModal(){document.getElementById('task-modal').classList.remove('open');editingTaskId=null;}
     async function saveTask(){
@@ -541,3 +552,5 @@ const STAGES = [
       });updateInboxCount();
     };
     renderInbox();
+
+    document.getElementById('pf-phone').addEventListener('input',()=>document.getElementById('patient-duplicates').replaceChildren());
