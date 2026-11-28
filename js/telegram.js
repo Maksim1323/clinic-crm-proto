@@ -146,7 +146,7 @@
   function tgVisible(key,visibility){return (typeof visibility[key]==='boolean'?visibility[key]:!tgDefaultHidden.has(key))&&window.crmFieldAllowed(key);}
   function renderTgPatient(patient,sources={},version=0,visibility={}) {
     selectedPatient=patient;selectedSources=sources;selectedPatientVersion=version;selectedVisibility=visibility;
-    el('tg-chat-name').textContent=tgVisible('name',visibility)?(patient?.name||selectedChatName||'Выберите диалог'):'Имя скрыто';
+    el('tg-chat-name').textContent=patient?.name||selectedChatName||'Выберите диалог';
     for(const [key,empty] of [['phone','Не указан'],['admin','Не указан'],['doctor','Не указан']]){el('tg-patient-'+key).textContent=patient?.[key] || empty;el('tg-patient-'+key).closest('.profile-row').style.display=tgVisible(key,visibility)?'':'none';}
     const stageLabels={1:'Первичный приём',2:'Продажа плана лечения',3:'Лечение',4:'Профосмотр',5:'Потенциальный клиент'},channels={tg:'Telegram',call:'Звонок',vk:'ВКонтакте',email:'Сайт / Email',mis:'МИС'};
     const values={age:patient?.age||'Не указан',gender:({male:'Мужской',female:'Женский'}[patient?.gender]||'Не указан'),channel:channels[patient?.channel??'tg']||'Не указан',stage:stageLabels[patient?.stageNum]||'Не указан',bonuses:patient?.bonuses==null?'Не указаны':String(patient.bonuses)+' ₽',nps:patient?.nps==null?'Не указан':String(patient.nps),nospam:patient?.noSpam?'Да':'Нет',inclinic:patient?.statusInClinic?'Да':'Нет',plan:patient?.plan||'Не указан',note:patient?.note||'Не указана'};

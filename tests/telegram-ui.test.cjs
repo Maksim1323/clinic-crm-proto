@@ -121,9 +121,9 @@ test('Кнопки Telegram работают без системных диал�
   w.testPoll();for(let i=0;i<100 && !d.getElementById('inbox-list').textContent.includes('Новый тест');i++)await new Promise(r=>setTimeout(r,10));
   assert.match(d.getElementById('inbox-list').textContent,/Новый тест/,'новый чат появился после фонового обновления');
   await w.tgSelect('124');assert.equal(d.getElementById('tg-chat-name').textContent,'Новый тест','карточки разных чатов не смешиваются');
-  d.getElementById('tg-patient-edit').click();d.getElementById('tg-pf-name').value='Новая карточка';d.getElementById('tg-pf-show-name').checked=false;await w.tgSavePatient();assert.equal(d.getElementById('tg-chat-name').textContent,'Имя скрыто');
+  d.getElementById('tg-patient-edit').click();d.getElementById('tg-pf-name').value='Новая карточка';d.getElementById('tg-pf-show-name').checked=false;await w.tgSavePatient();assert.equal(d.getElementById('tg-chat-name').textContent,'Новая карточка');
   await w.tgSelect('123');assert.equal(d.getElementById('tg-chat-name').textContent,'<Тест 123>');assert.equal(d.getElementById('tg-chat-name').textContent,'<Тест 123>','видимость каждой карточки независима');
-  d.getElementById('tg-patient-edit').click();await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),false,'форма закрыта при смене чата');assert.equal(d.getElementById('tg-chat-name').textContent,'Имя скрыто');
+  d.getElementById('tg-patient-edit').click();await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),false,'форма закрыта при смене чата');assert.equal(d.getElementById('tg-chat-name').textContent,'Новая карточка');
 
   let release;const oldFetch=w.fetch;w.fetch=(url,options)=>String(url).includes('/api/telegram/conversations')?new Promise(resolve=>{release=resolve;}):oldFetch(url,options);
   const delayedRefresh=w.tgRefresh();w.tgLogout();release({ok:true,json:async()=>({items:[{id:'999',name:'stale private chat',preview:'secret',mode:'waiting'}]})});await delayedRefresh;w.fetch=oldFetch;
