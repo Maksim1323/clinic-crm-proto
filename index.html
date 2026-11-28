@@ -24,6 +24,7 @@
       <button onclick="showView('tasks')" id="nav-tasks" class="nav-btn">Задачи</button>
     </nav>
     <div class="header-right">
+      <button type="button" class="badge" id="crm-assistant-btn" onclick="crmOpenAssistant()" style="display:none">ИИ-помощник</button>
       <button type="button" class="badge" id="crm-prefs-btn" onclick="crmOpenPreferences()" style="display:none">Поля</button>
       <button type="button" class="badge" id="crm-ai-btn" onclick="crmOpenAiSettings()" style="display:none">Настройки ИИ</button>
       <button type="button" class="badge" id="crm-staff-btn" onclick="crmOpenStaff()" style="display:none">Сотрудники</button>
@@ -347,6 +348,13 @@
   </div>
   <div class="modal-bg" id="crm-prefs-modal" onclick="if(event.target===this)crmClosePreferences()"><div class="modal wide"><h3>Отображение полей</h3><p style="font-size:12px;color:#64748b;margin:8px 0">Личная настройка. Доступ к полям определяется ролью, а галочки карточки могут дополнительно скрывать поля.</p><div id="crm-prefs-fields" class="form-grid"></div><p id="crm-prefs-error" role="alert"></p><div class="modal-actions"><button onclick="crmClosePreferences()">Отмена</button><button class="ok" onclick="crmSavePreferences()">Сохранить</button></div><hr style="margin:16px 0"><h3>Сменить пароль</h3><div class="form-grid"><div class="form-field"><label>Текущий пароль</label><input id="crm-old-password" type="password" autocomplete="current-password" /></div><div class="form-field"><label>Новый пароль (от 12 символов)</label><input id="crm-new-password" type="password" autocomplete="new-password" /></div></div><button type="button" class="badge" style="margin-top:8px" onclick="crmChangePassword()">Сменить пароль и выйти</button></div></div>
   <div class="modal-bg" id="crm-staff-modal" onclick="if(event.target===this)crmCloseStaff()"><div class="modal wide"><h3>Сотрудники</h3><div id="crm-staff-list"></div><h3 style="margin-top:16px">Добавить сотрудника</h3><div class="form-grid"><div class="form-field"><label>Имя</label><input id="staff-name" maxlength="100" /></div><div class="form-field"><label>Логин</label><input id="staff-login" maxlength="40" /></div><div class="form-field"><label>Временный пароль (от 12 символов)</label><input id="staff-password" type="password" autocomplete="new-password" /></div><div class="form-field"><label>Роль</label><select id="staff-role"><option value="administrator">Администратор</option><option value="curator">Куратор</option><option value="manager">Управляющий</option></select></div></div><p id="staff-error" role="alert" style="color:#e11d48;font-size:12px"></p><div class="modal-actions"><button onclick="crmCloseStaff()">Закрыть</button><button onclick="crmShowAudit()">Журнал</button><button class="ok" onclick="crmCreateStaff()">Добавить</button></div><div id="crm-audit-list" style="font-size:12px;white-space:pre-wrap;margin-top:8px"></div></div></div>
+  <div class="modal-bg" id="crm-assistant-modal" onclick="if(event.target===this)crmCloseAssistant()"><div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="crm-assistant-title">
+    <h3 id="crm-assistant-title">ИИ-помощник сотрудника</h3><p style="font-size:12px;color:#64748b;margin:8px 0">Поиск пациента, мои задачи, пересказ или предложение задачи по выбранному Telegram-диалогу. Пересказ и черновик передают последние сообщения выбранному ИИ-провайдеру. Только тестовые данные; проверяйте результат по оригиналу.</p>
+    <p id="assistant-context" style="font-size:12px;color:#64748b"></p><div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><button type="button" class="badge" onclick="crmAssistantExample('Найди пациента по имени ')">Найти пациента</button><button type="button" class="badge" onclick="crmAssistantExample('Покажи мои открытые задачи')">Мои задачи</button><button type="button" class="badge" onclick="crmAssistantExample('Подготовь задачу по этому диалогу')">Подготовить задачу</button><button type="button" class="badge" onclick="crmAssistantExample('Кратко перескажи переписку')">Пересказать переписку</button></div>
+    <div id="assistant-feed" role="log" aria-live="polite" style="max-height:34vh;overflow:auto;white-space:pre-wrap;font-size:13px;border:1px solid #e2e8f0;border-radius:10px;padding:10px;min-height:90px"></div>
+    <div class="form-field" style="margin-top:10px"><label for="assistant-input">Текстовый запрос</label><textarea id="assistant-input" maxlength="500" rows="2" placeholder="Например: Найди пациента Иван"></textarea></div><p id="assistant-error" role="alert" style="color:#e11d48;font-size:12px"></p>
+    <div class="modal-actions"><button type="button" onclick="crmCloseAssistant()">Закрыть</button><button type="button" class="ok" id="assistant-send" onclick="crmAssistantSend()">Отправить</button></div>
+  </div></div>
   <div class="modal-bg" id="crm-ai-modal" onclick="if(event.target===this)crmCloseAiSettings()"><div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="crm-ai-title">
     <h3 id="crm-ai-title">Настройки ИИ</h3><p style="font-size:12px;color:#64748b;margin:8px 0">Только управляющий. Неизменяемые ограничения и серверные правила всегда имеют приоритет. Это тестовый прототип.</p>
     <details><summary>Неизменяемые ограничения</summary><p style="font-size:12px;color:#64748b">ИИ не ставит диагнозы и не назначает лечение, не выдумывает цену и наличие времени, не подтверждает запись. Медицинские и сложные вопросы передаются сотруднику. Отключить эти правила здесь нельзя.</p></details>
@@ -392,6 +400,7 @@
     <script src="js/app.js"></script>
     <script src="js/telegram.js"></script>
     <script src="js/ai-settings-ui.js"></script>
+    <script src="js/staff-assistant-ui.js"></script>
 
 </body>
 </html>

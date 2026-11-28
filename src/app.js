@@ -16,6 +16,7 @@ const identity=require('./workflow/identity');
 const aiSettings=require('./workflow/ai-settings');
 const patientSearch=require('./workflow/patient-search');
 const caseStatus=require('./workflow/case-status');
+const staffAssistant=require('./workflow/staff-assistant');
 
 function createServer(options={}) {
   const env=options.env||process.env, callFetch=options.fetch||global.fetch;
@@ -122,7 +123,7 @@ function createServer(options={}) {
     finally{processing=false;}
   }
   const timer=setInterval(schedule,2000);timer.unref();store.ready.then(schedule).catch(()=>{});
-  function files(req,res,pathname){const allowed={'/':['index.html','text/html; charset=utf-8'],'/index.html':['index.html','text/html; charset=utf-8'],'/css/app.css':['css/app.css','text/css; charset=utf-8'],'/js/app.js':['js/app.js','text/javascript; charset=utf-8'],'/js/telegram.js':['js/telegram.js','text/javascript; charset=utf-8'],'/js/ai-settings-ui.js':['js/ai-settings-ui.js','text/javascript; charset=utf-8']};if(!allowed[pathname])return false;const [name,type]=allowed[pathname];fs.readFile(path.join(__dirname,'..',name),(err,content)=>{if(err){fail(res,404,'Файл не найден');return;}res.writeHead(200,{'content-type':type,'cache-control':'no-cache','x-content-type-options':'nosniff'});res.end(content);});return true;}
+  function files(req,res,pathname){const allowed={'/':['index.html','text/html; charset=utf-8'],'/index.html':['index.html','text/html; charset=utf-8'],'/css/app.css':['css/app.css','text/css; charset=utf-8'],'/js/app.js':['js/app.js','text/javascript; charset=utf-8'],'/js/telegram.js':['js/telegram.js','text/javascript; charset=utf-8'],'/js/ai-settings-ui.js':['js/ai-settings-ui.js','text/javascript; charset=utf-8'],'/js/staff-assistant-ui.js':['js/staff-assistant-ui.js','text/javascript; charset=utf-8']};if(!allowed[pathname])return false;const [name,type]=allowed[pathname];fs.readFile(path.join(__dirname,'..',name),(err,content)=>{if(err){fail(res,404,'Файл не найден');return;}res.writeHead(200,{'content-type':type,'cache-control':'no-cache','x-content-type-options':'nosniff'});res.end(content);});return true;}
   const server=http.createServer(async(req,res)=>{
     const pathname=new URL(req.url,'http://localhost').pathname;
     try{
@@ -217,6 +218,42 @@ function createServer(options={}) {
           if(!p||p.base!==current.version||p.digest!==digest||Date.now()-p.at<0||Date.now()-p.at>600000)return error(409,'Сначала повторно проверьте эти настройки.');
           if(d.restoredFrom!==null){const old=aiSettings.history(s).find(v=>v.version===d.restoredFrom);if(!old||aiSettings.digest(old.config)!==digest)return error(400,'Восстанавливаемая версия отличается от проверенных настроек.');}
           const next={version:current.version+1,config:checked.config,savedAt:new Date().toISOString(),savedBy:u.name,savedById:u.id,restoredFrom:d.restoredFrom};if(!s.aiSettingsVersions?.length)s.aiSettingsVersions=[aiSettings.baseline()];s.aiSettingsVersions.push(next);delete s.aiSettingsPreviews[u.id];identity.audit(s,u,d.restoredFrom===null?'ai_settings_published':'ai_settings_restored','ai_settings',String(next.version));return response(200,{current:next});});return json(res,r.status,r.data);
+      }
+
+      if(req.method==='POST'&&pathname==='/api/assistant/command'){
+        const d=await body(req);if(!d||typeof d.text!=='string'||!d.text.trim()||d.text.length>500)return fail(res,400,'Введите запрос длиной до 500 символов.');
+        const action=staffAssistant.intent(d.text);
+        if(action.kind==='help')return json(res,200,{type:'help',message:'Я умею искать пациента по имени или телефону, показывать ваши открытые задачи, готовить задачу и кратко пересказывать выбранный Telegram-диалог.'});
+        if(action.kind==='search'){
+          if(!action.query)return json(res,200,{type:'help',message:'Укажите имя или телефон, например: «Найди пациента Иван».'});
+          if(action.query.length>100)return fail(res,400,'Слишком длинный запрос поиска.');
+          return json(res,200,{type:'search',query:action.query,items:await tx(s=>patientSearch.search(s,action.query))});
+        }
+        if(action.kind==='tasks'){
+          const items=await tx((s,u)=>manual.list(s,u).tasks.filter(t=>!t.done&&t.assigneeUserId===u.id).map(t=>({id:t.id,title:t.title,patientId:t.patientId,patient:t.patient,dueAt:t.dueAt,due:t.due})).slice(0,100));
+          return json(res,200,{type:'tasks',items});
+        }
+        if(typeof d.chatId!=='string'||!/^\-?\d{1,20}$/.test(d.chatId))return fail(res,400,'Для пересказа или задачи сначала откройте Telegram-диалог.');
+        if(ai.configError)return fail(res,503,ai.configError);
+        const capture=await tx((s,u)=>{const c=s.conversations[d.chatId];if(!c)return error(404,'Диалог не найден.');if(!c.messages.length)return error(400,'В выбранном диалоге пока нет сообщений.');
+          const now=Date.now();s.staffAssistantLimits||={};for(const [id,items] of Object.entries(s.staffAssistantLimits))if(!items.some(t=>now-t<60000))delete s.staffAssistantLimits[id];const list=(s.staffAssistantLimits[u.id]||[]).filter(t=>now-t<60000);if(list.length>=6)return error(429,'Слишком много запросов к ИИ. Подождите минуту.');list.push(now);s.staffAssistantLimits[u.id]=list;
+          identity.audit(s,u,'staff_assistant_context_requested','conversation',d.chatId);return response(200,{...staffAssistant.extract(c),chatName:c.name||'Telegram',chatId:d.chatId});});
+        if(capture.status!==200)return json(res,capture.status,capture.data);
+        let generated;try{generated=await ai.staffAssist(action.kind,capture.data.history);}catch(e){return fail(res,502,aiFailureReason(e,config.aiProvider));}
+        const result=await tx((s,u)=>{const c=s.conversations[capture.data.chatId];if(!c||staffAssistant.digestMessages(c)!==capture.data.digest)return error(409,'Переписка изменилась во время подготовки. Повторите запрос.');
+          if(action.kind==='summary')return response(200,{type:'summary',summary:generated.summary,chatId:c.id,chatName:c.name||'Telegram',messageCount:capture.data.count,truncated:capture.data.truncated});
+          if(!generated.needsAction)return response(200,{type:'no_proposal',message:'В выбранном фрагменте не найдено конкретного организационного действия. Проверьте переписку и при необходимости создайте задачу вручную.'});
+          const now=Date.now(),secret=crypto.randomBytes(32).toString('base64url'),key=identity.hash(secret);s.staffAssistantProposals||={};for(const [id,p] of Object.entries(s.staffAssistantProposals))if(p.expiresAt<=now)delete s.staffAssistantProposals[id];
+          s.staffAssistantProposals[key]={ownerId:u.id,chatId:c.id,digest:capture.data.digest,taskId:'t_'+crypto.randomUUID().replaceAll('-',''),expiresAt:now+15*60*1000};identity.audit(s,u,'staff_assistant_proposal_prepared','conversation',c.id);
+          return response(200,{type:'proposal',proposalId:secret,title:generated.title,chatId:c.id,chatName:c.name||'Telegram',defaultAssignee:u.id,messageCount:capture.data.count,truncated:capture.data.truncated});});return json(res,result.status,result.data);
+      }
+      if(req.method==='POST'&&pathname==='/api/assistant/proposals/confirm'){
+        const d=await body(req);if(!d||d.reviewed!==true||typeof d.proposalId!=='string'||!/^[a-zA-Z0-9_-]{43}$/.test(d.proposalId)||typeof d.title!=='string'||!d.title.trim()||d.title.length>160||typeof d.assigneeUserId!=='string'||!(d.dueAt===null||typeof d.dueAt==='string'))return fail(res,400,'Проверьте задачу и подтвердите её создание.');
+        const result=await tx((s,u)=>{const p=s.staffAssistantProposals?.[identity.hash(d.proposalId)];if(!p||p.ownerId!==u.id)return error(404,'Предложение не найдено.');if(p.expiresAt<=Date.now())return error(410,'Предложение устарело. Подготовьте задачу заново.');
+          if(p.created)return response(409,{error:'Задача по этому предложению уже создана.',code:'already_created',taskId:p.taskId});
+          const c=s.conversations[p.chatId];if(!c||staffAssistant.digestMessages(c)!==p.digest)return error(409,'Переписка изменилась. Подготовьте задачу заново.');
+          const task={title:d.title.trim(),patientId:'tg_'+p.chatId,assigneeUserId:d.assigneeUserId,assignee:'',dueAt:d.dueAt,due:d.dueAt||'без срока',done:false,source:'Помощник · Telegram'};
+          const saved=manual.save(s,'task',p.taskId,{record:task,expectedVersion:null},u);if(saved.status!==200)return saved;p.created=true;identity.audit(s,u,'staff_assistant_task_confirmed','task',p.taskId);return response(200,{task:saved.data.record});});return json(res,result.status,result.data);
       }
 
       if(req.method==='GET'&&pathname==='/api/patients/search'){

@@ -70,3 +70,11 @@ test('Gemini, GigaChat и OpenAI получают неизменяемые пр�
   await ai.decide('Здравствуйте',{clinic});assert.match(prompts[0],/Не ставь диагноз/);assert.match(prompts[0],/не подтверждай/);assert.match(prompts[0],/Клиника Пример/);assert.match(prompts[0],/официально/);
  }
 });
+
+test('Помощник сотрудников использует выбранный провайдер без инструментов записи',async()=>{
+ for(const provider of ['gemini','gigachat','openai']){
+  const calls=[];const fetch=async(url,opt)=>{if(url.includes('/oauth'))return ok({access_token:'token',expires_at:Date.now()+1800000});const body=JSON.parse(opt.body);calls.push(body);const system=provider==='gemini'?body.systemInstruction.parts[0].text:body.messages[0].content;const reply=system.includes('needsAction')?{needsAction:true,title:'Связаться с пациентом'}:{summary:'Пациент попросил связаться.'};return provider==='gemini'?ok({candidates:[{content:{parts:[{text:JSON.stringify(reply)}]}}]}):ok({choices:[{message:{content:JSON.stringify(reply)}}]});};
+  const config=readConfig({AI_PROVIDER:provider,GEMINI_API_KEY:'fake',GIGACHAT_AUTH_KEY:'fake',OPENAI_API_KEY:'fake',OPENAI_MODEL:'test',OPENAI_BASE_URL:'https://example.test/v1'});const ai=createAI(config,createExternalClient(fetch),fetch);
+  assert.match((await ai.staffAssist('summary','[]')).summary,/Пациент/);assert.equal((await ai.staffAssist('proposal','[]')).title,'Связаться с пациентом');assert.equal(calls.length,2);for(const body of calls){const system=provider==='gemini'?body.systemInstruction.parts[0].text:body.messages[0].content;assert.match(system,/недоверенные данные/);assert(!body.tools);}
+ }
+});
