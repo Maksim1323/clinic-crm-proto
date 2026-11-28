@@ -77,13 +77,13 @@ test('Кнопки Telegram работают без системных диал�
   w.showView('tasks');w.addDemoTask();d.getElementById('task-title').value='Проверить обращение';d.getElementById('task-assignee').value='Сотрудник';d.getElementById('task-patient').value='tg_123';await w.saveTask();
   const taskList=await(await fetch(base+'/api/manual',{headers})).json();assert.equal(taskList.tasks[0].patientId,'tg_123');assert.equal(taskList.tasks[0].assignee,'Сотрудник');
   d.querySelector('.task-card .task-right button').click();d.getElementById('task-open-patient').click();for(let i=0;i<100 && d.getElementById('tg-patient-edit').disabled;i++)await new Promise(r=>setTimeout(r,10));assert.notEqual(d.getElementById('tg-patient-col').style.display,'none','из задачи открывается Telegram-чат');
-  assert.equal(d.getElementById('tg-draft-btn'),null);assert.equal(d.getElementById('tg-patient-name').textContent,'Не указано');
+  assert.equal(d.getElementById('tg-draft-btn'),null);assert.equal(d.getElementById('tg-chat-name').textContent,'Тест');
   d.getElementById('tg-patient-edit').click();assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),true);
   d.getElementById('tg-pf-name').value='<Тест 123>';d.getElementById('tg-pf-phone').value='000-123';d.getElementById('tg-pf-admin').value='Сотрудник';
-  await w.tgSavePatient();assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');
+  await w.tgSavePatient();assert.equal(d.getElementById('tg-chat-name').textContent,'<Тест 123>');
   const savedCard=await (await fetch(base+'/api/telegram/conversations/123',{headers})).json();assert.equal(savedCard.patient.phone,'000-123');
   assert.equal((await fetch(base+'/api/telegram/conversations/123/patient',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,401);
-  await w.tgRefresh();assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');
+  await w.tgRefresh();assert.equal(d.getElementById('tg-chat-name').textContent,'<Тест 123>');
   await w.tgTake();
   assert.equal(d.getElementById('tg-handoff-status').textContent,'В работе сотрудника');
   let resumeCalls=0;const realFetch=w.fetch;
@@ -120,10 +120,10 @@ test('Кнопки Telegram работают без системных диал�
   await fetch(base+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify(second)});
   w.testPoll();for(let i=0;i<100 && !d.getElementById('inbox-list').textContent.includes('Новый тест');i++)await new Promise(r=>setTimeout(r,10));
   assert.match(d.getElementById('inbox-list').textContent,/Новый тест/,'новый чат появился после фонового обновления');
-  await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-name').textContent,'Не указано','карточки разных чатов не смешиваются');
-  d.getElementById('tg-patient-edit').click();d.getElementById('tg-pf-name').value='Новая карточка';d.getElementById('tg-pf-show-name').checked=false;await w.tgSavePatient();assert.equal(d.getElementById('tg-patient-name').closest('.profile-row').style.display,'none');
-  await w.tgSelect('123');assert.equal(d.getElementById('tg-patient-name').textContent,'<Тест 123>');assert.notEqual(d.getElementById('tg-patient-name').closest('.profile-row').style.display,'none','видимость каждой карточки независима');
-  d.getElementById('tg-patient-edit').click();await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),false,'форма закрыта при смене чата');assert.equal(d.getElementById('tg-patient-name').textContent,'Новая карточка');
+  await w.tgSelect('124');assert.equal(d.getElementById('tg-chat-name').textContent,'Новый тест','карточки разных чатов не смешиваются');
+  d.getElementById('tg-patient-edit').click();d.getElementById('tg-pf-name').value='Новая карточка';d.getElementById('tg-pf-show-name').checked=false;await w.tgSavePatient();assert.equal(d.getElementById('tg-chat-name').textContent,'Имя скрыто');
+  await w.tgSelect('123');assert.equal(d.getElementById('tg-chat-name').textContent,'<Тест 123>');assert.equal(d.getElementById('tg-chat-name').textContent,'<Тест 123>','видимость каждой карточки независима');
+  d.getElementById('tg-patient-edit').click();await w.tgSelect('124');assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),false,'форма закрыта при смене чата');assert.equal(d.getElementById('tg-chat-name').textContent,'Имя скрыто');
 
   let release;const oldFetch=w.fetch;w.fetch=(url,options)=>String(url).includes('/api/telegram/conversations')?new Promise(resolve=>{release=resolve;}):oldFetch(url,options);
   const delayedRefresh=w.tgRefresh();w.tgLogout();release({ok:true,json:async()=>({items:[{id:'999',name:'stale private chat',preview:'secret',mode:'waiting'}]})});await delayedRefresh;w.fetch=oldFetch;

@@ -677,3 +677,15 @@
 
     .form-field .field-visibility { display:flex; align-items:center; gap:6px; margin-top:6px; color:#64748b; font-size:12px; font-weight:400; cursor:pointer; }
     .field-visibility input[type="checkbox"] { width:16px; height:16px; padding:0; margin:0; accent-color:#0d9488; }
+
+/* Компактная карточка выбранного Telegram-диалога. */
+.tg-name-line { display:flex; align-items:center; gap:8px; }
+.tg-edit-icon { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; color:#64748b; cursor:pointer; }
+.tg-edit-icon:hover { color:#0f8f86; border-color:#99ded6; }
+.tg-edit-icon:disabled { opacity:.45; cursor:default; }
+.tg-header-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px 20px; margin-top:10px; align-items:start; }
+.tg-header-fields .profile-row { gap:8px; padding:6px 0; }
+.tg-header-fields .form-field label { font-size:12px; }
+.tg-header-card .tg-card-hint { margin:0 0 4px; }
+.tg-header-card .tg-card-source { text-align:left; }
+.tg-header-card .patient-sub { margin-top:6px; }

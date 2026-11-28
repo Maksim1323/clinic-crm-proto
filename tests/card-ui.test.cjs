@@ -18,10 +18,10 @@ test('Карточка показывает источник, не затира�
   const dom=await JSDOM.fromURL(root+'/',{runScripts:'dangerously',resources:new Local(),pretendToBeVisual:true,virtualConsole,beforeParse(w){w.fetch=(url,options)=>fetch(new URL(url,root),options);}});t.after(()=>dom.window.close());
   await new Promise(r=>dom.window.addEventListener('load',r));const w=dom.window,d=w.document;d.getElementById('crm-login-username').value=sessionFixture.credentials.login;d.getElementById('crm-login-password').value=sessionFixture.credentials.password;await w.tgLogin();await w.tgSelect('123');
   await incoming('Меня зовут Иван, мой телефон: +7 999 123-45-67');
-  await wait(async()=>{await w.tgRefresh(true);return d.getElementById('tg-patient-name').textContent==='Иван';});
+  await wait(async()=>{await w.tgRefresh(true);return d.getElementById('tg-chat-name').textContent==='Иван';});
   assert.equal(d.getElementById('tg-patient-name-source').textContent,'Из Telegram · не проверено');assert.equal(d.getElementById('tg-patient-phone-source').textContent,'Из Telegram · не проверено');
   w.tgEditPatient();assert.equal(d.getElementById('tg-pf-show-name').checked,true);d.getElementById('tg-pf-admin').value='Сотрудник';d.getElementById('tg-pf-show-name').checked=false;d.getElementById('tg-pf-show-phone').checked=false;await w.tgSavePatient();
-  assert.equal(d.getElementById('tg-patient-name').closest('.profile-row').style.display,'none');assert.equal(d.getElementById('tg-patient-name-source').style.display,'none');
+  assert.equal(d.getElementById('tg-chat-name').textContent,'Имя скрыто');assert.equal(d.getElementById('tg-patient-name-source').style.display,'none');
   await w.tgRefresh(true);assert.equal(d.getElementById('tg-patient-phone').closest('.profile-row').style.display,'none');
   w.tgEditPatient();assert.equal(d.getElementById('tg-pf-name').value,'Иван');assert.equal(d.getElementById('tg-pf-show-name').checked,false);d.getElementById('tg-pf-show-name').checked=true;w.tgClosePatient();w.tgEditPatient();assert.equal(d.getElementById('tg-pf-show-name').checked,false);w.tgClosePatient();
   assert.equal(d.getElementById('tg-patient-name-source').textContent,'Из Telegram · не проверено','источник не изменённых полей сохранён');
@@ -29,7 +29,7 @@ test('Карточка показывает источник, не затира�
   await incoming('Меня зовут Ирина');await w.tgSavePatient();
   assert.match(d.getElementById('tg-patient-error').textContent,/Карточка изменилась/);assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),true);
   assert.equal(d.getElementById('tg-pf-admin').value,'Новое значение','несохранённые данные остались в форме');
-  assert.equal(d.getElementById('tg-patient-name').textContent,'Ирина','обновлённые данные не потеряны');
-  w.tgClosePatient();w.tgEditPatient();assert.equal(d.getElementById('tg-pf-name').value,'Ирина','скрытое значение по-прежнему обновляется');d.getElementById('tg-pf-name').value='Проверено';d.getElementById('tg-pf-show-name').checked=true;await w.tgSavePatient();assert.notEqual(d.getElementById('tg-patient-name').closest('.profile-row').style.display,'none');
+  assert.equal(d.getElementById('tg-chat-name').textContent,'Имя скрыто','скрытые данные не выводятся');
+  w.tgClosePatient();w.tgEditPatient();assert.equal(d.getElementById('tg-pf-name').value,'Ирина','скрытое значение по-прежнему обновляется');d.getElementById('tg-pf-name').value='Проверено';d.getElementById('tg-pf-show-name').checked=true;await w.tgSavePatient();assert.equal(d.getElementById('tg-chat-name').textContent,'Проверено');
   assert.equal(d.getElementById('tg-patient-name-source').textContent,'Указано сотрудником');assert.deepEqual(errors,[]);
 });

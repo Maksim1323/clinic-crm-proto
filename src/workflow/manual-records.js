@@ -38,7 +38,7 @@ function taskInput(raw,s){
 }
 function patientName(s,id){if(!id)return '—';if(id.startsWith('tg_')){const c=s.conversations[id.slice(3)];return c?.patient?.name||c?.name||'Telegram';}return s.manualPatients[id]?.name||'—';}
 function publicRecord(record,actor){const {legacyRecord,...visible}=record;if(actor?.role==='administrator'){delete visible.plan;delete visible.bonuses;}return visible;}
-function list(s,actor){ensure(s);return {patients:Object.values(s.manualPatients).map(p=>publicRecord(p,actor)),tasks:Object.values(s.manualTasks).map(t=>({...publicRecord(t,actor),patient:patientName(s,t.patientId)})),employees:Object.values(s.manualEmployees),links:Object.values(s.conversations||{}).filter(c=>c.linkedPatientId&&s.manualPatients[c.linkedPatientId]).map(c=>({chatId:c.id,patientId:c.linkedPatientId,name:c.patient?.name||c.name||'Telegram'})),staff:Object.values(s.staffUsers||{}).filter(u=>u.active).map(u=>({id:u.id,name:u.name,role:u.role,active:true}))};}
+function list(s,actor){ensure(s);return {patients:Object.values(s.manualPatients).map(p=>publicRecord(p,actor)),tasks:Object.values(s.manualTasks).map(t=>({...publicRecord(t,actor),patient:patientName(s,t.patientId)})),employees:Object.values(s.manualEmployees),staff:Object.values(s.staffUsers||{}).filter(u=>u.active).map(u=>({id:u.id,name:u.name,role:u.role,active:true}))};}
 function save(s,kind,id,data,actor){
   ensure(s);if(!safeId.test(id)||(kind==='patient'&&!id.startsWith('p_'))||(kind==='task'&&!id.startsWith('t_')))return bad(400,'Неверный идентификатор');
   if(!data||typeof data!=='object'||Array.isArray(data))return bad(400,'Некорректный запрос');

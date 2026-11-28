@@ -6,7 +6,7 @@ function phoneKey(value){
 function norm(value){return String(value||'').trim().toLocaleLowerCase('ru-RU').replaceAll('ё','е');}
 function entries(s){
  const manual=Object.entries(s.manualPatients||{}).map(([id,p])=>({id,kind:'manual',name:p.name||'',phone:p.phone||''}));
- const telegram=Object.entries(s.conversations||{}).map(([id,c])=>({id:'tg_'+id,kind:'telegram',name:c.patient?.name||c.name||'Telegram',phone:c.patient?.phone||'',source:c.patientSources?.phone?.source||'',linkedPatientId:c.linkedPatientId||''}));
+ const telegram=Object.entries(s.conversations||{}).map(([id,c])=>({id:'tg_'+id,kind:'telegram',name:c.patient?.name||c.name||'Telegram',phone:c.patient?.phone||'',source:c.patientSources?.phone?.source||''}));
  return manual.concat(telegram);
 }
 function search(s,q){
