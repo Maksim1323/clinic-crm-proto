@@ -2,6 +2,7 @@
 const crypto = require('node:crypto');
 const {createGemini, AUTO_PROMPT} = require('./gemini');
 const {WAITING_PROMPT} = require('../workflow/constitution');
+const {modelPrompt} = require('../workflow/ai-settings');
 
 // An unknown or incomplete provider must not silently fall back to another service.
 function createAI(config, external, callFetch) {
@@ -50,7 +51,7 @@ function createAI(config, external, callFetch) {
     return content.trim();
   }
   async function decide(history, options={}) {
-    const result = JSON.parse(await generate(options.waiting ? WAITING_PROMPT : AUTO_PROMPT, 'История тестового диалога:\n'+history, 1200));
+    const result = JSON.parse(await generate(modelPrompt(options.waiting ? WAITING_PROMPT : AUTO_PROMPT, options.clinic), 'История тестового диалога:\n'+history, 1200));
     if (!result || !['reply','handoff'].includes(result.action) || typeof result.reply !== 'string' || typeof result.reason !== 'string' || typeof result.summary !== 'string') throw new Error('invalid_response');
     return result;
   }

@@ -3,6 +3,7 @@
 // Prompts and API formatting are isolated from routing and delivery decisions.
 // These safeguards are provisional and do not make the prototype a medical system.
 const {AUTO_PROMPT, WAITING_PROMPT} = require('../workflow/constitution');
+const {modelPrompt} = require('../workflow/ai-settings');
 
 function createGemini(external, model, apiKey) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
@@ -18,7 +19,7 @@ function createGemini(external, model, apiKey) {
     return candidate?.content?.parts?.filter(part => !part.thought).map(part => part.text || '').join('').trim() || '';
   }
   async function decide(history, options={}) {
-    const raw = await generate(options.waiting ? WAITING_PROMPT : AUTO_PROMPT, 'История тестового диалога:\n' + history, {
+    const raw = await generate(modelPrompt(options.waiting ? WAITING_PROMPT : AUTO_PROMPT, options.clinic), 'История тестового диалога:\n' + history, {
       responseMimeType: 'application/json', maxOutputTokens: 2048
     });
     const decision = JSON.parse(raw);

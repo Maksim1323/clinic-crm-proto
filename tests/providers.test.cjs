@@ -57,3 +57,16 @@ test('Ошибки и некорректный JSON передаются без 
   assert.doesNotMatch(aiFailureReason(new SyntaxError('secret or patient'),'openai'),/secret|patient/);
   assert.match(aiFailureReason({status:429},'gigachat'),/GigaChat/);
 });
+
+test('Gemini, GigaChat и OpenAI получают неизменяемые правила и подтверждённые настройки клиники',async()=>{
+ const base=require('../src/workflow/ai-settings').DEFAULTS,clinic=structuredClone(base);clinic.style='formal';clinic.facts={name:'Клиника Пример',address:'Москва, улица Примерная, 1',phone:'+7 900 000-00-00',hours:'Пн–пт 09:00–18:00'};clinic.factsConfirmed=true;
+ for(const provider of ['gemini','gigachat','openai']){
+  const prompts=[];const fetch=async(url,opt)=>{
+   if(url.includes('/oauth'))return ok({access_token:'token',expires_at:Date.now()+1800000});
+   const b=JSON.parse(opt.body);prompts.push(provider==='gemini'?b.systemInstruction.parts[0].text:b.messages[0].content);
+   return provider==='gemini'?ok({candidates:[{content:{parts:[{text:JSON.stringify(decision)}]}}]}):ok({choices:[{message:{content:JSON.stringify(decision)}}]});
+  };
+  const config=readConfig({AI_PROVIDER:provider,GEMINI_API_KEY:'fake',GIGACHAT_AUTH_KEY:'fake',OPENAI_API_KEY:'fake',OPENAI_MODEL:'test',OPENAI_BASE_URL:'https://example.test/v1'});const ai=createAI(config,createExternalClient(fetch),fetch);
+  await ai.decide('Здравствуйте',{clinic});assert.match(prompts[0],/Не ставь диагноз/);assert.match(prompts[0],/не подтверждай/);assert.match(prompts[0],/Клиника Пример/);assert.match(prompts[0],/официально/);
+ }
+});

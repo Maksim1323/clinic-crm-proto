@@ -25,6 +25,7 @@
     </nav>
     <div class="header-right">
       <button type="button" class="badge" id="crm-prefs-btn" onclick="crmOpenPreferences()" style="display:none">Поля</button>
+      <button type="button" class="badge" id="crm-ai-btn" onclick="crmOpenAiSettings()" style="display:none">Настройки ИИ</button>
       <button type="button" class="badge" id="crm-staff-btn" onclick="crmOpenStaff()" style="display:none">Сотрудники</button>
       <button type="button" class="badge" id="crm-session-btn" onclick="crmSessionAction()">Войти</button>
       <div class="user">
@@ -343,6 +344,23 @@
   </div>
   <div class="modal-bg" id="crm-prefs-modal" onclick="if(event.target===this)crmClosePreferences()"><div class="modal wide"><h3>Отображение полей</h3><p style="font-size:12px;color:#64748b;margin:8px 0">Личная настройка. Доступ к полям определяется ролью, а галочки карточки могут дополнительно скрывать поля.</p><div id="crm-prefs-fields" class="form-grid"></div><p id="crm-prefs-error" role="alert"></p><div class="modal-actions"><button onclick="crmClosePreferences()">Отмена</button><button class="ok" onclick="crmSavePreferences()">Сохранить</button></div><hr style="margin:16px 0"><h3>Сменить пароль</h3><div class="form-grid"><div class="form-field"><label>Текущий пароль</label><input id="crm-old-password" type="password" autocomplete="current-password" /></div><div class="form-field"><label>Новый пароль (от 12 символов)</label><input id="crm-new-password" type="password" autocomplete="new-password" /></div></div><button type="button" class="badge" style="margin-top:8px" onclick="crmChangePassword()">Сменить пароль и выйти</button></div></div>
   <div class="modal-bg" id="crm-staff-modal" onclick="if(event.target===this)crmCloseStaff()"><div class="modal wide"><h3>Сотрудники</h3><div id="crm-staff-list"></div><h3 style="margin-top:16px">Добавить сотрудника</h3><div class="form-grid"><div class="form-field"><label>Имя</label><input id="staff-name" maxlength="100" /></div><div class="form-field"><label>Логин</label><input id="staff-login" maxlength="40" /></div><div class="form-field"><label>Временный пароль (от 12 символов)</label><input id="staff-password" type="password" autocomplete="new-password" /></div><div class="form-field"><label>Роль</label><select id="staff-role"><option value="administrator">Администратор</option><option value="curator">Куратор</option><option value="manager">Управляющий</option></select></div></div><p id="staff-error" role="alert" style="color:#e11d48;font-size:12px"></p><div class="modal-actions"><button onclick="crmCloseStaff()">Закрыть</button><button onclick="crmShowAudit()">Журнал</button><button class="ok" onclick="crmCreateStaff()">Добавить</button></div><div id="crm-audit-list" style="font-size:12px;white-space:pre-wrap;margin-top:8px"></div></div></div>
+  <div class="modal-bg" id="crm-ai-modal" onclick="if(event.target===this)crmCloseAiSettings()"><div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="crm-ai-title">
+    <h3 id="crm-ai-title">Настройки ИИ</h3><p style="font-size:12px;color:#64748b;margin:8px 0">Только управляющий. Неизменяемые ограничения и серверные правила всегда имеют приоритет. Это тестовый прототип.</p>
+    <details><summary>Неизменяемые ограничения</summary><p style="font-size:12px;color:#64748b">ИИ не ставит диагнозы и не назначает лечение, не выдумывает цену и наличие времени, не подтверждает запись. Медицинские и сложные вопросы передаются сотруднику. Отключить эти правила здесь нельзя.</p></details>
+    <h3 style="margin:14px 0 8px">Поведение и сведения клиники</h3><div class="form-grid" id="ai-config-fields">
+      <div class="form-field"><label for="ai-style">Стиль</label><select id="ai-style"><option value="friendly">Дружелюбный и краткий</option><option value="neutral">Нейтральный и краткий</option><option value="formal">Вежливый официальный</option></select></div>
+      <div class="form-field"><label for="ai-wording">Формулировки вопросов при записи и цене</label><select id="ai-wording"><option value="standard">Обычные вопросы</option><option value="brief">Краткие вопросы</option></select></div>
+      <div class="form-field"><label for="ai-name">Название клиники</label><input id="ai-name" maxlength="100" /></div><div class="form-field"><label for="ai-address">Адрес</label><input id="ai-address" maxlength="180" /></div>
+      <div class="form-field"><label for="ai-phone">Контактный телефон клиники</label><input id="ai-phone" maxlength="40" /></div><div class="form-field"><label for="ai-hours">Часы работы клиники</label><input id="ai-hours" maxlength="120" placeholder="Пн–пт 09:00–18:00" /></div>
+      <label class="form-check full" style="padding-top:0"><input type="checkbox" id="ai-facts-confirmed" /> Я проверил организационные сведения. Не добавляйте цены, медицинские данные или инструкции.</label>
+      <div class="form-field full"><label for="ai-default-assignee">Ответственный по умолчанию при передаче</label><select id="ai-default-assignee"></select><small>Назначение видно в CRM, но уведомления сотруднику не отправляются. Уже назначенного сотрудника правило не меняет.</small></div>
+    </div>
+    <h3 style="margin:14px 0 6px">Дополнительные условия передачи</h3><p style="font-size:12px;color:#64748b">При наличии фразы в сообщении ИИ передаст диалог указанному сотруднику. До 10 условий; это точное совпадение фрагмента, а не понимание смысла. Основные причины передачи не отключаются.</p><div id="ai-rules"></div><button type="button" class="badge" onclick="crmAiAddRule()">Добавить условие</button>
+    <h3 style="margin:14px 0 6px">Проверка перед публикацией</h3><div class="form-field"><label for="ai-sample">Пример сообщения (только для проверки правил, без отправки)</label><input id="ai-sample" maxlength="500" placeholder="Например: хочу записаться" /></div>
+    <p id="ai-result" role="status" style="font-size:12px;white-space:pre-wrap;margin-top:8px"></p><p id="ai-error" role="alert" style="color:#e11d48;font-size:12px"></p>
+    <div class="modal-actions"><button type="button" onclick="crmCloseAiSettings()">Закрыть</button><button type="button" onclick="crmAiPreview()">Проверить</button><button type="button" id="ai-publish" class="ok" onclick="crmAiPublish()" disabled>Опубликовать</button></div>
+    <h3 style="margin:16px 0 6px">История версий</h3><p style="font-size:12px;color:#64748b">Чтобы откатить, загрузите версию, проверьте её и опубликуйте. Создастся новая версия, история не удалится.</p><div id="ai-versions" style="font-size:12px"></div>
+  </div></div>
   <div class="modal-bg" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title" onclick="if(event.target===this)closeTaskModal()">
     <div class="modal wide"><h3 id="task-modal-title">Новая задача</h3>
       <div class="form-grid" style="margin-top:16px">
@@ -369,6 +387,7 @@
 
     <script src="js/app.js"></script>
     <script src="js/telegram.js"></script>
+    <script src="js/ai-settings-ui.js"></script>
 
 </body>
 </html>

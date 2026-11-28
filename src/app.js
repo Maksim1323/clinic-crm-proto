@@ -13,6 +13,7 @@ const {WAITING_FALLBACK,EMERGENCY_RESPONSE,emergency,safetyReply}=require('./wor
 const {extractPatientInfo,applyPatientInfo,contactQuestion}=require('./workflow/patient-autofill');
 const manual=require('./workflow/manual-records');
 const identity=require('./workflow/identity');
+const aiSettings=require('./workflow/ai-settings');
 
 function createServer(options={}) {
   const env=options.env||process.env, callFetch=options.fetch||global.fetch;
@@ -30,12 +31,16 @@ function createServer(options={}) {
   async function body(req){let size=0,chunks=[];for await(const part of req){size+=part.length;if(size>64*1024)throw Error('too_large');chunks.push(part);}if(!size)return {};try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch(_){throw Error('bad_json');}}
   const response=(status,data)=>({status,data});
   const error=(status,message)=>response(status,{error:message});
-  function transfer(state,c,reason,summary,suppressNotice=false){
+  function autoAssign(state,c,preferred){
+    if(c.assigneeUserId)return;const target=[preferred,aiSettings.current(state).config.defaultAssignee].find(id=>id&&state.staffUsers?.[id]?.active);
+    if(target){c.assigneeUserId=target;identity.audit(state,{id:'system',name:'Система'},'ai_auto_assigned','conversation',c.id);}
+  }
+  function transfer(state,c,reason,summary,suppressNotice=false,preferred=''){
     initial(c);if(c.mode==='assigned')return;
     const wasAi=c.mode==='ai',initialContext=c.intake?.initialText||'';
     const info=initialContext?'Начальный запрос: '+initialContext+' | '+shortContext(c):shortContext(c);
     delete c.intake;c.mode='waiting';c.modeVersion=(c.modeVersion||0)+1;delete c.waitingPaused;
-    c.handoff={reason:String(reason||'Нужна проверка сотрудника').slice(0,300),summary:String(summary||info).slice(0,1200),initialContext,at:new Date().toISOString()};
+    c.handoff={reason:String(reason||'Нужна проверка сотрудника').slice(0,300),summary:String(summary||info).slice(0,1200),initialContext,at:new Date().toISOString()};autoAssign(state,c,preferred);
     if(wasAi&&tg&&autoEnabled&&!suppressNotice)state.jobs.push({id:'notice_'+crypto.randomUUID().replaceAll('-',''),chatId:c.id,kind:'notice',stage:'queued',urgent:emergency(c.messages.at(-1)?.text)});
   }
   function waitingIssue(c,issue){if(c.mode==='waiting'&&c.handoff&&!c.handoff.reason.includes(issue))c.handoff.reason=(issue+' · '+c.handoff.reason).slice(0,300);}
@@ -58,6 +63,10 @@ function createServer(options={}) {
     const job=state.jobs.find(j=>j.stage==='queued');if(!job)return null;
     const c=state.conversations[job.chatId],waiting=job.kind==='waiting_reply',expected=waiting?'waiting':'ai';
     if(!c){job.stage='done';return {skip:true};}
+    const activeSettings=aiSettings.current(state);
+    if(job.kind!=='notice'&&(job.settingsVersion??0)!==activeSettings.version){
+      if(c.mode==='waiting')pauseWaiting(c,'Настройки ИИ изменились: проверьте диалог');else transfer(state,c,'Настройки ИИ изменились: проверьте диалог');job.stage='done';return {skip:true};
+    }
     if(job.kind==='notice'){
       if(initial(c).mode!=='waiting'||!tg||!autoEnabled||c.waitingPaused){job.stage='done';return {skip:true};}
       const notice=queueHandoffNotice(c,job), owner=crypto.randomUUID();job.owner=owner;job.leaseUntil=now+LEASE_MS;job.stage='sending';
@@ -67,11 +76,11 @@ function createServer(options={}) {
     if(initial(c).mode!==expected||(waiting&&c.waitingPaused)){job.stage='done';return {skip:true};}
     if(!autoEnabled||!tg||(!waiting&&ai.configError)){if(!waiting)transfer(state,c,ai.configError||'ИИ выключен или не настроен');job.stage='done';return {skip:true};}
     const owner=crypto.randomUUID();job.owner=owner;job.leaseUntil=now+LEASE_MS;job.stage='generating';
-    return {jobId:job.id,owner,chatId:c.id,waiting,expected,version:c.modeVersion||0,kind:job.kind,reply:job.reply,urgent:!!job.urgent,history:context(c),updateId:job.updateId};
+    return {jobId:job.id,owner,chatId:c.id,waiting,expected,version:c.modeVersion||0,settingsVersion:activeSettings.version,clinic:activeSettings.config,kind:job.kind,reply:job.reply,urgent:!!job.urgent,history:context(c),updateId:job.updateId};
   });}
   async function generate(task){
     try {
-      return {decision:task.kind==='intake'||(task.waiting&&task.reply)?{action:'reply',reply:task.reply,reason:'',summary:''}:task.waiting&&ai.configError?{action:'reply',reply:WAITING_FALLBACK,reason:'',summary:''}:await ai.decide(task.history,{waiting:task.waiting})};
+      return {decision:task.kind==='intake'||(task.waiting&&task.reply)?{action:'reply',reply:task.reply,reason:'',summary:''}:task.waiting&&ai.configError?{action:'reply',reply:WAITING_FALLBACK,reason:'',summary:''}:await ai.decide(task.history,{waiting:task.waiting,clinic:task.clinic})};
     }catch(e){return {failure:aiFailureReason(e,config.aiProvider)};}
   }
   async function prepareSend(task,outcome){return store.transact(state=>{
@@ -79,6 +88,7 @@ function createServer(options={}) {
     if(!job||job.stage!=='generating'||!c)return null;
     if(job.leaseUntil<=Date.now()){job.stage='done';if(c.mode==='waiting')pauseWaiting(c,'Обработка прервалась: проверьте диалог и возможную отправку');else transfer(state,c,'Обработка прервалась: проверьте диалог и возможную отправку',undefined,true);return null;}
     if(c.mode!==task.expected||(c.modeVersion||0)!==task.version||(task.waiting&&c.waitingPaused)){job.stage='done';return null;}
+    if(aiSettings.current(state).version!==task.settingsVersion){if(task.waiting)pauseWaiting(c,'Настройки ИИ изменились: проверьте диалог');else transfer(state,c,'Настройки ИИ изменились: проверьте диалог');job.stage='done';return null;}
     let decision=outcome.decision;
     if(outcome.failure){if(task.waiting){waitingIssue(c,outcome.failure);decision={action:'reply',reply:WAITING_FALLBACK,reason:'',summary:''};}else{transfer(state,c,outcome.failure);job.stage='done';return null;}}
     if(!task.urgent&&state.jobs.some(next=>next.chatId===c.id&&next.stage==='queued'&&next.kind!=='notice')){job.stage='done';return null;}
@@ -110,7 +120,7 @@ function createServer(options={}) {
     finally{processing=false;}
   }
   const timer=setInterval(schedule,2000);timer.unref();store.ready.then(schedule).catch(()=>{});
-  function files(req,res,pathname){const allowed={'/':['index.html','text/html; charset=utf-8'],'/index.html':['index.html','text/html; charset=utf-8'],'/css/app.css':['css/app.css','text/css; charset=utf-8'],'/js/app.js':['js/app.js','text/javascript; charset=utf-8'],'/js/telegram.js':['js/telegram.js','text/javascript; charset=utf-8']};if(!allowed[pathname])return false;const [name,type]=allowed[pathname];fs.readFile(path.join(__dirname,'..',name),(err,content)=>{if(err){fail(res,404,'Файл не найден');return;}res.writeHead(200,{'content-type':type,'cache-control':'no-cache','x-content-type-options':'nosniff'});res.end(content);});return true;}
+  function files(req,res,pathname){const allowed={'/':['index.html','text/html; charset=utf-8'],'/index.html':['index.html','text/html; charset=utf-8'],'/css/app.css':['css/app.css','text/css; charset=utf-8'],'/js/app.js':['js/app.js','text/javascript; charset=utf-8'],'/js/telegram.js':['js/telegram.js','text/javascript; charset=utf-8'],'/js/ai-settings-ui.js':['js/ai-settings-ui.js','text/javascript; charset=utf-8']};if(!allowed[pathname])return false;const [name,type]=allowed[pathname];fs.readFile(path.join(__dirname,'..',name),(err,content)=>{if(err){fail(res,404,'Файл не найден');return;}res.writeHead(200,{'content-type':type,'cache-control':'no-cache','x-content-type-options':'nosniff'});res.end(content);});return true;}
   const server=http.createServer(async(req,res)=>{
     const pathname=new URL(req.url,'http://localhost').pathname;
     try{
@@ -133,18 +143,19 @@ function createServer(options={}) {
               const pending=c.awaitingContactReply,extracted=extractPatientInfo(text,pending&&typeof pending==='object'?pending:false);applyPatientInfo(c,extracted,incoming);
               if(pending&&typeof pending==='object'){if(extracted.name)pending.name=false;if(extracted.phone)pending.phone=false;pending.left=(pending.left||1)-1;if(pending.left<=0||(!pending.name&&!pending.phone))delete c.awaitingContactReply;}else delete c.awaitingContactReply;
             }
-            const reason=typeof m.text==='string'?(emergency(text)?'Срочное сообщение — возможна угроза жизни':trigger(text)):'Вложение не обрабатывается — проверьте Telegram';
+            const settings=aiSettings.current(state),custom=typeof m.text==='string'?aiSettings.match(settings.config,text):null;
+            const reason=typeof m.text==='string'?(emergency(text)?'Срочное сообщение — возможна угроза жизни':trigger(text)|| (custom?'Дополнительное условие клиники':null)):'Вложение не обрабатывается — проверьте Telegram';
             if(c.mode==='waiting'&&c.handoff)c.handoff.summary=((c.handoff.initialContext?'Начальный запрос: '+c.handoff.initialContext+' | ':'')+shortContext(c)).slice(0,1200);
-            if(c.mode==='waiting'&&reason)waitingIssue(c,reason);
+            if(c.mode==='waiting'&&reason){waitingIssue(c,reason);if(custom)autoAssign(state,c,custom.assigneeUserId);}
             if(c.mode==='waiting'&&autoEnabled&&tg&&!c.waitingPaused){
               state.jobs.filter(j=>j.chatId===c.id&&j.stage==='queued'&&j.kind==='waiting_reply'&&!j.urgent).forEach(j=>j.stage='done');
-              state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,kind:'waiting_reply',reply:typeof m.text!=='string'?'Вложение передано сотруднику. Я не могу его просмотреть; откройте Telegram для проверки.':safetyReply(text,reason),urgent:emergency(text),stage:'queued'});
+              state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,kind:'waiting_reply',reply:typeof m.text!=='string'?'Вложение передано сотруднику. Я не могу его просмотреть; откройте Telegram для проверки.':safetyReply(text,reason),urgent:emergency(text),settingsVersion:settings.version,stage:'queued'});
             }
             if(c.mode==='ai'){
-              if(reason)transfer(state,c,reason);else if(!autoEnabled)transfer(state,c,'Автоответ ИИ выключен: нужен сотрудник');else{
-                const intake=routeIntake(c,text);
-                if(intake){state.jobs.filter(j=>j.chatId===c.id&&j.stage==='queued'&&j.kind!=='notice').forEach(j=>j.stage='done');if(intake.handoff)transfer(state,c,intake.handoff);else state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,kind:'intake',reply:intake.reply,stage:'queued'});}
-                else state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,stage:'queued'});
+              if(reason)transfer(state,c,reason,undefined,false,custom?.assigneeUserId);else if(!autoEnabled)transfer(state,c,'Автоответ ИИ выключен: нужен сотрудник');else{
+                const intake=routeIntake(c,text,settings.config.wording);
+                if(intake){state.jobs.filter(j=>j.chatId===c.id&&j.stage==='queued'&&j.kind!=='notice').forEach(j=>j.stage='done');if(intake.handoff)transfer(state,c,intake.handoff);else state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,kind:'intake',reply:intake.reply,settingsVersion:settings.version,stage:'queued'});}
+                else state.jobs.push({id:'job_'+u.update_id,updateId:u.update_id,chatId:id,settingsVersion:settings.version,stage:'queued'});
               }
             }
           }
@@ -187,6 +198,24 @@ function createServer(options={}) {
         const r=await tx((s,u)=>identity.setupRoles(s,u,staffMatch[1],{role:d.role,active:d.active,name:d.name,secret}));return r.error?fail(res,r.status,r.error):json(res,200,r);}
       if(req.method==='GET'&&pathname==='/api/manage/audit'){const r=await tx((s,u)=>u.role==='manager'?s.audit.slice(-500).reverse():null);return r?json(res,200,{items:r}):fail(res,403,'Только управляющий.');}
       if(req.method==='POST'&&pathname==='/api/auth/preferences'){const d=await body(req),allowed=['name','phone','age','gender','channel','admin','doctor','stage','bonuses','nps','nospam','inclinic','plan','note'];if(!d||typeof d!=='object'||Array.isArray(d)||Object.keys(d).some(k=>!allowed.includes(k)||typeof d[k]!=='boolean'))return fail(res,400,'Проверьте настройки.');const result=await tx((s,u)=>{u.preferences={...d};identity.audit(s,u,'preferences_updated','staff',u.id);return identity.publicUser(u);});return json(res,200,{user:result});}
+
+      if(req.method==='GET'&&pathname==='/api/manage/ai-settings'){
+        const data=await tx((s,u)=>u.role==='manager'?{current:aiSettings.current(s),versions:aiSettings.history(s)}:null);return data?json(res,200,data):fail(res,403,'Только управляющий может изменять настройки ИИ.');
+      }
+      if(req.method==='POST'&&pathname==='/api/manage/ai-settings/preview'){
+        const d=await body(req);if(typeof d.sample!=='string'||d.sample.length>500||!Number.isSafeInteger(d.expectedVersion))return fail(res,400,'Проверьте пример и версию.');
+        const r=await tx((s,u)=>{if(u.role!=='manager')return error(403,'Только управляющий может изменять настройки ИИ.');if(aiSettings.current(s).version!==d.expectedVersion)return error(409,'Настройки изменились. Откройте их заново.');
+          const checked=aiSettings.validate(d.config,s);if(checked.errors.length)return response(200,{valid:false,errors:checked.errors});s.aiSettingsPreviews||={};s.aiSettingsPreviews[u.id]={digest:aiSettings.digest(checked.config),base:d.expectedVersion,at:Date.now()};
+          return response(200,{valid:true,config:checked.config,preview:aiSettings.preview(checked.config,d.sample),warnings:['Проверка правил и шаблонов не вызывает модель и не гарантирует качество её ответа.','Встроенные ограничения и сценарии имеют приоритет. Сведения клиники нужно проверять вручную.']});});return json(res,r.status,r.data);
+      }
+      if(req.method==='PUT'&&pathname==='/api/manage/ai-settings'){
+        const d=await body(req);if(!Number.isSafeInteger(d.expectedVersion)||!(d.restoredFrom===null||Number.isSafeInteger(d.restoredFrom)))return fail(res,400,'Проверьте версию настроек.');
+        const r=await tx((s,u)=>{if(u.role!=='manager')return error(403,'Только управляющий может изменять настройки ИИ.');const current=aiSettings.current(s);if(current.version!==d.expectedVersion)return error(409,'Настройки изменились. Откройте их заново.');
+          const checked=aiSettings.validate(d.config,s);if(checked.errors.length)return error(400,checked.errors.join(' '));const digest=aiSettings.digest(checked.config),p=s.aiSettingsPreviews?.[u.id];
+          if(!p||p.base!==current.version||p.digest!==digest||Date.now()-p.at<0||Date.now()-p.at>600000)return error(409,'Сначала повторно проверьте эти настройки.');
+          if(d.restoredFrom!==null){const old=aiSettings.history(s).find(v=>v.version===d.restoredFrom);if(!old||aiSettings.digest(old.config)!==digest)return error(400,'Восстанавливаемая версия отличается от проверенных настроек.');}
+          const next={version:current.version+1,config:checked.config,savedAt:new Date().toISOString(),savedBy:u.name,savedById:u.id,restoredFrom:d.restoredFrom};if(!s.aiSettingsVersions?.length)s.aiSettingsVersions=[aiSettings.baseline()];s.aiSettingsVersions.push(next);delete s.aiSettingsPreviews[u.id];identity.audit(s,u,d.restoredFrom===null?'ai_settings_published':'ai_settings_restored','ai_settings',String(next.version));return response(200,{current:next});});return json(res,r.status,r.data);
+      }
 
       if(req.method==='GET'&&pathname==='/api/manual')return json(res,200,await tx((s,u)=>manual.list(s,u)));
       if(req.method==='POST'&&pathname==='/api/manual/import'){const data=await body(req),result=await tx(state=>manual.importOne(state,data,actor));return json(res,result.status,result.data);}
