@@ -6,7 +6,7 @@ const STAGES = [
       { num: 5, label: '5 · Потенциальный клиент' }
     ];
 
-    // Only user-created local cards are shown; old bundled examples stay hidden.
+    // Server-backed manual cards; legacy browser data is read only on explicit import.
     const DB = {patients:{}, inboxOrder:[]};
     // Fingerprints only; edits to old examples are retained as user data.
     const oldPatientHashes={ivanov:'678ce3fc',smirnova:'5a4abae3',alexey:'dfcc47b3',site:'7ba6aa2e',mis:'396d6011'};
@@ -22,33 +22,44 @@ const STAGES = [
 
     const STORAGE_KEY = 'cliniccrm_v13';
 
-    function saveDB() {
-      try {
-        const payload = {
-          patients: DB.patients,
-          inboxOrder: DB.inboxOrder,
-          currentPatientId
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      } catch (e) { console.warn('save failed', e); }
+    const taskKey='cliniccrm_journey_tasks_v1';
+    let manualReady=false, patientEditVersion=null, patientSaving=false, taskEditVersion=null, taskSaving=false, manualRevision=0,patientDraftId=null,taskDraftId=null,manualFetchSeq=0,manualAppliedSeq=0;
+    function newId(prefix){const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);return prefix+'_'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');}
+    function localInputValue(value){if(!value)return '';const d=new Date(value);if(Number.isNaN(d.getTime()))return '';return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+    function showManualError(id,message){document.getElementById(id).textContent=message;}
+    function requireManual(){if(manualReady)return true;toast('Войдите в CRM, чтобы работать с серверными карточками и задачами');return false;}
+    window.crmClearManual=function(){manualReady=false;++manualRevision;DB.patients={};DB.inboxOrder=[];TASKS=[];currentPatientId=null;closePatientModal();closeTaskModal();document.getElementById('import-local-btn').style.display='none';document.getElementById('import-result').textContent='';document.getElementById('history-feed').replaceChildren();document.getElementById('task-staff-options').replaceChildren();document.getElementById('demo-patient-col').style.display='none';document.getElementById('comms-empty').style.display='';renderInbox();renderTasks();renderKanban();};
+    window.crmRefreshManual=async function(){
+      const revision=manualRevision,seq=++manualFetchSeq,data=await window.crmApi('/api/manual');if(revision!==manualRevision||seq<manualAppliedSeq)return;manualAppliedSeq=seq;
+      const staff=document.getElementById('task-staff-options');staff.replaceChildren();(data.employees||[]).forEach(e=>staff.append(new Option(e.name,e.name)));
+      DB.patients=Object.fromEntries(data.patients.map(p=>[p.id,p]));DB.inboxOrder=data.patients.map(p=>p.id).reverse();TASKS=data.tasks.slice().reverse();manualReady=true;
+      document.getElementById('import-local-btn').style.display=hasLegacyData()?'':'none';renderInbox();renderTasks();renderKanban();
+      if(currentPatientId && DB.patients[currentPatientId] && !(window.tgHasSelectedChat&&window.tgHasSelectedChat()))renderPatient(currentPatientId,false);
+    };
+    function hasLegacyData(){try{return !!(localStorage.getItem(STORAGE_KEY)||localStorage.getItem(taskKey));}catch(_){return false;}}
+    function legacySnapshot(){
+      let patients=[],tasks=[];const a=localStorage.getItem(STORAGE_KEY),b=localStorage.getItem(taskKey);
+      if(a){const d=JSON.parse(a);if(!d||!d.patients||typeof d.patients!=='object'||Array.isArray(d.patients))throw Error('Старые карточки имеют неизвестный формат. Данные в браузере не изменены.');patients=Object.entries(d.patients).filter(([id,p])=>!oldPatientHashes[id]||fingerprint(p)!==oldPatientHashes[id]);}
+      if(b){const data=JSON.parse(b);if(!Array.isArray(data))throw Error('Старые задачи имеют неизвестный формат. Данные в браузере не изменены.');tasks=data.filter(t=>t&&(!oldTaskHashes[t.id]||fingerprint(t)!==oldTaskHashes[t.id])).map(t=>[String(t.id||''),t]);}
+      return {patients,tasks};
     }
-
-    function loadDB() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (data.patients && typeof data.patients === 'object') {
-          Object.keys(data.patients).filter(id=>!oldPatientHashes[id]||fingerprint(data.patients[id])!==oldPatientHashes[id]).forEach(id=>{DB.patients[id]=data.patients[id];});
+    let importing=false;
+    window.crmImportLegacy=async function(){
+      if(!requireManual()||importing)return;let snapshot,scope;
+      try{snapshot=legacySnapshot();scope=localStorage.getItem('cliniccrm_import_scope_v1');if(!scope){scope=newId('x').slice(2);localStorage.setItem('cliniccrm_import_scope_v1',scope);}if(!/^[a-f0-9]{32}$/.test(scope))throw Error('Не удалось определить источник импорта.');}catch(e){toast(e.message||'Не удалось прочитать данные браузера');return;}
+      const button=document.getElementById('import-local-btn');importing=true;button.disabled=true;let added=0,exists=0,failed=0;const errors=[];
+      try{
+        for(const [kind,items] of [['patient',snapshot.patients],['task',snapshot.tasks]])for(const [legacyId,original] of items){
+          let record=JSON.parse(JSON.stringify(original));
+          if(kind==='task'&&record.dueAt&&!/(?:Z|[+-]\d\d:\d\d)$/.test(record.dueAt)){const date=new Date(record.dueAt);if(!Number.isNaN(date.getTime()))record.dueAt=date.toISOString();}
+          try{const result=await window.crmApi('/api/manual/import','POST',{scope,kind,legacyId,record});if(result.status==='exists')exists++;else added++;}catch(e){if(e.message==='session_changed')throw e;failed++;errors.push((kind==='patient'?'Карточка ':'Задача ')+legacyId+': '+e.message);}
         }
-        if (Array.isArray(data.inboxOrder) && data.inboxOrder.length) {
-          DB.inboxOrder = data.inboxOrder.filter(id=>DB.patients[id]);
-        }
-        if (data.currentPatientId && DB.patients[data.currentPatientId]) {
-          currentPatientId = data.currentPatientId;
-        }
-      } catch (e) { console.warn('load failed', e); }
-    }
+        await window.crmRefreshManual();
+        const message='Импорт: добавлено '+added+', уже было '+exists+', не удалось '+failed+'. Данные в браузере не удалены.';
+        document.getElementById('import-result').textContent=message+(errors.length?' '+errors.join(' | '):'');toast(message);
+      }catch(e){if(e.message!=='session_changed')toast('Импорт прерван. Повторите: уже перенесённые записи не дублируются.');}
+      finally{importing=false;button.disabled=false;}
+    };
 
     const CHANNEL_META = {
       call:  { icon: '📞', label: 'Звонок' },
@@ -61,7 +72,10 @@ const STAGES = [
     let patientModalMode = 'edit';
 
     function openPatientModal(mode) {
+      if(!requireManual())return;
       patientModalMode = mode || 'edit';
+      patientEditVersion=mode==='create'?null:DB.patients[currentPatientId]?.version;patientDraftId=mode==='create'?newId('p'):null;
+      showManualError('patient-save-error','');
       const modal = document.getElementById('patient-modal');
       const title = document.getElementById('patient-modal-title');
       const sub = document.getElementById('patient-modal-sub');
@@ -121,98 +135,26 @@ const STAGES = [
       document.getElementById('patient-modal').classList.remove('open');
     }
 
-    function savePatientCard() {
-      const name = document.getElementById('pf-name').value.trim();
-      const phone = document.getElementById('pf-phone').value.trim();
-      if (!name) { toast('Укажите ФИО'); return; }
-      if (!phone) { toast('Укажите телефон'); return; }
-
-      const ch = document.getElementById('pf-channel').value;
-      const meta = CHANNEL_META[ch] || CHANNEL_META.call;
-      const gender = document.getElementById('pf-gender').value;
-      const emoji = gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤');
-      const stageNum = parseInt(document.getElementById('pf-stage').value, 10) || 1;
-      const npsRaw = document.getElementById('pf-nps').value;
-      const nps = npsRaw === '' ? null : parseInt(npsRaw, 10);
-
-      if (patientModalMode === 'create') {
-        const id = 'p_' + Date.now();
-        const patient = {
-          id, name, visibility:readLocalVisibility(), age: document.getElementById('pf-age').value.trim() || '—',
-          emoji, gender: gender || null, phone,
-          channelIcon: meta.icon, channelLabel: meta.label,
-          timeLabel: 'сейчас', unread: 0, statusInClinic: document.getElementById('pf-inclinic').checked,
-          admin: document.getElementById('pf-admin').value.trim() || '—',
-          doctor: document.getElementById('pf-doctor').value.trim() || '—',
-          stageNum, stageTotal: 5,
-          noSpam: document.getElementById('pf-nospam').checked,
-          bonuses: parseInt(document.getElementById('pf-bonuses').value, 10) || 0,
-          nps,
-          preview: 'Новая карточка',
-          createdAt: new Date().toLocaleDateString('ru-RU'),
-          plan: document.getElementById('pf-plan').value.trim() || null,
-          note: document.getElementById('pf-note').value.trim() || '',
-          history: [{
-            type: 'system', icon: '📋', title: 'Карточка создана',
-            date: nowLabel(),
-            body: '<div class="text-slate-700">Пациент добавлен в CRM · канал: ' + meta.label + '</div>'
-          }]
-        };
-        const note = document.getElementById('pf-note').value.trim();
-        if (note) {
-          patient.history.unshift({
-            type: 'note', icon: '📝', title: 'Заметка',
-            date: nowLabel(),
-            body: '<div class="text-slate-700" style="white-space:pre-wrap">' + escapeHtml(note) + '</div>'
-          });
-        }
-        DB.patients[id] = patient;
-        DB.inboxOrder.unshift(id);
-        closePatientModal();
-        saveDB();
-        showView('comms');
-        selectPatient(id);
-        toast('✓ Карточка создана: ' + name);
-      } else {
-        const id = document.getElementById('pf-id').value || currentPatientId;
-        const p = DB.patients[id];
-        if (!p) { toast('Пациент не найден'); return; }
-        const oldName = p.name;
-        p.visibility = readLocalVisibility();
-        p.name = name;
-        p.phone = phone;
-        p.age = document.getElementById('pf-age').value.trim() || '—';
-        p.gender = gender || null;
-        p.emoji = emoji;
-        p.channelIcon = meta.icon;
-        p.channelLabel = meta.label;
-        p.admin = document.getElementById('pf-admin').value.trim() || '—';
-        p.doctor = document.getElementById('pf-doctor').value.trim() || '—';
-        p.stageNum = stageNum;
-        p.bonuses = parseInt(document.getElementById('pf-bonuses').value, 10) || 0;
-        p.nps = nps;
-        p.noSpam = document.getElementById('pf-nospam').checked;
-        p.statusInClinic = document.getElementById('pf-inclinic').checked;
-        p.plan = document.getElementById('pf-plan').value.trim() || null;
-        p.note = document.getElementById('pf-note').value.trim() || '';
-        p.history.unshift({
-          type: 'system', icon: '✏️', title: 'Карточка обновлена',
-          date: nowLabel(),
-          body: '<div class="text-slate-700">Данные пациента изменены' + (oldName !== name ? ' (ФИО: ' + escapeHtml(oldName) + ' → ' + escapeHtml(name) + ')' : '') + '</div>'
-        });
-        closePatientModal();
-        saveDB();
-        renderPatient(id, false);
-        toast('✓ Карточка сохранена');
-      }
+    async function savePatientCard() {
+      if(!requireManual()||patientSaving)return;
+      const name=document.getElementById('pf-name').value.trim(),phone=document.getElementById('pf-phone').value.trim();
+      if(!name||!phone){showManualError('patient-save-error','Укажите ФИО и телефон');return;}
+      const creating=patientModalMode==='create',id=creating?patientDraftId:document.getElementById('pf-id').value;
+      const old=creating?null:DB.patients[id];if(!creating&&!old){showManualError('patient-save-error','Карточка недоступна.');return;}
+      const ch=document.getElementById('pf-channel').value,meta=CHANNEL_META[ch]||CHANNEL_META.call,gender=document.getElementById('pf-gender').value,npsRaw=document.getElementById('pf-nps').value;
+      const p={...(old||{}),id,name,phone,visibility:readLocalVisibility(),age:document.getElementById('pf-age').value.trim()||'—',gender:gender||'',emoji:gender==='female'?'👩':gender==='male'?'👨':'👤',channelIcon:meta.icon,channelLabel:meta.label,timeLabel:old?.timeLabel||'сейчас',unread:old?.unread||0,statusInClinic:document.getElementById('pf-inclinic').checked,admin:document.getElementById('pf-admin').value.trim()||'—',doctor:document.getElementById('pf-doctor').value.trim()||'—',stageNum:parseInt(document.getElementById('pf-stage').value,10)||1,stageTotal:5,noSpam:document.getElementById('pf-nospam').checked,bonuses:parseInt(document.getElementById('pf-bonuses').value,10)||0,nps:npsRaw===''?null:parseInt(npsRaw,10),preview:old?.preview||'Новая карточка',createdAt:old?.createdAt||new Date().toLocaleDateString('ru-RU'),plan:document.getElementById('pf-plan').value.trim(),note:document.getElementById('pf-note').value.trim(),history:[...(old?.history||[])]};
+      p.history.unshift({type:'system',icon:creating?'📋':'✏️',title:creating?'Карточка создана':'Карточка обновлена',date:nowLabel(),body:creating?'Пациент добавлен в CRM':'Данные пациента изменены'});
+      if(creating&&p.note)p.history.unshift({type:'note',icon:'📝',title:'Заметка',date:nowLabel(),body:escapeHtml(p.note)});
+      patientSaving=true;document.getElementById('patient-save-button').disabled=true;showManualError('patient-save-error','');
+      try{await window.crmApi('/api/manual/patients/'+id,'PUT',{record:p,expectedVersion:patientEditVersion});await window.crmRefreshManual();closePatientModal();showView('comms');selectPatient(id);toast('Карточка сохранена');}
+      catch(e){if(e.message!=='session_changed')showManualError('patient-save-error',e.message);}
+      finally{patientSaving=false;document.getElementById('patient-save-button').disabled=false;}
     }
 
-    function sendMessage() {
-      const input=document.getElementById('msg-input'), p=DB.patients[currentPatientId];
-      if(!p || !input.value.trim())return;
-      const text=input.value.trim();input.value='';p.preview='Демо: '+text.slice(0,40);p.unread=0;
-      addHistory('💬','Сообщение · демо, не отправлено','<div style="white-space:pre-wrap">'+escapeHtml(text)+'</div>');
-      toast('Сохранено локально · сообщение не отправлено');
+    async function sendMessage() {
+      if(!requireManual())return;const input=document.getElementById('msg-input'),p=DB.patients[currentPatientId],text=input.value.trim();if(!p||!text)return;
+      const next={...p,history:[{type:'action',icon:'💬',title:'Заметка · сообщение не отправлено',date:nowLabel(),body:escapeHtml(text)},...p.history],preview:'Заметка: '+text.slice(0,40),unread:0};
+      try{await window.crmApi('/api/manual/patients/'+p.id,'PUT',{record:next,expectedVersion:p.version});if(input.value.trim()===text)input.value='';await window.crmRefreshManual();toast('Сохранено как заметка; сообщение не отправлено');}catch(e){if(e.message!=='session_changed')toast(e.message);}
     }
 
     function escapeHtml(s) {
@@ -224,13 +166,6 @@ const STAGES = [
     function nowLabel() {
       const d = new Date();
       return 'сегодня ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-    }
-
-    function addHistory(icon, title, body) {
-      const p = DB.patients[currentPatientId];
-      p.history.unshift({ type: 'action', icon, title, date: nowLabel(), body });
-      saveDB();
-      renderPatient(currentPatientId, false);
     }
 
     // ===== ACTIONS =====
@@ -256,20 +191,7 @@ const STAGES = [
       pendingStage = null;
     }
 
-    function confirmStage() {
-      if (pendingStage == null) return;
-      const p = DB.patients[currentPatientId];
-      const old = STAGES.find(s => s.num === p.stageNum);
-      const neu = STAGES.find(s => s.num === pendingStage);
-      p.stageNum = pendingStage;
-      addHistory('🔄', 'Смена статуса',
-        `<div class="text-slate-700">Этап изменён:<br>
-        <span class="text-slate-400">${old ? old.label : '—'}</span>
-        → <span class="text-indigo-600 font-medium">${neu.label}</span></div>`);
-      closeStageModal();
-      toast('✓ Статус: ' + neu.label);
-      renderPatient(currentPatientId, false);
-    }
+    async function confirmStage() {if(pendingStage==null)return;const id=currentPatientId,stage=pendingStage;await movePatientStage(id,stage);closeStageModal();}
 
     // ===== RENDER =====
     function updateInboxCount() {
@@ -341,11 +263,11 @@ const STAGES = [
       feed.innerHTML = p.history.map(h => `
         <div class="hist-item">
           <div class="hist-top">
-            <span class="hist-icon">${h.icon}</span>
-            <span class="hist-title">${h.title}</span>
-            <span class="hist-date">${h.date}</span>
+            <span class="hist-icon">${escapeHtml(String(h.icon||""))}</span>
+            <span class="hist-title">${escapeHtml(String(h.title||""))}</span>
+            <span class="hist-date">${escapeHtml(String(h.date||""))}</span>
           </div>
-          <div class="hist-body">${h.body}</div>
+          <div class="hist-body" style="white-space:pre-wrap">${escapeHtml(historyText(h.body))}</div>
         </div>
       `).join('');
 
@@ -355,6 +277,7 @@ const STAGES = [
       if (showToast) toast('Карточка: ' + p.name);
     }
 
+    function historyText(html){const parsed=new DOMParser().parseFromString(String(html||''),'text/html');parsed.querySelectorAll('script,style,iframe,object,svg,math').forEach(n=>n.remove());parsed.querySelectorAll('br').forEach(n=>n.replaceWith('\n'));parsed.querySelectorAll('div,p').forEach(n=>n.append('\n'));return (parsed.body.textContent||'').trim();}
     function initials(name) {
       const parts = (name || '').trim().split(/\s+/).filter(Boolean);
       if (!parts.length) return '?';
@@ -495,30 +418,12 @@ const STAGES = [
       movePatientStage(id, stage);
     }
 
-    function movePatientStage(id, newStage) {
-      newStage = parseInt(newStage, 10);
-      if (newStage < 1 || newStage > 5) return;
-      const p = DB.patients[id];
-      if (!p) return;
-      if (p.stageNum === newStage) return;
-      const old = STAGES.find(s => s.num === p.stageNum);
-      const neu = STAGES.find(s => s.num === newStage);
-      p.stageNum = newStage;
-      p.history.unshift({
-        type: 'system', icon: '🔄',
-        title: 'Смена этапа',
-        date: nowLabel(),
-        body: `<div>Этап: <b>${old ? old.label : '—'}</b> → <b>${neu ? neu.label : '—'}</b> (канбан)</div>`
-      });
-      const prevNum = old ? old.num : null;
-      if (typeof saveDB === 'function') saveDB();
-      renderKanban();
-      if (currentPatientId === id) renderPatient(id, false);
-      if (typeof onStageChanged === 'function') onStageChanged(id, prevNum, newStage);
-      toast('→ ' + (neu ? neu.label : newStage));
+    async function movePatientStage(id,newStage) {
+      if(!requireManual())return;newStage=parseInt(newStage,10);const p=DB.patients[id];if(!p||newStage<1||newStage>5||p.stageNum===newStage)return;
+      const old=STAGES.find(x=>x.num===p.stageNum),neu=STAGES.find(x=>x.num===newStage);
+      const next={...p,stageNum:newStage,history:[{type:'system',icon:'🔄',title:'Смена этапа',date:nowLabel(),body:'Этап: '+(old?.label||'—')+' → '+neu.label},...p.history]};
+      try{await window.crmApi('/api/manual/patients/'+id,'PUT',{record:next,expectedVersion:p.version,createStageTask:true});await window.crmRefreshManual();toast('Этап изменён');}catch(e){if(e.message!=='session_changed')toast(e.message);}
     }
-
-
 
     let TASKS = [];
     let taskFilter = 'all';
@@ -569,71 +474,38 @@ const STAGES = [
       `).join('') || '<div style="padding:24px;color:#94a3b8;text-align:center">Нет задач в этом фильтре</div>';
     }
 
-    function toggleTask(id) {
-      const t = TASKS.find(x => x.id === id);
-      if (!t) return;
-      t.done = !t.done;
-      if (t.done) t.overdue = false;
-      renderTasks();
-      toast(t.done ? '✓ Задача выполнена' : 'Задача снова открыта');
+    async function toggleTask(id) {
+      if(!requireManual())return;const t=TASKS.find(x=>x.id===id);if(!t)return;
+      try{await window.crmApi('/api/manual/tasks/'+id,'PUT',{record:{...t,done:!t.done,overdue:t.done?t.overdue:false},expectedVersion:t.version});await window.crmRefreshManual();}catch(e){if(e.message!=='session_changed')toast(e.message);}
     }
-
     function openTaskPatient(pid) {
-      if (!pid || !DB.patients[pid]) { toast('Пациент не найден'); return; }
-      showView('comms');
-      selectPatient(pid);
+      if(!pid)return;if(pid.startsWith('tg_')){showView('comms');window.tgSelect(pid.slice(3));return;}
+      if(!DB.patients[pid]){toast('Пациент не найден');return;}showView('comms');selectPatient(pid);
     }
-
-    let editingTaskId = null;
-    function addDemoTask() { openTaskEditor(); }
-    function openTaskEditor(id) {
-      const task=id ? TASKS.find(t=>t.id===id) : null; if(id && !task)return;
-      editingTaskId=task ? task.id : null;
-      document.getElementById('task-modal-title').textContent=task ? 'Редактирование задачи' : 'Новая задача';
-      document.getElementById('task-title').value=task?.title || '';
-      document.getElementById('task-assignee').value=task?.assignee || '';
-      document.getElementById('task-due').value=task?.dueAt || '';
-      const legacy=task && !task.dueAt && task.due && task.due!=='без срока' ? task.due : '';
-      document.getElementById('task-legacy-due').textContent=legacy ? 'Прежний срок: '+legacy+' (без точной даты)' : '';
-      document.getElementById('task-clear-legacy-wrap').style.display=legacy ? '' : 'none';document.getElementById('task-clear-legacy').checked=false;
-      document.getElementById('task-open-patient').style.display=task?.patientId && DB.patients[task.patientId] ? '' : 'none';
-      const select=document.getElementById('task-patient');select.replaceChildren(new Option('Без пациента',''));
-      Object.values(DB.patients).forEach(p=>select.add(new Option(p.name,p.id)));
-      select.value=task?.patientId || '';
-      document.getElementById('task-modal').classList.add('open');document.getElementById('task-title').focus();
+    let editingTaskId=null;
+    function addDemoTask(){openTaskEditor();}
+    function openTaskEditor(id){
+      if(!requireManual())return;const task=id?TASKS.find(t=>t.id===id):null;if(id&&!task)return;editingTaskId=task?task.id:null;taskEditVersion=task?.version??null;taskDraftId=task?null:newId('t');showManualError('task-save-error','');
+      document.getElementById('task-modal-title').textContent=task?'Редактирование задачи':'Новая задача';document.getElementById('task-title').value=task?.title||'';document.getElementById('task-assignee').value=task?.assignee==='—'?'':task?.assignee||'';document.getElementById('task-due').value=localInputValue(task?.dueAt);
+      const legacy=task&&!task.dueAt&&task.due&&task.due!=='без срока'?task.due:'';document.getElementById('task-legacy-due').textContent=legacy?'Прежний срок: '+legacy+' (без точной даты)':'';document.getElementById('task-clear-legacy-wrap').style.display=legacy?'':'none';document.getElementById('task-clear-legacy').checked=false;
+      document.getElementById('task-open-patient').style.display=task?.patientId?'':'none';const select=document.getElementById('task-patient');select.replaceChildren(new Option('Без пациента',''));
+      Object.values(DB.patients).forEach(p=>select.add(new Option(p.name+' · карточка',p.id)));(window.getTelegramPatientOptions?.()||[]).forEach(p=>select.add(new Option(p.name+' · Telegram','tg_'+p.id)));
+      select.value=task?.patientId||'';document.getElementById('task-modal').classList.add('open');document.getElementById('task-title').focus();
     }
-    function openTaskLinkedPatient() { const task=TASKS.find(t=>t.id===editingTaskId); if(!task || !DB.patients[task.patientId])return;const id=task.patientId;closeTaskModal();openTaskPatient(id); }
-    function closeTaskModal() { document.getElementById('task-modal').classList.remove('open');editingTaskId=null; }
-    function saveTask() {
-      const title=document.getElementById('task-title').value.trim(); if(!title){toast('Укажите задачу');return;}
-      const dueAt=document.getElementById('task-due').value, date=dueAt ? new Date(dueAt) : null;
-      if(date && Number.isNaN(date.getTime())){toast('Проверьте срок');return;}
-      const patientId=document.getElementById('task-patient').value, patient=DB.patients[patientId];
-      let task=editingTaskId && TASKS.find(t=>t.id===editingTaskId);
-      const keepLegacy=task && !task.dueAt && task.due && task.due!=='без срока' && !date && !document.getElementById('task-clear-legacy').checked;
-      const fields={title,assignee:document.getElementById('task-assignee').value.trim() || '—',patientId:patient ? patient.id : '',patient:patient ? patient.name : '—',dueAt:dueAt || null,due:date ? date.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : (keepLegacy ? task.due : 'без срока'),overdue:keepLegacy ? task.overdue : !!(date && date.getTime()<Date.now())};
-      if(task)Object.assign(task,fields);else TASKS.unshift({...fields,id:'t_'+Date.now()+'_'+Math.random().toString(36).slice(2),done:false,source:'Вручную'});
-      const saved=persistTasks();closeTaskModal();filterTasks('all');toast(saved ? '✓ Задача сохранена' : 'Задача не сохранена в браузере');
+    function openTaskLinkedPatient(){const task=TASKS.find(t=>t.id===editingTaskId);if(!task?.patientId)return;const id=task.patientId;closeTaskModal();openTaskPatient(id);}
+    function closeTaskModal(){document.getElementById('task-modal').classList.remove('open');editingTaskId=null;}
+    async function saveTask(){
+      if(!requireManual()||taskSaving)return;const title=document.getElementById('task-title').value.trim();if(!title){showManualError('task-save-error','Укажите задачу');return;}
+      const dateValue=document.getElementById('task-due').value,date=dateValue?new Date(dateValue):null;if(date&&Number.isNaN(date.getTime())){showManualError('task-save-error','Проверьте срок');return;}
+      const task=editingTaskId&&TASKS.find(t=>t.id===editingTaskId);if(editingTaskId&&!task){showManualError('task-save-error','Задача недоступна');return;}
+      const keepLegacy=task&&!task.dueAt&&task.due&&task.due!=='без срока'&&!date&&!document.getElementById('task-clear-legacy').checked;
+      const record={...task,title,assignee:document.getElementById('task-assignee').value.trim()||'—',patientId:document.getElementById('task-patient').value,dueAt:date?date.toISOString():null,due:date?date.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):keepLegacy?task.due:'без срока',overdue:keepLegacy?task.overdue:!!(date&&date.getTime()<Date.now()),done:task?.done||false,source:task?.source||'Вручную'};
+      const id=editingTaskId||taskDraftId;taskSaving=true;document.getElementById('task-save-button').disabled=true;showManualError('task-save-error','');
+      try{await window.crmApi('/api/manual/tasks/'+id,'PUT',{record,expectedVersion:taskEditVersion});await window.crmRefreshManual();closeTaskModal();filterTasks('all');toast('Задача сохранена');}
+      catch(e){if(e.message!=='session_changed')showManualError('task-save-error',e.message);}
+      finally{taskSaving=false;document.getElementById('task-save-button').disabled=false;}
     }
-    const taskKey='cliniccrm_journey_tasks_v1';
-    function persistTasks() { try { localStorage.setItem(taskKey,JSON.stringify(TASKS)); return true; } catch (_) { toast('Не удалось сохранить задачи в браузере'); return false; } }
-    try { const saved=JSON.parse(localStorage.getItem(taskKey));if(Array.isArray(saved))TASKS=saved.filter(t=>!oldTaskHashes[t.id]||fingerprint(t)!==oldTaskHashes[t.id]);  } catch (_) {}
-    const oldToggleTask=toggleTask; toggleTask=function(id){oldToggleTask(id);persistTasks();};
-    const oldRenderTasks=renderTasks; renderTasks=function(){TASKS.forEach(t=>{if(t.dueAt && !t.done)t.overdue=new Date(t.dueAt).getTime()<Date.now();});oldRenderTasks();};
-
-    function onStageChanged(patientId, oldStage, newStage) {
-      const p = DB.patients[patientId];
-      if (typeof TASKS !== 'undefined' && p) {
-        TASKS.unshift({
-          id: 't_auto_' + Date.now(),
-          title: 'Проверить этап: ' + (STAGES.find(s => s.num === newStage) || {}).label,
-          patientId, patient: p.name,
-          assignee: p.admin && p.admin!=='—' ? p.admin : '—',
-          due: 'сегодня', overdue: false, done: false, source: 'Смена этапа · демо'
-        });
-        persistTasks();
-      }
-    }
+    const oldRenderTasks=renderTasks;renderTasks=function(){TASKS.forEach(t=>{if(t.dueAt&&!t.done){const d=new Date(t.dueAt);t.overdue=d.getTime()<Date.now();t.due=d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}});oldRenderTasks();};
 
     function showView(name) {
       if (!document.getElementById('view-' + name)) return;
@@ -661,9 +533,7 @@ const STAGES = [
       DB.inboxOrder.forEach(id=>{const p=DB.patients[id];if(!p)return;const node=document.createElement('div');
         node.className='sidebar-item px-4 py-3.5'+(id===currentPatientId && !(window.tgHasSelectedChat && window.tgHasSelectedChat())?' active':'');node.onclick=()=>selectPatient(id);
         const safe=v=>escapeHtml(String(v ?? ''));const title=p.channelIcon==='📞'?p.phone:p.name;
-        node.innerHTML=`<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">Локально · ${safe(p.preview)}</div></div></div>`;list.appendChild(node);
+        node.innerHTML=`<div class="sidebar-item-row"><div class="ch-icon">${safe(p.channelIcon)}</div><div class="ch-body"><div class="ch-top"><span class="ch-name">${safe(title)}</span>${p.unread ? `<span class="unread">${safe(p.unread)}</span>` : `<span class="ch-time">${safe(p.timeLabel)}</span>`}</div><div class="ch-preview">Карточка · ${safe(p.preview)}</div></div></div>`;list.appendChild(node);
       });updateInboxCount();
     };
-    loadDB();
     renderInbox();
-    renderPatient(currentPatientId, false);

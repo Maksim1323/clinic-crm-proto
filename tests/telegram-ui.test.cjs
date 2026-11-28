@@ -73,6 +73,9 @@ test('Кнопки Telegram работают без системных диал�
   assert.equal(d.querySelectorAll('#inbox-list .sidebar-item.active').length,1);
   await w.tgSelect('123');w.showView('tasks');w.showView('comms');assert.notEqual(d.getElementById('tg-patient-col').style.display,'none');
   assert.match(d.getElementById('tg-handoff-status').textContent,/Нужен человек.*ИИ может отвечать/);
+  w.showView('tasks');w.addDemoTask();d.getElementById('task-title').value='Проверить обращение';d.getElementById('task-assignee').value='Сотрудник';d.getElementById('task-patient').value='tg_123';await w.saveTask();
+  const taskList=await(await fetch(base+'/api/manual',{headers})).json();assert.equal(taskList.tasks[0].patientId,'tg_123');assert.equal(taskList.tasks[0].assignee,'Сотрудник');
+  d.querySelector('.task-card .task-right button').click();d.getElementById('task-open-patient').click();for(let i=0;i<100 && d.getElementById('tg-patient-edit').disabled;i++)await new Promise(r=>setTimeout(r,10));assert.notEqual(d.getElementById('tg-patient-col').style.display,'none','из задачи открывается Telegram-чат');
   assert.equal(d.getElementById('tg-draft-btn'),null);assert.equal(d.getElementById('tg-patient-name').textContent,'Не указано');
   d.getElementById('tg-patient-edit').click();assert.equal(d.getElementById('tg-patient-modal').classList.contains('open'),true);
   d.getElementById('tg-pf-name').value='<Тест 123>';d.getElementById('tg-pf-phone').value='000-123';d.getElementById('tg-pf-admin').value='Сотрудник';

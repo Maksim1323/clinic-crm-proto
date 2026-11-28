@@ -25,6 +25,8 @@
       throw new Error(data.error || 'Ошибка сервера');
     } return data;
   }
+  window.crmApi=api;
+  window.getTelegramPatientOptions=()=>telegramItems.map(c=>({id:c.id,name:c.name}));
   function status(message) { el('tg-status').textContent=message; }
   function updateButtons() { el('tg-send-btn').disabled=!currentChat || !patientLoaded || isSending || isResuming;el('tg-resume').disabled=!currentChat || !patientLoaded || isSending || isResuming;el('tg-patient-edit').disabled=!currentChat || !patientLoaded; }
   function showLogin() {el('crm-login-error').textContent='';el('tg-login-modal').classList.add('open');setTimeout(()=>el('tg-admin-token').focus(),30);}
@@ -59,9 +61,11 @@
     try {
       const data=await api('/api/telegram/conversations');
       if(version!==sessionVersion)return;
+      await window.crmRefreshManual();
+      if(version!==sessionVersion)return;
       el('tg-login-modal').classList.remove('open');el('crm-session-btn').textContent='Выйти';
       status('Подключено к тестовому серверу. Карточки Telegram привязаны к отдельным тестовым чатам.');showInbox(data.items);
-      if(!poller)poller=setInterval(()=>{if(adminToken)tgRefresh(true);},10000);
+      if(!poller)poller=setInterval(()=>{if(adminToken){tgRefresh(true);window.crmRefreshManual().catch(()=>{});}},10000);
     } catch(e) {
       if(version===sessionVersion){adminToken='';el('crm-login-error').textContent=e.message;}
     } finally {isLoggingIn=false;el('crm-login-submit').disabled=false;}
@@ -70,7 +74,7 @@
     currentChat=null;patientLoaded=false;++patientRevision;window.tgClosePatient();renderTgPatient(null);el('demo-patient-col').style.display='none';el('comms-empty').style.display='';el('tg-patient-col').style.display='none';updateButtons();
   };
   window.tgLogout = function(){
-    ++sessionVersion;adminToken='';window.tgShowDemo();el('tg-input').value='';el('tg-messages').replaceChildren();
+    ++sessionVersion;adminToken='';window.crmClearManual();window.tgShowDemo();el('tg-input').value='';el('tg-messages').replaceChildren();
     telegramItems=[];el('tg-chat-name').textContent='Выберите диалог';el('tg-alert-count').style.display='none';
     el('tg-handoff-status').textContent='Выберите чат';el('tg-handoff-reason').textContent='';el('tg-handoff-summary').textContent='';
     el('tg-take').style.display='none';el('tg-resume').style.display='none';el('crm-session-btn').textContent='Войти';

@@ -11,6 +11,7 @@ const {initial,context,shortContext,trigger,riskyOutput,aiFailureReason}=require
 const {routeIntake}=require('./workflow/intake');
 const {WAITING_FALLBACK,EMERGENCY_RESPONSE,emergency,safetyReply}=require('./workflow/waiting');
 const {extractPatientInfo,applyPatientInfo,contactQuestion}=require('./workflow/patient-autofill');
+const manual=require('./workflow/manual-records');
 
 function createServer(options={}) {
   const env=options.env||process.env, callFetch=options.fetch||global.fetch;
@@ -157,6 +158,10 @@ function createServer(options={}) {
       }
       if(!pathname.startsWith('/api/'))return fail(res,404,'Страница не найдена');
       if(!auth(req,res))return;
+      if(req.method==='GET'&&pathname==='/api/manual')return json(res,200,await store.transact(manual.list));
+      if(req.method==='POST'&&pathname==='/api/manual/import'){const data=await body(req),result=await store.transact(state=>manual.importOne(state,data));return json(res,result.status,result.data);}
+      const manualMatch=pathname.match(/^\/api\/manual\/(patients|tasks)\/((?:p|t)_[a-f0-9]{32})$/);
+      if(req.method==='PUT'&&manualMatch){const data=await body(req),result=await store.transact(state=>manual.save(state,manualMatch[1]==='patients'?'patient':'task',manualMatch[2],data));return json(res,result.status,result.data);}
       if(req.method==='POST'&&pathname==='/api/setup-webhook'){
         if(!tg||hookSecret.length<24)return fail(res,503,'Проверьте TELEGRAM_BOT_TOKEN и TELEGRAM_WEBHOOK_SECRET (не менее 24 символов).');
         if(!/^[A-Za-z0-9_-]{24,256}$/.test(hookSecret))return fail(res,503,'TELEGRAM_WEBHOOK_SECRET: только буквы, цифры, дефис и подчёркивание.');

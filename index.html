@@ -50,10 +50,11 @@
         <div class="inbox-list" id="inbox-list"></div>
         <div class="sidebar-foot">
           <button onclick="openPatientModal('create')" class="btn-primary">+ Новый пациент</button>
+          <button type="button" id="import-local-btn" class="badge" onclick="crmImportLegacy()" style="display:none;margin-top:8px;width:100%">Импортировать из браузера</button><div id="import-result" style="font-size:11px;color:#64748b;margin-top:6px" role="status"></div>
         </div>
       </aside>
 
-      <div class="card comms-empty" id="comms-empty"><h2>Выберите диалог</h2><p>Новые сообщения появятся здесь после подключения Telegram.</p></div>
+      <div class="card comms-empty" id="comms-empty"><h2>Выберите диалог</h2><p>Войдите в CRM и выберите диалог или карточку пациента.</p></div>
       <div class="patient-col" id="demo-patient-col" style="display:none">
         <div class="card patient-header" id="patient-header">
           <div class="patient-top">
@@ -211,7 +212,7 @@
   
   <div class="app-footer">
     <span>ClinicCRM · тестовый прототип</span>
-    <span id="status-hint">Telegram-чаты — на сервере; локальные задачи и карточки — в браузере</span>
+    <span id="status-hint">Тестовые чаты, задачи и карточки — на сервере после входа</span>
   </div>
 
   <!-- Stage modal -->
@@ -322,9 +323,10 @@
         <label class="field-visibility"><input type="checkbox" id="pf-show-note" /> Показывать в карточке</label>
         </div>
       </div>
+      <p id="patient-save-error" role="alert" style="font-size:12px;color:#e11d48"></p>
       <div class="modal-actions">
         <button type="button" onclick="closePatientModal()">Отмена</button>
-        <button type="button" class="ok" onclick="savePatientCard()">Сохранить</button>
+        <button type="button" id="patient-save-button" class="ok" onclick="savePatientCard()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -335,18 +337,18 @@
       <p style="font-size:13px;color:#64748b;margin-bottom:16px">Введите ADMIN_TOKEN из настроек Render. Ключ хранится только в памяти вкладки до выхода или перезагрузки.</p>
       <div class="form-field"><label for="tg-admin-token">Ключ администратора</label><input id="tg-admin-token" type="password" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();tgLogin()}" /></div>
       <p id="crm-login-error" role="alert" style="font-size:13px;color:#e11d48;margin-top:8px"></p>
-      <div class="modal-actions"><button type="button" onclick="closeTelegramLogin()">Только демо</button><button type="button" class="ok" id="crm-login-submit" onclick="tgLogin()">Войти</button></div>
+      <div class="modal-actions"><button type="button" onclick="closeTelegramLogin()">Закрыть</button><button type="button" class="ok" id="crm-login-submit" onclick="tgLogin()">Войти</button></div>
     </div>
   </div>
   <div class="modal-bg" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title" onclick="if(event.target===this)closeTaskModal()">
     <div class="modal wide"><h3 id="task-modal-title">Новая задача</h3>
       <div class="form-grid" style="margin-top:16px">
         <div class="form-field full"><label for="task-title">Задача *</label><input id="task-title" maxlength="160" /></div>
-        <div class="form-field"><label for="task-assignee">Ответственный</label><input id="task-assignee" maxlength="100" /></div>
+        <div class="form-field"><label for="task-assignee">Ответственный</label><input id="task-assignee" maxlength="100" list="task-staff-options" /><datalist id="task-staff-options"></datalist></div>
         <div class="form-field"><label for="task-due">Срок</label><input id="task-due" type="datetime-local" /><span id="task-legacy-due" style="font-size:12px;color:#64748b"></span><label id="task-clear-legacy-wrap" class="form-check" style="display:none"><input id="task-clear-legacy" type="checkbox" /> Убрать прежний срок</label></div>
-        <div class="form-field full"><label for="task-patient">Демо-пациент (необязательно)</label><select id="task-patient"></select></div>
-      </div><p style="color:#64748b;font-size:12px;margin-top:8px">Задачи сохраняются в этом браузере.</p>
-      <div class="modal-actions"><button type="button" id="task-open-patient" onclick="openTaskLinkedPatient()" style="display:none">Открыть пациента</button><button type="button" onclick="closeTaskModal()">Отмена</button><button type="button" class="ok" onclick="saveTask()">Сохранить</button></div>
+        <div class="form-field full"><label for="task-patient">Пациент или Telegram-чат (необязательно)</label><select id="task-patient"></select></div>
+      </div><p style="color:#64748b;font-size:12px;margin-top:8px">Задачи сохраняются на сервере. Ответственный выбирается или вводится по имени; личные учётные записи пока не подключены.</p>
+      <p id="task-save-error" role="alert" style="font-size:12px;color:#e11d48"></p><div class="modal-actions"><button type="button" id="task-open-patient" onclick="openTaskLinkedPatient()" style="display:none">Открыть пациента</button><button type="button" onclick="closeTaskModal()">Отмена</button><button type="button" id="task-save-button" class="ok" onclick="saveTask()">Сохранить</button></div>
     </div>
   </div>
   <div class="modal-bg" id="tg-patient-modal" role="dialog" aria-modal="true" aria-labelledby="tg-patient-modal-title" onclick="if(event.target===this)tgClosePatient()">

@@ -1,0 +1,36 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),{Pool}=require('pg');const {createServer}=require('../src/app');
+const url=process.env.TEST_MANUAL_DATABASE_URL;
+const token='test-admin-token-long-enough-123456',secret='test_webhook_secret_1234567890',headers={Authorization:'Bearer '+token,'content-type':'application/json'};
+const patient={name:'Тестовый пациент',phone:'000',age:'',gender:'',channelIcon:'✈️',channelLabel:'Telegram',timeLabel:'',admin:'Сотрудник',doctor:'',preview:'',createdAt:'',plan:'',note:'',emoji:'👤',stageNum:1,stageTotal:5,bonuses:0,nps:null,noSpam:false,statusInClinic:false,visibility:{phone:false},history:[{type:'note',title:'Заметка',icon:'',date:'',body:'проверка'}]};
+const task={title:'Позвонить',assignee:'Сотрудник',patientId:'',dueAt:'2030-05-06T09:30:00.000Z',due:'06.05.2030',done:false,source:'Вручную'};
+test('PostgreSQL: ручные карточки и задачи выдерживают конкурентные изменения, повторный импорт и перезапуск',{skip:!url},async t=>{
+  const pool=new Pool({connectionString:url});await pool.query('DROP TABLE IF EXISTS clinic_state');await pool.end();const env={DATABASE_URL:url,ADMIN_TOKEN:token,TELEGRAM_WEBHOOK_SECRET:secret,AI_AUTO_REPLY:'false'};
+  const a=createServer({env}),b=createServer({env});await Promise.all([a.ready,b.ready]);await Promise.all([new Promise(r=>a.listen(0,'127.0.0.1',r)),new Promise(r=>b.listen(0,'127.0.0.1',r))]);t.after(()=>{a.close();b.close()});
+  const base=x=>'http://127.0.0.1:'+x.address().port,post=(x,path,data,method='PUT')=>fetch(base(x)+path,{method,headers,body:JSON.stringify(data)}),get=async x=>(await(await fetch(base(x)+'/api/manual',{headers})).json());
+  const p='p_11111111111111111111111111111111',t1='t_22222222222222222222222222222222',t2='t_33333333333333333333333333333333';
+  assert.equal((await post(a,'/api/manual/patients/'+p,{record:patient,expectedVersion:null})).status,200);
+  assert.equal((await post(b,'/api/manual/tasks/'+t1,{record:{...task,patientId:p},expectedVersion:null})).status,200);
+  const send=await fetch(base(a)+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:25,message:{message_id:25,chat:{id:765,type:'private'},from:{first_name:'Другой чат'},text:'Тест'}})});assert.equal(send.status,200);
+  assert.equal((await post(b,'/api/manual/tasks/'+t2,{record:{...task,patientId:'tg_765',done:true},expectedVersion:null})).status,200);
+  let all=await get(b);assert.equal(all.patients.length,1);assert.equal(all.tasks.length,2);assert.equal(all.tasks.find(t=>t.id===t2).patient,'Другой чат');assert.equal(all.employees.length,1);assert.equal(all.tasks[0].employeeId,all.tasks[1].employeeId);assert.equal(all.tasks.find(t=>t.id===t1).patient,'Тестовый пациент');
+  const results=await Promise.all([a,b].map((x,i)=>post(x,'/api/manual/patients/'+p,{record:{...patient,name:'Имя '+i},expectedVersion:1})));assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
+  const taskResults=await Promise.all([a,b].map((x,i)=>post(x,'/api/manual/tasks/'+t1,{record:{...task,patientId:p,title:'Изменено '+i},expectedVersion:1})));assert.deepEqual(taskResults.map(r=>r.status).sort(),[200,409]);
+  assert.equal((await post(a,'/api/manual/tasks/'+t2,{record:{...task,patientId:'tg_999'},expectedVersion:1})).status,400);
+  const scope='a'.repeat(32),importPatient={scope,kind:'patient',legacyId:'old1',record:{...patient,legacyExtra:'сохранить'}};
+  let result=await (await post(a,'/api/manual/import',importPatient,'POST')).json();assert.equal(result.status,'imported');const importedId=result.id;
+  const legacyTask={scope,kind:'task',legacyId:'oldTask',record:{...task,patientId:'old1'}};result=await (await post(b,'/api/manual/import',legacyTask,'POST')).json();assert.equal(result.status,'imported');
+  assert.equal((await (await post(b,'/api/manual/import',importPatient,'POST')).json()).status,'exists');
+  assert.equal((await post(a,'/api/manual/import',{...legacyTask,legacyId:'lost',record:{...task,patientId:'absent'}},'POST')).status,409);
+  all=await get(a);const imported=all.patients.find(x=>x.id===importedId);assert.equal(imported.legacyRecord,undefined);
+  assert.equal((await post(a,'/api/manual/patients/'+importedId,{record:{...imported,name:'Редактировано'},expectedVersion:1})).status,200);
+  await Promise.all([new Promise(r=>a.close(r)),new Promise(r=>b.close(r))]);
+  const restarted=createServer({env});await restarted.ready;await new Promise(r=>restarted.listen(0,'127.0.0.1',r));t.after(()=>restarted.close());all=await get(restarted);
+  assert.equal(all.patients.length,2);assert.equal(all.tasks.length,3);assert.equal(all.patients.find(x=>x.id===importedId).name,'Редактировано');assert.equal(all.tasks.find(x=>x.id===t1).dueAt,'2030-05-06T09:30:00.000Z');assert.equal(all.tasks.find(x=>x.id===t2).done,true);assert.equal(all.tasks.find(x=>x.id===t2).employeeId,all.employees[0].id);
+  const telegram=await(await fetch(base(restarted)+'/api/telegram/conversations/765',{headers})).json();assert.equal(telegram.messages[0].text,'Тест');
+  const verify=new Pool({connectionString:url});const db=await verify.query('SELECT payload FROM clinic_state WHERE id=1');assert.equal(db.rows[0].payload.manualPatients[importedId].legacyRecord.legacyExtra,'сохранить');await verify.end();
+});
+test('PostgreSQL: отказ записи не выдаётся за успешное сохранение',{skip:!url},async t=>{
+  const pool=new Pool({connectionString:url});await pool.query('DROP TABLE IF EXISTS clinic_state');const app=createServer({env:{DATABASE_URL:url,ADMIN_TOKEN:token}});await app.ready;await new Promise(r=>app.listen(0,'127.0.0.1',r));t.after(()=>{app.close();pool.end()});await pool.query('DROP TABLE clinic_state');
+  const res=await fetch('http://127.0.0.1:'+app.address().port+'/api/manual/patients/p_11111111111111111111111111111111',{method:'PUT',headers,body:JSON.stringify({record:patient,expectedVersion:null})});assert.equal(res.status,502);
+});
