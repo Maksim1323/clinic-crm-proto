@@ -726,5 +726,5 @@
 .tg-stage-count { font-size:11px; color:#94a3b8; }
 .tg-header-fields { border-top:1px solid #f1f5f9; padding-top:8px; }
 .tg-header-fields .profile-row { align-items:flex-start; }
-.tg-connection { margin-top:8px; }
+.tg-header-card #tg-status:empty { display:none; }
 @media (max-width:700px) { .tg-card-main { flex-wrap:wrap; } .tg-card-actions { align-items:flex-start; } .tg-card-badges { justify-content:flex-start; } .tg-header-card { padding:16px; max-height:45vh; } .tg-card-avatar { width:44px; height:44px; flex-basis:44px; border-radius:13px; } }

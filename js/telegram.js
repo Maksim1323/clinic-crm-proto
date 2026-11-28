@@ -75,7 +75,7 @@
       await window.crmRefreshManual();
       if(version!==sessionVersion)return;
       el('tg-login-modal').classList.remove('open');el('crm-session-btn').textContent='Выйти';
-      status('Подключено к тестовому серверу. Карточки Telegram привязаны к отдельным тестовым чатам.');showInbox(data.items);
+      status('');showInbox(data.items);
       if(!poller)poller=setInterval(()=>{if(adminToken){tgRefresh(true);window.crmRefreshManual().catch(()=>{});}},10000);
     } catch(e) {
       if(version===sessionVersion){adminToken='';window.crmSetUser(null);el('crm-login-error').textContent=e.message;setupLogin();}

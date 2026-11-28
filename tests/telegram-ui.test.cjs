@@ -63,6 +63,8 @@ test('Кнопки Telegram работают без системных диал�
   d.getElementById('crm-login-username').value=sessionFixture.credentials.login;d.getElementById('crm-login-password').value=sessionFixture.credentials.password;await w.tgLogin();
   assert.equal(d.getElementById('tg-login-modal').classList.contains('open'),false);
   assert.equal(d.getElementById('crm-session-btn').textContent,'Выйти');
+  assert.equal(d.getElementById('tg-status').textContent,'','техническое сообщение при входе не выводится');assert.equal(d.getElementById('tg-connection'),null,'техническая метка удалена');
+  const normalFetch=w.fetch;w.fetch=(url,options)=>String(url).endsWith('/api/telegram/conversations')?Promise.reject(new Error('offline')):normalFetch(url,options);await w.tgRefresh();assert.match(d.getElementById('tg-status').textContent,/Сервер недоступен/,'ошибки по-прежнему видны');w.fetch=normalFetch;
   assert.equal((await fetch(base+'/api/telegram/conversations')).status,401,'чаты закрыты на сервере без ключа');
   assert.ok(!Object.values(w.localStorage).some(value=>String(value).includes(token)),'ключ не записывается в localStorage');
   assert.equal(d.querySelectorAll('#inbox-list .sidebar-item').length,1,'все чаты в одном списке');
