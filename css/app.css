@@ -689,3 +689,6 @@
 .tg-header-card .tg-card-hint { margin:0 0 4px; }
 .tg-header-card .tg-card-source { text-align:left; }
 .tg-header-card .patient-sub { margin-top:6px; }
+
+.tg-header-fields .profile-row .value { min-width:0; overflow-wrap:anywhere; white-space:pre-wrap; }
+.tg-header-card { max-height:40vh; overflow-y:auto; flex-shrink:0; }

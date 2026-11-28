@@ -179,7 +179,17 @@
             <div><div class="profile-row"><span class="label">Телефон</span><span class="value" id="tg-patient-phone">Не указан</span></div><div class="tg-card-source" id="tg-patient-phone-source"></div></div>
             <div class="profile-row"><span class="label">Ответственный</span><span class="value" id="tg-patient-admin">Не указан</span></div>
             <div class="profile-row"><span class="label">Врач</span><span class="value" id="tg-patient-doctor">Не указан</span></div>
-            <div class="form-field"><label for="tg-assignee-user">Ответственный сотрудник</label><select id="tg-assignee-user" onchange="tgAssign()"></select></div>
+            <div class="profile-row" data-tg-field="age"><span class="label">Возраст</span><span class="value" id="tg-patient-age">Не указан</span></div>
+            <div class="profile-row" data-tg-field="gender"><span class="label">Пол</span><span class="value" id="tg-patient-gender">Не указан</span></div>
+            <div class="profile-row" data-tg-field="channel"><span class="label">Канал</span><span class="value" id="tg-patient-channel">Telegram</span></div>
+            <div class="profile-row" data-tg-field="stage"><span class="label">Этап</span><span class="value" id="tg-patient-stage">Не указан</span></div>
+            <div class="profile-row" data-tg-field="bonuses"><span class="label">Бонусы</span><span class="value" id="tg-patient-bonuses">Не указаны</span></div>
+            <div class="profile-row" data-tg-field="nps"><span class="label">NPS</span><span class="value" id="tg-patient-nps">Не указан</span></div>
+            <div class="profile-row" data-tg-field="nospam"><span class="label">Отказ от рассылок</span><span class="value" id="tg-patient-nospam">Нет</span></div>
+            <div class="profile-row" data-tg-field="inclinic"><span class="label">Сейчас в клинике</span><span class="value" id="tg-patient-inclinic">Нет</span></div>
+            <div class="profile-row" data-tg-field="plan"><span class="label">План лечения</span><span class="value" id="tg-patient-plan">Не указан</span></div>
+            <div class="profile-row" data-tg-field="note"><span class="label">Заметка</span><span class="value" id="tg-patient-note">Не указана</span></div>
+            <div class="form-field" data-tg-field="admin"><label for="tg-assignee-user">Ответственный сотрудник</label><select id="tg-assignee-user" onchange="tgAssign()"></select></div>
           </div>
           <div id="tg-possible-duplicates" style="font-size:12px"></div><div class="patient-sub" id="tg-status"></div>
         </div>
@@ -393,12 +403,22 @@
     </div>
   </div>
   <div class="modal-bg" id="tg-patient-modal" role="dialog" aria-modal="true" aria-labelledby="tg-patient-modal-title" onclick="if(event.target===this)tgClosePatient()">
-    <div class="modal wide"><h3 id="tg-patient-modal-title">Карточка пациента</h3><p style="font-size:13px;color:#64748b;margin-top:6px">Только тестовые данные. Карточка связана с выбранным Telegram-чатом, не с МИС. Галочки управляют отображением, а не удаляют данные.</p>
+    <div class="modal wide"><h3 id="tg-patient-modal-title">Редактирование карточки</h3><p style="font-size:13px;color:#64748b;margin-top:6px">Только тестовые данные. Отдельная карточка Telegram; галочки управляют отображением и не удаляют данные.</p>
       <div class="form-grid" style="margin-top:16px">
-        <div class="form-field"><label for="tg-pf-name">Имя</label><input id="tg-pf-name" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-name" /> Показывать в карточке</label></div>
-        <div class="form-field"><label for="tg-pf-phone">Телефон</label><input id="tg-pf-phone" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-phone" /> Показывать в карточке</label></div>
-        <div class="form-field"><label for="tg-pf-admin">Ответственный</label><input id="tg-pf-admin" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-admin" /> Показывать в карточке</label></div>
-        <div class="form-field"><label for="tg-pf-doctor">Врач</label><input id="tg-pf-doctor" maxlength="100" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-doctor" /> Показывать в карточке</label></div>
+        <div class="form-field full"><label for="tg-pf-name">ФИО</label><input id="tg-pf-name" maxlength="100" placeholder="Не указано" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-name" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-phone">Телефон</label><input id="tg-pf-phone" maxlength="100" placeholder="Не указан" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-phone" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-age">Возраст</label><input id="tg-pf-age" maxlength="100" placeholder="Не указан" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-age" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-gender">Пол</label><select id="tg-pf-gender"><option value="">Не указан</option><option value="male">Мужской</option><option value="female">Женский</option></select><label class="field-visibility"><input type="checkbox" id="tg-pf-show-gender" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-channel">Канал обращения</label><select id="tg-pf-channel"><option value="tg">Telegram</option><option value="call">Звонок</option><option value="vk">ВКонтакте</option><option value="email">Сайт / Email</option><option value="mis">МИС</option><option value="">Не указан</option></select><label class="field-visibility"><input type="checkbox" id="tg-pf-show-channel" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-assignee">Ответственный сотрудник</label><select id="tg-pf-assignee"></select><label for="tg-pf-admin">Прежнее имя</label><input id="tg-pf-admin" maxlength="100" placeholder="Не указано" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-admin" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-doctor">Лечащий врач</label><input id="tg-pf-doctor" maxlength="100" placeholder="Не указан" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-doctor" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-stage">Этап</label><select id="tg-pf-stage"><option value="">Не указан</option><option value="1">1 · Первичный приём</option><option value="2">2 · Продажа плана лечения</option><option value="3">3 · Лечение</option><option value="4">4 · Профосмотр</option><option value="5">5 · Потенциальный клиент</option></select><label class="field-visibility"><input type="checkbox" id="tg-pf-show-stage" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-bonuses">Бонусы, ₽</label><input id="tg-pf-bonuses" type="number" min="0" step="1" placeholder="Не указаны" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-bonuses" /> Показывать в карточке</label></div>
+        <div class="form-field"><label for="tg-pf-nps">NPS (1–10)</label><input id="tg-pf-nps" type="number" min="1" max="10" step="1" placeholder="Не указан" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-nps" /> Показывать в карточке</label></div>
+        <div class="form-field"><label class="form-check"><input id="tg-pf-nospam" type="checkbox" /> Отказ от рассылок</label><label class="field-visibility"><input type="checkbox" id="tg-pf-show-nospam" /> Показывать в карточке</label></div>
+        <div class="form-field"><label class="form-check"><input id="tg-pf-inclinic" type="checkbox" /> Сейчас в клинике</label><label class="field-visibility"><input type="checkbox" id="tg-pf-show-inclinic" /> Показывать в карточке</label></div>
+        <div class="form-field full"><label for="tg-pf-plan">План лечения</label><input id="tg-pf-plan" maxlength="300" placeholder="Не указан" /><label class="field-visibility"><input type="checkbox" id="tg-pf-show-plan" /> Показывать в карточке</label></div>
+        <div class="form-field full"><label for="tg-pf-note">Комментарий / заметка</label><textarea id="tg-pf-note" maxlength="5000" placeholder="Не указана"></textarea><label class="field-visibility"><input type="checkbox" id="tg-pf-show-note" /> Показывать в карточке</label></div>
       </div><div id="tg-patient-duplicates" style="font-size:12px"></div><p id="tg-patient-error" role="alert" style="font-size:13px;color:#e11d48;margin-top:8px"></p>
       <div class="modal-actions"><button type="button" onclick="tgClosePatient()">Отмена</button><button type="button" class="ok" id="tg-patient-save" onclick="tgSavePatient()">Сохранить</button></div>
     </div>
